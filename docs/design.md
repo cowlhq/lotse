@@ -1,9 +1,9 @@
 # lotse design
 
-Draft for review, 2026-10-13. The decisions in [decisions/](decisions/) are
-settled; this file proposes how to build on them. Points still to confirm are
-collected in [section 12](#12-to-confirm). Once approved, this file describes
-how lotse is built and is kept up to date with it.
+Approved 2026-10-13. The decisions in [decisions/](decisions/) say what was
+chosen and why; this file describes how lotse is built on them, and is kept up
+to date as it is built. What the review settled is in
+[section 12](#12-settled-during-the-review).
 
 ## 1. In one paragraph
 
@@ -634,12 +634,14 @@ The milestones from the brief, with the changes the decisions make necessary
    inheritance and the effective view, the setup wizard ★, enrollment tokens,
    the "add agent" one-liner, the install script, the change history (from here
    on every UI change is recorded) ★.
-4. **Probes and checks.** HTTP, TLS, TCP, heartbeat; the built-in probe and
+4. **Updates ★.** Release watcher, `update` for agents and the hub, rollback,
+   auto-update with update windows. It comes this early so that the shadow
+   operation on real machines can be updated from the first release on;
+   the repository goes public with that release.
+5. **Probes and checks.** HTTP, TLS, TCP, heartbeat; the built-in probe and
    external probes.
-5. **Alerting.** Rule engine, channels, routing, maintenance, default rules,
+6. **Alerting.** Rule engine, channels, routing, maintenance, default rules,
    dead man's switch.
-6. **Updates ★.** Release watcher, `update` for agents and the hub, rollback,
-   auto-update with update windows.
 7. **apply, export, labels.** With dry-run diff and scoped prune.
 8. **Read API.** API tokens, OpenAPI published, `lotse.sh/client`.
 9. **Retention and downsampling.** 48 h raw, 30 d of 5-minute values, 1 year of
@@ -648,26 +650,21 @@ The milestones from the brief, with the changes the decisions make necessary
 After each milestone `docker compose up` runs everything locally: hub, an agent
 that watches the Docker host, and a few demo containers with labels.
 
-## 12. To confirm
+## 12. Settled during the review
 
-These follow from the decisions but were not explicitly decided. Each one has
-a proposal in the sections above.
+These followed from the decisions and were confirmed on 2026-10-13:
 
-1. **Container identity:** slug from compose project and service, so that a
-   container keeps history and checks across redeploys (5.1).
-2. **Enrollment tokens** stay valid until revoked; no expiry by default (7).
-3. **Re-enrolling** with the same machine ID takes over the existing host (7).
-4. **Probe quorum:** majority of the online probes (8.3).
-5. **Lists in settings** replace inherited lists instead of extending them (5.2).
-6. **Milestone order:** updates come as their own milestone 6, before
-   apply/labels (11).
-
-Confirmed on 2026-10-13:
-
+- A container is identified by compose project and service, so it keeps its
+  history and checks across redeploys (5.1).
 - `lotse.env` replaces `lotse.project` and only reaches environments of the
   host's own customer (9.3).
 - API tokens come in two kinds: `read` for the read API, and `apply`, which
   may also write configuration but not manage users or tokens (5.3, 9.2).
+- Enrollment tokens stay valid until revoked (7).
+- Enrolling again with the same machine ID takes over the existing host (7).
+- A check is down when the majority of its online probes see it fail (8.3).
+- A list in the settings replaces the inherited list (5.2).
+- Updates are milestone 4, right after the tree and onboarding (11).
 - The repository stays private through milestone 3 and goes public with the
   first release, before hub and agent are tried on real machines. Install
   downloads, updates, GitHub Pages and `go install` all need it public.
