@@ -3,6 +3,7 @@ module lotse.sh
 go 1.27
 
 require (
+	github.com/coder/websocket v1.8.15
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/pressly/goose/v3 v3.29.0
 	modernc.org/sqlite v1.60.1
