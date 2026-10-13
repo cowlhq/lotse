@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { checkSetupToken, SetupDone } from "../api";
+import { checkSetupToken, SetupDone } from "@/api";
 
 export function Setup({ token }: { token: string }) {
   const { t } = useTranslation();
