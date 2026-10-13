@@ -13,6 +13,9 @@ export type Container = Schemas["Container"];
 export type Series = Schemas["Series"];
 export type Event = Schemas["Event"];
 export type User = Schemas["User"];
+export type Scope = Schemas["Scope"];
+export type ScopeName = Schemas["ScopeName"];
+export type Change = Schemas["Change"];
 export type SetupStep = Schemas["SetupStep"];
 
 export type Range = { from: number; to: number };
@@ -27,6 +30,16 @@ export const getSeries = (kind: "hosts" | "filesystems" | "containers", id: numb
 
 export const listEvents = (subject: string, r: Range) =>
   get<Event[]>(`/api/events?subject=${subject}&from=${r.from}&to=${r.to}`);
+
+export const listScopes = () => get<Scope[]>("/api/scopes");
+export const getScope = (id: number) => get<Scope>(`/api/scopes/${id}`);
+export const renameScope = (id: number, name: string) => send<Scope>("PATCH", `/api/scopes/${id}`, { name });
+export const deleteScope = (id: number) => send<void>("DELETE", `/api/scopes/${id}`);
+export const createEnvironment = (levels: { customer: ScopeName; project: ScopeName; environment: ScopeName }) =>
+  post<Scope>("/api/environments", levels);
+export const setHostEnvironment = (hostID: number, environmentID: number | null) =>
+  send<void>("PUT", `/api/hosts/${hostID}/environment`, { environment_id: environmentID });
+export const listChanges = (subject: string) => get<Change[]>(`/api/changes?subject=${subject}`);
 
 export type SetupCheck = { valid: boolean; step?: SetupStep; postgres?: string };
 
@@ -57,9 +70,13 @@ async function get<T>(path: string): Promise<T> {
   return answer<T>(await fetch(path), path);
 }
 
-async function post<T>(path: string, body?: unknown): Promise<T> {
+function post<T>(path: string, body?: unknown): Promise<T> {
+  return send<T>("POST", path, body);
+}
+
+async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
-    method: "POST",
+    method,
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });

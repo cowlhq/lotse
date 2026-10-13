@@ -38,7 +38,11 @@
     "empty": "No hosts yet. Start an agent, and its machine appears here.",
     "containers": "{{running}} of {{total}} containers up",
     "unhealthy_one": "{{count}} container unhealthy",
-    "unhealthy_other": "{{count}} containers unhealthy"
+    "unhealthy_other": "{{count}} containers unhealthy",
+    "title": "Overview",
+    "start": "Nothing here yet. Create an environment, then add an agent to it.",
+    "noHosts": "No hosts yet.",
+    "unassigned": "Not in an environment"
   },
   "status": {
     "online": "online",
@@ -120,5 +124,43 @@
     "password": "Password",
     "submit": "Log in",
     "logout": "Log out"
+  },
+  "tree": {
+    "newEnvironment": "New environment",
+    "newEnvironmentHint": "Customer, project and environment. Pick an existing customer or project, or type a new one.",
+    "customer": "Customer",
+    "project": "Project",
+    "environment": "Environment",
+    "exists": "exists",
+    "new": "new",
+    "key": "Key",
+    "create": "Create",
+    "notFound": "There is no such environment.",
+    "rename": "Rename",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete environment",
+    "deleteConfirm": "Delete this environment? Its history stays."
+  },
+  "history": {
+    "title": "History",
+    "empty": "No changes yet.",
+    "created": "created",
+    "deleted": "deleted",
+    "changed": "{{field}} changed:",
+    "nothing": "none",
+    "by": "{{who}}, {{via}}",
+    "via": {
+      "ui": "in the UI",
+      "apply": "by apply",
+      "label": "by label",
+      "api": "through the API",
+      "setup": "in setup",
+      "system": "by lotse"
+    },
+    "fields": {
+      "name": "name",
+      "environment": "environment"
+    }
   }
 }
