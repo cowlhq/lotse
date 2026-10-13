@@ -9,6 +9,9 @@ i18n.use(initReactI18next).init({
   lng: "en",
   fallbackLng: "en",
   interpolation: { escapeValue: false },
+  // Event kinds such as "container.health_status: unhealthy" are keys;
+  // ":" must not split them into a namespace.
+  nsSeparator: false,
 });
 
 export default i18n;
