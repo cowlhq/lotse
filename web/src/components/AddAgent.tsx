@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getEnrollment, newEnrollment, NotFound } from "@/api";
+import { getEnrollment, getHealth, newEnrollment, NotFound } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,7 +40,9 @@ function Body({ envID }: { envID: number }) {
     },
   });
 
-  const cmds = enrollment.data && installCommands(enrollment.data.hub, enrollment.data.token);
+  const health = useQuery({ queryKey: ["health"], queryFn: getHealth });
+  const dev = health.data?.version.startsWith("dev") ?? false;
+  const cmds = enrollment.data && installCommands(enrollment.data.hub, enrollment.data.token, dev);
   return (
     <div className="min-w-0 space-y-4">
       <DialogHeader>
