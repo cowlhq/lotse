@@ -59,7 +59,7 @@ func (s apiServer) ListHosts(ctx context.Context, _ api.ListHostsRequestObject) 
 	}
 	out := make(api.ListHosts200JSONResponse, 0, len(hosts))
 	for _, h := range hosts {
-		sum := api.HostSummary{Host: s.toHost(h)}
+		sum := api.HostSummary{Host: s.toHost(ctx, h)}
 		latest, err := s.db.LatestHostSample(ctx, h.ID)
 		if err != nil {
 			return nil, err
@@ -108,7 +108,7 @@ func (s apiServer) GetHost(ctx context.Context, req api.GetHostRequestObject) (a
 	if err != nil {
 		return nil, err
 	}
-	out := api.HostDetail{Host: s.toHost(h), Filesystems: []api.Filesystem{}, Containers: []api.Container{}}
+	out := api.HostDetail{Host: s.toHost(ctx, h), Filesystems: []api.Filesystem{}, Containers: []api.Container{}}
 	latest, err := s.db.LatestHostSample(ctx, h.ID)
 	if err != nil {
 		return nil, err
@@ -257,9 +257,14 @@ func ptrValue[T any](p *T) T {
 	return *p
 }
 
-func (s apiServer) toHost(h store.Host) api.Host {
+func (s apiServer) toHost(ctx context.Context, h store.Host) api.Host {
+	revoked, err := s.db.AgentRevoked(ctx, h.ID)
+	if err != nil {
+		s.log.Error("cannot tell whether a host's agent is revoked", "host_id", h.ID, "err", err)
+	}
 	return api.Host{
-		Id: h.ID, Name: h.Name, Hostname: h.Hostname, Os: h.OS, Platform: h.Platform,
+		AgentRevoked: revoked,
+		Id:           h.ID, Name: h.Name, Hostname: h.Hostname, Os: h.OS, Platform: h.Platform,
 		Kernel: h.Kernel, Arch: h.Arch, CpuModel: h.CPUModel, Cores: h.Cores,
 		MemTotal: h.MemTotal, BootTime: h.BootTime, AgentVersion: h.AgentVersion,
 		DockerVersion: h.DockerVersion, FirstSeen: h.FirstSeen, LastSeen: h.LastSeen,

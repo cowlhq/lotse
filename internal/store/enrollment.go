@@ -166,3 +166,13 @@ func (s *Store) RevokeAgents(ctx context.Context, actor Actor, hostID int64, now
 		return s.recorder(tx, actor).record(ctx, "host", h.ID, h.Name, "agent revoked", nil, nil)
 	})
 }
+
+// AgentRevoked says whether every credential a host's agents ever had is
+// revoked: it had an agent, and that agent cannot come back without
+// enrolling again.
+func (s *Store) AgentRevoked(ctx context.Context, hostID int64) (bool, error) {
+	var active, total int
+	err := s.queryRow(ctx, `SELECT COALESCE(SUM(CASE WHEN revoked_at IS NULL THEN 1 ELSE 0 END), 0), COUNT(*)
+		FROM agents WHERE host_id = ?`, hostID).Scan(&active, &total)
+	return total > 0 && active == 0, err
+}

@@ -406,6 +406,8 @@ type HealthDatabase string
 
 // Host defines model for Host.
 type Host struct {
+	// AgentRevoked Whether its agent's credential is revoked; it comes back only by enrolling again.
+	AgentRevoked bool   `json:"agent_revoked"`
 	AgentVersion string `json:"agent_version"`
 	Arch         string `json:"arch"`
 	BootTime     int64  `json:"boot_time"`
