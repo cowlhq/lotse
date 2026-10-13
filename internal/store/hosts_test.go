@@ -149,3 +149,40 @@ func TestWriteAndSeries(t *testing.T) {
 		}
 	})
 }
+
+func TestLatest(t *testing.T) {
+	storetest.Each(t, func(t *testing.T, s *store.Store) {
+		ctx := t.Context()
+		h, _, _ := s.SaveHost(ctx, store.Host{MachineID: "m1", Hostname: "web1", LastSeen: 1})
+		if x, err := s.LatestHostSample(ctx, h.ID); x != nil || err != nil {
+			t.Errorf("no readings yet: %+v, %v", x, err)
+		}
+		ids, _ := s.SyncContainers(ctx, h.ID, []store.Container{{Slug: "app", DockerID: "a"}}, 1)
+		err := s.Write(ctx, store.Batch{
+			HostSamples: []store.HostSample{{HostID: h.ID, TS: 10, CPU: ptr(1.0)}, {HostID: h.ID, TS: 20, CPU: ptr(2.0)}},
+			FSSamples: []store.FSSample{
+				{HostID: h.ID, Mount: "/", TS: 10, Used: 1, Total: 10},
+				{HostID: h.ID, Mount: "/", TS: 20, Used: 2, Total: 10},
+			},
+			ContainerSamples: []store.ContainerSample{
+				{ContainerID: ids["a"], TS: 10, Mem: ptr[int64](5)},
+				{ContainerID: ids["a"], TS: 40, Mem: ptr[int64](7)},
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		x, err := s.LatestHostSample(ctx, h.ID)
+		if err != nil || x.TS != 20 || *x.CPU != 2 {
+			t.Errorf("latest host reading: %+v, %v", x, err)
+		}
+		fs, err := s.Filesystems(ctx, h.ID)
+		if err != nil || len(fs) != 1 || *fs[0].Used != 2 {
+			t.Errorf("filesystems: %+v, %v", fs, err)
+		}
+		cs, err := s.LatestContainerSamples(ctx, h.ID)
+		if err != nil || cs[ids["a"]].TS != 40 || *cs[ids["a"]].Mem != 7 {
+			t.Errorf("latest container readings: %+v, %v", cs, err)
+		}
+	})
+}
