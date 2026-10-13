@@ -47,7 +47,8 @@
   },
   "status": {
     "online": "online",
-    "offline": "offline"
+    "offline": "offline",
+    "revoked": "agent revoked"
   },
   "range": {
     "hours_one": "{{count}} hour",
@@ -223,7 +224,7 @@
     "copy": "Copy",
     "revoke": "Revoke agent",
     "revokeConfirm": "Revoke this host's agent? It is disconnected now and can only come back by enrolling again.",
-    "revokeHint": "Disconnects the agent and revokes its credential. History and readings stay."
+    "revokeHint": "Disconnects the agent and revokes its credential. History and readings stay. Running the install command again, with a current token, brings it back."
   },
   "events": {
     "title": "Events"

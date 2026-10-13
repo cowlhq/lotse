@@ -108,7 +108,7 @@ function HostCard({ summary }: { summary: HostSummary }) {
         <CardHeader>
           <CardTitle className="flex items-center justify-between gap-2">
             <span className="truncate">{host.name}</span>
-            <Online online={host.online} />
+            <Online online={host.online} revoked={host.agent_revoked} />
           </CardTitle>
           <p className="truncate text-xs text-muted-foreground">{host.platform || host.os}</p>
           {updateFor(host.agent_version) && <UpdateBadge version={updateFor(host.agent_version)!} />}
