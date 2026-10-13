@@ -49,6 +49,7 @@ const (
 	TypeHello   = "hello"
 	TypeWelcome = "welcome"
 	TypeConfig  = "config"
+	TypeLive    = "live"
 	TypeHost    = "host"
 	// Containers is the full list of the machine's containers: after
 	// connecting, and every few minutes as a safety net for missed events.
@@ -63,6 +64,7 @@ type Message struct {
 	Hello   *Hello      `json:"hello,omitempty"`
 	Welcome *Welcome    `json:"welcome,omitempty"`
 	Config  *Config     `json:"config,omitempty"`
+	Live    *Live       `json:"live,omitempty"`
 	Host    *HostSample `json:"host,omitempty"`
 
 	Containers     *ContainerList  `json:"containers,omitempty"`
@@ -103,6 +105,16 @@ type Config struct {
 	// ContainerInterval is how often to read the containers' usage.
 	ContainerInterval int `json:"container_interval"`
 }
+
+// Live asks the agent to read at LiveInterval while someone is looking
+// (decision 0008). It ends after Seconds unless the hub says it again, so
+// an agent never stays fast because a message was lost.
+type Live struct {
+	Seconds int `json:"seconds"`
+}
+
+// LiveInterval is how often an agent reads while live.
+const LiveInterval = 3
 
 // HostSample is one reading of the machine. Times are Unix seconds,
 // percentages 0 to 100, rates bytes per second; a missing value was not
