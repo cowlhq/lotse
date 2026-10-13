@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"log/slog"
@@ -14,6 +15,7 @@ func agentCommand(ctx context.Context, args []string, log *slog.Logger) error {
 	var cfg agent.Config
 	flags.StringVar(&cfg.Hub, "hub", os.Getenv("LOTSE_HUB"), "the hub's address (or LOTSE_HUB)")
 	flags.StringVar(&cfg.Token, "token", os.Getenv("LOTSE_TOKEN"), "the token that proves this agent (or LOTSE_TOKEN)")
+	flags.StringVar(&cfg.Root, "root", cmp.Or(os.Getenv("LOTSE_HOST_ROOT"), "/"), "where the machine's / is mounted, when the agent runs in a container (or LOTSE_HOST_ROOT)")
 	flags.BoolVar(&cfg.Insecure, "insecure", os.Getenv("LOTSE_INSECURE") == "true", "allow plain HTTP to a hub on another machine")
 	flags.Parse(args)
 	return agent.Run(ctx, cfg, log)
