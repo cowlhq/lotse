@@ -19,6 +19,11 @@ export type Change = Schemas["Change"];
 export type ConfigValue = Schemas["ConfigValue"];
 export type Enrollment = Schemas["Enrollment"];
 export type Updates = Schemas["Updates"];
+export type Check = Schemas["Check"];
+export type CheckDetail = Schemas["CheckDetail"];
+export type CheckInput = Schemas["CheckInput"];
+export type CheckResult = Schemas["CheckResult"];
+export type Probe = Schemas["Probe"];
 export type SetupStep = Schemas["SetupStep"];
 
 export type Range = { from: number; to: number };
@@ -28,7 +33,7 @@ export const listHosts = () => get<HostSummary[]>("/api/hosts");
 export const getHost = (id: number) => get<HostDetail>(`/api/hosts/${id}`);
 export const getContainer = (id: number) => get<Container>(`/api/containers/${id}`);
 
-export const getSeries = (kind: "hosts" | "filesystems" | "containers", id: number, r: Range) =>
+export const getSeries = (kind: "hosts" | "filesystems" | "containers" | "checks", id: number, r: Range) =>
   get<Series>(`/api/${kind}/${id}/series?from=${r.from}&to=${r.to}&points=600`);
 
 export const listEvents = (subject: string, r: Range) =>
@@ -53,6 +58,17 @@ export const checkUpdates = () => post<Updates>("/api/updates");
 export const updateHost = (hostID: number) => post<void>(`/api/hosts/${hostID}/update`);
 export const updateScope = (scopeID: number) => post<{ asked: number }>(`/api/scopes/${scopeID}/update`);
 export const updateHub = () => post<void>("/api/hub/update");
+export const listChecks = (envID?: number) => get<Check[]>(envID ? `/api/checks?environment=${envID}` : "/api/checks");
+export const getCheck = (id: number) => get<CheckDetail>(`/api/checks/${id}`);
+export const createCheck = (input: CheckInput) => post<Check>("/api/checks", input);
+export const updateCheck = (id: number, name: string, spec: Record<string, unknown>) =>
+  send<Check>("PATCH", `/api/checks/${id}`, { name, spec });
+export const deleteCheck = (id: number) => send<void>("DELETE", `/api/checks/${id}`);
+export const listCheckResults = (id: number, r: Range) => get<CheckResult[]>(`/api/checks/${id}/results?from=${r.from}&to=${r.to}`);
+export const listProbes = () => get<Probe[]>("/api/probes");
+export const revokeProbe = (id: number) => send<void>("DELETE", `/api/probes/${id}`);
+export const getProbeEnrollment = () => get<Enrollment>("/api/probes/enrollment");
+export const newProbeEnrollment = () => post<Enrollment>("/api/probes/enrollment");
 export const listChanges = (subject: string) => get<Change[]>(`/api/changes?subject=${subject}`);
 
 export type SetupCheck = { valid: boolean; step?: SetupStep; postgres?: string };

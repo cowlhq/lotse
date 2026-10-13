@@ -3,8 +3,10 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteScope, getScope, listHosts, listScopes, NotFound, renameScope, updateScope, type HostSummary } from "@/api";
+import { deleteScope, getScope, listChecks, listHosts, listScopes, NotFound, renameScope, updateScope, type HostSummary } from "@/api";
 import { AddAgent } from "@/components/AddAgent";
+import { AddCheck } from "@/components/AddCheck";
+import { CheckList } from "@/components/CheckList";
 import { Config } from "@/components/Config";
 import { History } from "@/components/History";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,6 +25,7 @@ export function Scope({ id }: { id: number }) {
   const scope = useQuery({ queryKey: ["scope", id], queryFn: () => getScope(id) });
   const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts });
+  const checks = useQuery({ queryKey: ["checks", id], queryFn: () => listChecks(id) });
 
   if (scope.isPending) return <Skeleton className="h-32 w-full" />;
   if (scope.error instanceof NotFound) return <p>{t("tree.notFound")}</p>;
@@ -64,9 +67,18 @@ export function Scope({ id }: { id: number }) {
         </p>
       </div>
       {scope.data.kind === "environment" ? (
-        <div className="space-y-3">
-          {isAdmin && <AddAgent envID={id} />}
-          <HostGrid hosts={mine} empty={t("overview.noHostsAdd")} />
+        <div className="space-y-6">
+          <div className="space-y-3">
+            {isAdmin && <AddAgent envID={id} />}
+            <HostGrid hosts={mine} empty={t("overview.noHostsAdd")} />
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium">{t("check.title")}</h2>
+              {isAdmin && <AddCheck envID={id} />}
+            </div>
+            <CheckList envID={id} />
+          </div>
         </div>
       ) : (
         <ul className="space-y-1 text-sm">
@@ -83,7 +95,7 @@ export function Scope({ id }: { id: number }) {
       {isAdmin && <UpdateAgents scopeID={id} hosts={(hosts.data ?? []).filter((h) => below(h.host.environment_id))} />}
       <Config subject={subject} />
       <History subject={subject} />
-      {isAdmin && mine.length === 0 && children.length === 0 && <Delete id={id} />}
+      {isAdmin && mine.length === 0 && children.length === 0 && !(checks.data?.length) && <Delete id={id} />}
     </div>
   );
 }

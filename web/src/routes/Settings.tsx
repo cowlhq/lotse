@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { checkUpdates, getHealth, listHosts, updateHub } from "@/api";
 import { Config } from "@/components/Config";
 import { History } from "@/components/History";
+import { Probes } from "@/components/Probes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,7 @@ export function Settings() {
       <h1 className="text-xl font-semibold">{t("settings.title")}</h1>
       <HubVersion />
       {isAdmin && <UpdateAgents scopeID={1} hosts={hosts.data ?? []} />}
+      <Probes />
       <Config subject="global:1" />
       <History subject="global:1" />
     </div>

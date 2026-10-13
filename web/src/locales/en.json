@@ -127,6 +127,11 @@
     },
     "host": {
       "reboot": "machine rebooted"
+    },
+    "check": {
+      "up": "up",
+      "down": "down: {{error}}",
+      "unknown": "unknown"
     }
   },
   "chart": {
@@ -199,7 +204,8 @@
       "environment": "environment",
       "project": "project",
       "customer": "customer",
-      "global": "global settings"
+      "global": "global settings",
+      "check": "check"
     },
     "on": "on",
     "off": "off",
@@ -249,5 +255,75 @@
     "hubConfirm": "Update the hub to {{version}}? It restarts; the page is back within seconds.",
     "restarting": "Restarting…",
     "hubManual": "This hub does not run under the starter, so it cannot update itself; pull the newer image."
+  },
+  "check": {
+    "title": "Checks",
+    "add": "Add check",
+    "create": "Add",
+    "none": "No checks yet.",
+    "notFound": "There is no such check.",
+    "kind": {
+      "http": "HTTP",
+      "tls": "TLS",
+      "tcp": "TCP",
+      "heartbeat": "Heartbeat"
+    },
+    "kindHint": {
+      "http": "Fetches a URL from outside: its status after redirects, optionally a word on the page, how long it takes, and its certificate.",
+      "tls": "Opens a TLS connection, for services that are not HTTPS, such as mail on port 465, and watches the certificate.",
+      "tcp": "Connects to a port, such as a database.",
+      "heartbeat": "A job, such as a backup, calls a URL when it ran. If it does not within the period and the grace, the check goes down."
+    },
+    "state": {
+      "up": "up",
+      "down": "down",
+      "unknown": "unknown"
+    },
+    "stateTitle": "State",
+    "target": "Target",
+    "latency": "Response time",
+    "cert": "Certificate",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "url": "URL",
+    "keyword": "Keyword",
+    "keywordHint": "A word that must be on the page.",
+    "optional": "optional",
+    "status": "Expected status",
+    "statusHint": "Default 200-399.",
+    "address": "Address (host:port)",
+    "period": "Period",
+    "periodHint": "How often the job runs.",
+    "grace": "Grace",
+    "graceHint": "How late it may be.",
+    "name": "Name",
+    "namePlaceholder": "Shop homepage",
+    "since": "since {{time}} ago",
+    "uptime": "Uptime",
+    "certExpires_one": "certificate expires in {{count}} day",
+    "certExpires_other": "certificate expires in {{count}} days",
+    "byProbe": "By probe",
+    "probe": "Probe",
+    "when": "When",
+    "pingTitle": "Ping",
+    "lastPing": "Last ping {{time}} ago.",
+    "noPing": "No ping yet.",
+    "pingHint": "Call this URL when the job has run (GET, POST or HEAD); add /fail when it failed. The URL is the secret: keep it out of logs others read.",
+    "pingAdminOnly": "Only admins see the ping URL.",
+    "delete": "Delete check",
+    "deleteConfirm": "Delete this check and its results? Its history stays."
+  },
+  "probe": {
+    "title": "Probes",
+    "description": "Where checks run from. The hub has its own; probes in other places check from outside, so that a down machine does not take its checker with it.",
+    "builtin": "Hub",
+    "revoked": "revoked",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke this probe? It is disconnected and its checks run elsewhere.",
+    "add": "Add probe",
+    "addHint": "Run this on a machine in another place. It needs no ports and only reaches out to the hub.",
+    "name": "Name",
+    "location": "Location",
+    "tokenHint": "The token is the hub's probe token; it is needed once per probe. A check runs on all probes unless its setting check.probes says otherwise."
   }
 }

@@ -79,7 +79,7 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
           className="flex items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            save.mutate(text);
+            save.mutate(parse(v.type, text));
           }}
         >
           <Input value={text} onChange={(e) => setText(e.target.value)} className="h-8 w-28" autoFocus />
@@ -93,7 +93,7 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
       ) : (
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="font-medium tabular-nums">{String(v.value)}</p>
+            <p className="font-medium tabular-nums">{Array.isArray(v.value) ? v.value.join(", ") : String(v.value)}</p>
             <p className="text-xs text-muted-foreground">
               {from}
               {v.overrides.length > 0 && <> · {t("config.overrides", { value: String(v.overrides[0].value), name: v.overrides[0].level.name || t(`config.kinds.${v.overrides[0].level.kind}`) })}</>}
@@ -101,7 +101,7 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
           </div>
           {isAdmin && (
             <>
-              <Button variant="ghost" size="icon-sm" aria-label={t("config.set")} onClick={() => (setText(String(v.value)), setEditing(true))}>
+              <Button variant="ghost" size="icon-sm" aria-label={t("config.set")} onClick={() => (setText(Array.isArray(v.value) ? v.value.join(", ") : String(v.value)), setEditing(true))}>
                 <Pencil className="size-3.5" />
               </Button>
               {here && (
@@ -120,4 +120,12 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
       )}
     </div>
   );
+}
+
+// parse turns what was typed into the value a setting takes: a list of
+// probe names, or "all", for probes; the text as it is otherwise.
+function parse(type: ConfigValue["type"], text: string): unknown {
+  if (type !== "probes") return text.trim();
+  const names = text.split(",").map((s) => s.trim()).filter(Boolean);
+  return names.length === 1 && names[0] === "all" ? "all" : names;
 }
