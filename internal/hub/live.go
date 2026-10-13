@@ -262,10 +262,10 @@ func (h *hub) sendLive(ctx context.Context, hostID int64, seconds int) {
 }
 
 // originPatterns are the hosts the browser's WebSocket may be opened from
-// besides the hub's own: the address in LOTSE_URL, which in development is
+// besides the hub's own: the address people use, which in development is
 // the web dev server.
 func (h *hub) originPatterns() []string {
-	u, err := url.Parse(h.publicURL)
+	u, err := url.Parse(h.URL())
 	if err != nil || u.Host == "" {
 		return nil
 	}

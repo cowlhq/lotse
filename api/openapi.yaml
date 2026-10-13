@@ -9,15 +9,22 @@ info:
 
     Live data comes over a WebSocket at /api/live, which is not described
     here.
+
+    Everything but health, setup and login needs a session: the cookie
+    lotse_session, which logging in sets. Without one, the answer is 401.
   license:
     name: AGPL-3.0-only
     url: https://www.gnu.org/licenses/agpl-3.0.html
+
+security:
+  - session: []
 
 paths:
   /api/health:
     get:
       operationId: getHealth
       summary: Whether the hub runs, and how
+      security: []
       responses:
         "200":
           description: The hub runs.
@@ -28,19 +35,16 @@ paths:
   /api/setup/check:
     post:
       operationId: checkSetup
-      summary: Whether a setup link is the current one
+      summary: Whether a setup link is the current one, and what setup needs next
+      security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [token]
-              properties:
-                token: { type: string }
+            schema: { $ref: "#/components/schemas/SetupToken" }
       responses:
         "200":
-          description: Whether the token is valid.
+          description: Whether the token is valid, and the next step if it is.
           content:
             application/json:
               schema:
@@ -48,11 +52,130 @@ paths:
                 required: [valid]
                 properties:
                   valid: { type: boolean }
-        "409":
-          description: The hub is already set up.
+                  step: { $ref: "#/components/schemas/SetupStep" }
+                  postgres:
+                    type: string
+                    description: >
+                      A Postgres URL the hub could connect to, such as the one
+                      of the compose file's postgres profile.
+        "409": { $ref: "#/components/responses/AlreadySetUp" }
+
+  /api/setup/database:
+    post:
+      operationId: setupDatabase
+      summary: Choose the database, the first step of setup
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/SetupToken"
+                - type: object
+                  required: [kind]
+                  properties:
+                    kind: { type: string, enum: [sqlite, postgres] }
+                    url:
+                      type: string
+                      description: The Postgres URL; not used for SQLite.
+      responses:
+        "204":
+          description: >
+            The database works and is saved. The hub switches to it; the next
+            step is the admin.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/InvalidSetupToken" }
+        "409": { $ref: "#/components/responses/AlreadySetUp" }
+
+  /api/setup/admin:
+    post:
+      operationId: setupAdmin
+      summary: Create the first admin, the last step of setup
+      description: The admin is logged in right away.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/SetupToken"
+                - type: object
+                  required: [name, email, password, url]
+                  properties:
+                    name: { type: string }
+                    email: { type: string }
+                    password: { type: string }
+                    url:
+                      type: string
+                      description: Where people and agents reach the hub.
+      responses:
+        "200":
+          description: The admin, logged in.
+          headers:
+            Set-Cookie: { $ref: "#/components/headers/SetCookie" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/InvalidSetupToken" }
+        "409": { $ref: "#/components/responses/AlreadySetUp" }
+
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Log in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: Logged in.
+          headers:
+            Set-Cookie: { $ref: "#/components/headers/SetCookie" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401":
+          description: Wrong email or password.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Too many failed attempts; try again later.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: Log out
+      responses:
+        "204":
+          description: Logged out.
+          headers:
+            Set-Cookie: { $ref: "#/components/headers/SetCookie" }
+
+  /api/auth/me:
+    get:
+      operationId: getMe
+      summary: Who is logged in
+      responses:
+        "200":
+          description: The user.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
 
   /api/hosts:
     get:
@@ -176,6 +299,17 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
 
 components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: lotse_session
+
+  headers:
+    SetCookie:
+      description: The session cookie.
+      schema: { type: string }
+
   parameters:
     ID:
       name: id
@@ -201,6 +335,16 @@ components:
       schema: { type: integer, minimum: 1, maximum: 5000 }
 
   responses:
+    AlreadySetUp:
+      description: The hub is already set up, or past this step.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    InvalidSetupToken:
+      description: The setup token is not the current one.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     BadRequest:
       description: The request is not valid.
       content:
@@ -221,17 +365,40 @@ components:
 
     Health:
       type: object
-      required: [status, version, database, setup, agents]
+      required: [status, version, agents]
       properties:
         status: { type: string, example: ok }
         version: { type: string }
-        database: { type: string, enum: [sqlite, postgres] }
-        setup:
-          type: boolean
-          description: True while the hub waits to be set up.
+        database:
+          type: string
+          enum: [sqlite, postgres]
+          description: Missing until setup has chosen one.
+        setup: { $ref: "#/components/schemas/SetupStep" }
         agents:
           type: integer
           description: How many agents are connected.
+
+    SetupStep:
+      type: string
+      enum: [database, admin]
+      description: >
+        What setup needs next; missing once the hub is set up. Setup takes
+        the one-time token from the hub's log.
+
+    SetupToken:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+
+    User:
+      type: object
+      required: [id, email, name, role]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [admin, viewer] }
 
     Host:
       type: object

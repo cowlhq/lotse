@@ -36,16 +36,70 @@ func (e EventSubjectKind) Valid() bool {
 
 // Defines values for HealthDatabase.
 const (
-	Postgres HealthDatabase = "postgres"
-	Sqlite   HealthDatabase = "sqlite"
+	HealthDatabasePostgres HealthDatabase = "postgres"
+	HealthDatabaseSqlite   HealthDatabase = "sqlite"
 )
 
 // Valid indicates whether the value is a known member of the HealthDatabase enum.
 func (e HealthDatabase) Valid() bool {
 	switch e {
-	case Postgres:
+	case HealthDatabasePostgres:
 		return true
-	case Sqlite:
+	case HealthDatabaseSqlite:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetupStep.
+const (
+	SetupStepAdmin    SetupStep = "admin"
+	SetupStepDatabase SetupStep = "database"
+)
+
+// Valid indicates whether the value is a known member of the SetupStep enum.
+func (e SetupStep) Valid() bool {
+	switch e {
+	case SetupStepAdmin:
+		return true
+	case SetupStepDatabase:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UserRole.
+const (
+	UserRoleAdmin  UserRole = "admin"
+	UserRoleViewer UserRole = "viewer"
+)
+
+// Valid indicates whether the value is a known member of the UserRole enum.
+func (e UserRole) Valid() bool {
+	switch e {
+	case UserRoleAdmin:
+		return true
+	case UserRoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SetupDatabaseJSONBodyKind.
+const (
+	SetupDatabaseJSONBodyKindPostgres SetupDatabaseJSONBodyKind = "postgres"
+	SetupDatabaseJSONBodyKindSqlite   SetupDatabaseJSONBodyKind = "sqlite"
+)
+
+// Valid indicates whether the value is a known member of the SetupDatabaseJSONBodyKind enum.
+func (e SetupDatabaseJSONBodyKind) Valid() bool {
+	switch e {
+	case SetupDatabaseJSONBodyKindPostgres:
+		return true
+	case SetupDatabaseJSONBodyKindSqlite:
 		return true
 	default:
 		return false
@@ -133,18 +187,20 @@ type Filesystem struct {
 // Health defines model for Health.
 type Health struct {
 	// Agents How many agents are connected.
-	Agents   int            `json:"agents"`
-	Database HealthDatabase `json:"database"`
+	Agents int `json:"agents"`
 
-	// Setup True while the hub waits to be set up.
-	Setup bool `json:"setup"`
+	// Database Missing until setup has chosen one.
+	Database *HealthDatabase `json:"database,omitempty"`
+
+	// Setup What setup needs next; missing once the hub is set up. Setup takes the one-time token from the hub's log.
+	Setup *SetupStep `json:"setup,omitempty"`
 
 	// Status Example: ok
 	Status  string `json:"status"`
 	Version string `json:"version"`
 }
 
-// HealthDatabase defines model for Health.Database.
+// HealthDatabase Missing until setup has chosen one.
 type HealthDatabase string
 
 // Host defines model for Host.
@@ -219,6 +275,25 @@ type Series struct {
 	Time []int64 `json:"time"`
 }
 
+// SetupStep What setup needs next; missing once the hub is set up. Setup takes the one-time token from the hub's log.
+type SetupStep string
+
+// SetupToken defines model for SetupToken.
+type SetupToken struct {
+	Token string `json:"token"`
+}
+
+// User defines model for User.
+type User struct {
+	Email string   `json:"email"`
+	Id    int64    `json:"id"`
+	Name  string   `json:"name"`
+	Role  UserRole `json:"role"`
+}
+
+// UserRole defines model for User.Role.
+type UserRole string
+
 // From defines model for From.
 type From = int64
 
@@ -231,11 +306,23 @@ type Points = int
 // To defines model for To.
 type To = int64
 
+// AlreadySetUp defines model for AlreadySetUp.
+type AlreadySetUp = Error
+
 // BadRequest defines model for BadRequest.
 type BadRequest = Error
 
+// InvalidSetupToken defines model for InvalidSetupToken.
+type InvalidSetupToken = Error
+
 // NotFound defines model for NotFound.
 type NotFound = Error
+
+// LoginJSONBody defines parameters for Login.
+type LoginJSONBody struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
 // GetContainerSeriesParams defines parameters for GetContainerSeries.
 type GetContainerSeriesParams struct {
@@ -285,16 +372,52 @@ type GetHostSeriesParams struct {
 	Points *Points `form:"points,omitempty" json:"points,omitempty"`
 }
 
-// CheckSetupJSONBody defines parameters for CheckSetup.
-type CheckSetupJSONBody struct {
-	Token string `json:"token"`
+// SetupAdminJSONBody defines parameters for SetupAdmin.
+type SetupAdminJSONBody struct {
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
+
+	// Url Where people and agents reach the hub.
+	Url string `json:"url"`
 }
 
+// SetupDatabaseJSONBody defines parameters for SetupDatabase.
+type SetupDatabaseJSONBody struct {
+	Kind  SetupDatabaseJSONBodyKind `json:"kind"`
+	Token string                    `json:"token"`
+
+	// Url The Postgres URL; not used for SQLite.
+	Url *string `json:"url,omitempty"`
+}
+
+// SetupDatabaseJSONBodyKind defines parameters for SetupDatabase.
+type SetupDatabaseJSONBodyKind string
+
+// LoginJSONRequestBody defines body for Login for application/json ContentType.
+type LoginJSONRequestBody LoginJSONBody
+
+// SetupAdminJSONRequestBody defines body for SetupAdmin for application/json ContentType.
+type SetupAdminJSONRequestBody SetupAdminJSONBody
+
 // CheckSetupJSONRequestBody defines body for CheckSetup for application/json ContentType.
-type CheckSetupJSONRequestBody CheckSetupJSONBody
+type CheckSetupJSONRequestBody = SetupToken
+
+// SetupDatabaseJSONRequestBody defines body for SetupDatabase for application/json ContentType.
+type SetupDatabaseJSONRequestBody SetupDatabaseJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Login Log in
+	// (POST /api/auth/login)
+	Login(w http.ResponseWriter, r *http.Request)
+	// Logout Log out
+	// (POST /api/auth/logout)
+	Logout(w http.ResponseWriter, r *http.Request)
+	// GetMe Who is logged in
+	// (GET /api/auth/me)
+	GetMe(w http.ResponseWriter, r *http.Request)
 	// GetContainer A container
 	// (GET /api/containers/{id})
 	GetContainer(w http.ResponseWriter, r *http.Request, id ID)
@@ -319,9 +442,15 @@ type ServerInterface interface {
 	// GetHostSeries A host's readings over time
 	// (GET /api/hosts/{id}/series)
 	GetHostSeries(w http.ResponseWriter, r *http.Request, id ID, params GetHostSeriesParams)
-	// CheckSetup Whether a setup link is the current one
+	// SetupAdmin Create the first admin, the last step of setup
+	// (POST /api/setup/admin)
+	SetupAdmin(w http.ResponseWriter, r *http.Request)
+	// CheckSetup Whether a setup link is the current one, and what setup needs next
 	// (POST /api/setup/check)
 	CheckSetup(w http.ResponseWriter, r *http.Request)
+	// SetupDatabase Choose the database, the first step of setup
+	// (POST /api/setup/database)
+	SetupDatabase(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -332,6 +461,48 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// Login operation middleware
+func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Login(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Logout operation middleware
+func (siw *ServerInterfaceWrapper) Logout(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Logout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMe operation middleware
+func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetContainer operation middleware
 func (siw *ServerInterfaceWrapper) GetContainer(w http.ResponseWriter, r *http.Request) {
@@ -676,11 +847,39 @@ func (siw *ServerInterfaceWrapper) GetHostSeries(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// SetupAdmin operation middleware
+func (siw *ServerInterfaceWrapper) SetupAdmin(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetupAdmin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CheckSetup operation middleware
 func (siw *ServerInterfaceWrapper) CheckSetup(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CheckSetup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetupDatabase operation middleware
+func (siw *ServerInterfaceWrapper) SetupDatabase(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetupDatabase(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -812,6 +1011,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/health", wrapper.GetHealth)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/setup/check", wrapper.CheckSetup)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/setup/database", wrapper.SetupDatabase)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/setup/admin", wrapper.SetupAdmin)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/login", wrapper.Login)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/logout", wrapper.Logout)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/auth/me", wrapper.GetMe)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts", wrapper.ListHosts)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}", wrapper.GetHost)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}/series", wrapper.GetHostSeries)
@@ -823,9 +1027,117 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	return m
 }
 
+type AlreadySetUpJSONResponse Error
+
 type BadRequestJSONResponse Error
 
+type InvalidSetupTokenJSONResponse Error
+
 type NotFoundJSONResponse Error
+
+type LoginRequestObject struct {
+	Body *LoginJSONRequestBody
+}
+
+type LoginResponseObject interface {
+	VisitLoginResponse(w http.ResponseWriter) error
+}
+
+type Login200ResponseHeaders struct {
+	SetCookie *string
+}
+
+type Login200JSONResponse struct {
+	Body    User
+	Headers Login200ResponseHeaders
+}
+
+func (response Login200JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Login401JSONResponse Error
+
+func (response Login401JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Login429JSONResponse Error
+
+func (response Login429JSONResponse) VisitLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LogoutRequestObject struct {
+}
+
+type LogoutResponseObject interface {
+	VisitLogoutResponse(w http.ResponseWriter) error
+}
+
+type Logout204ResponseHeaders struct {
+	SetCookie *string
+}
+
+type Logout204Response struct {
+	Headers Logout204ResponseHeaders
+}
+
+func (response Logout204Response) VisitLogoutResponse(w http.ResponseWriter) error {
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+type GetMeRequestObject struct {
+}
+
+type GetMeResponseObject interface {
+	VisitGetMeResponse(w http.ResponseWriter) error
+}
+
+type GetMe200JSONResponse User
+
+func (response GetMe200JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type GetContainerRequestObject struct {
 	Id ID `json:"id"`
@@ -1102,6 +1414,80 @@ func (response GetHostSeries404JSONResponse) VisitGetHostSeriesResponse(w http.R
 	return err
 }
 
+type SetupAdminRequestObject struct {
+	Body *SetupAdminJSONRequestBody
+}
+
+type SetupAdminResponseObject interface {
+	VisitSetupAdminResponse(w http.ResponseWriter) error
+}
+
+type SetupAdmin200ResponseHeaders struct {
+	SetCookie *string
+}
+
+type SetupAdmin200JSONResponse struct {
+	Body    User
+	Headers SetupAdmin200ResponseHeaders
+}
+
+func (response SetupAdmin200JSONResponse) VisitSetupAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetupAdmin400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetupAdmin400JSONResponse) VisitSetupAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetupAdmin403JSONResponse struct{ InvalidSetupTokenJSONResponse }
+
+func (response SetupAdmin403JSONResponse) VisitSetupAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetupAdmin409JSONResponse struct{ AlreadySetUpJSONResponse }
+
+func (response SetupAdmin409JSONResponse) VisitSetupAdminResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CheckSetupRequestObject struct {
 	Body *CheckSetupJSONRequestBody
 }
@@ -1111,7 +1497,12 @@ type CheckSetupResponseObject interface {
 }
 
 type CheckSetup200JSONResponse struct {
-	Valid bool `json:"valid"`
+	// Postgres A Postgres URL the hub could connect to, such as the one of the compose file's postgres profile.
+	Postgres *string `json:"postgres,omitempty"`
+
+	// Step What setup needs next; missing once the hub is set up. Setup takes the one-time token from the hub's log.
+	Step  *SetupStep `json:"step,omitempty"`
+	Valid bool       `json:"valid"`
 }
 
 func (response CheckSetup200JSONResponse) VisitCheckSetupResponse(w http.ResponseWriter) error {
@@ -1126,7 +1517,7 @@ func (response CheckSetup200JSONResponse) VisitCheckSetupResponse(w http.Respons
 	return err
 }
 
-type CheckSetup409JSONResponse Error
+type CheckSetup409JSONResponse struct{ AlreadySetUpJSONResponse }
 
 func (response CheckSetup409JSONResponse) VisitCheckSetupResponse(w http.ResponseWriter) error {
 
@@ -1140,8 +1531,75 @@ func (response CheckSetup409JSONResponse) VisitCheckSetupResponse(w http.Respons
 	return err
 }
 
+type SetupDatabaseRequestObject struct {
+	Body *SetupDatabaseJSONRequestBody
+}
+
+type SetupDatabaseResponseObject interface {
+	VisitSetupDatabaseResponse(w http.ResponseWriter) error
+}
+
+type SetupDatabase204Response struct {
+}
+
+func (response SetupDatabase204Response) VisitSetupDatabaseResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetupDatabase400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetupDatabase400JSONResponse) VisitSetupDatabaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetupDatabase403JSONResponse struct{ InvalidSetupTokenJSONResponse }
+
+func (response SetupDatabase403JSONResponse) VisitSetupDatabaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetupDatabase409JSONResponse struct{ AlreadySetUpJSONResponse }
+
+func (response SetupDatabase409JSONResponse) VisitSetupDatabaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Login Log in
+	// (POST /api/auth/login)
+	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
+	// Logout Log out
+	// (POST /api/auth/logout)
+	Logout(ctx context.Context, request LogoutRequestObject) (LogoutResponseObject, error)
+	// GetMe Who is logged in
+	// (GET /api/auth/me)
+	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
 	// GetContainer A container
 	// (GET /api/containers/{id})
 	GetContainer(ctx context.Context, request GetContainerRequestObject) (GetContainerResponseObject, error)
@@ -1166,9 +1624,15 @@ type StrictServerInterface interface {
 	// GetHostSeries A host's readings over time
 	// (GET /api/hosts/{id}/series)
 	GetHostSeries(ctx context.Context, request GetHostSeriesRequestObject) (GetHostSeriesResponseObject, error)
-	// CheckSetup Whether a setup link is the current one
+	// SetupAdmin Create the first admin, the last step of setup
+	// (POST /api/setup/admin)
+	SetupAdmin(ctx context.Context, request SetupAdminRequestObject) (SetupAdminResponseObject, error)
+	// CheckSetup Whether a setup link is the current one, and what setup needs next
 	// (POST /api/setup/check)
 	CheckSetup(ctx context.Context, request CheckSetupRequestObject) (CheckSetupResponseObject, error)
+	// SetupDatabase Choose the database, the first step of setup
+	// (POST /api/setup/database)
+	SetupDatabase(ctx context.Context, request SetupDatabaseRequestObject) (SetupDatabaseResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1208,6 +1672,85 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// Login operation middleware
+func (sh *strictHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var request LoginRequestObject
+
+	var body LoginJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Login(ctx, request.(LoginRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Login")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LoginResponseObject); ok {
+		if err := validResponse.VisitLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// Logout operation middleware
+func (sh *strictHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	var request LogoutRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Logout(ctx, request.(LogoutRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Logout")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(LogoutResponseObject); ok {
+		if err := validResponse.VisitLogoutResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMe operation middleware
+func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	var request GetMeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMe(ctx, request.(GetMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMeResponseObject); ok {
+		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // GetContainer operation middleware
@@ -1417,6 +1960,37 @@ func (sh *strictHandler) GetHostSeries(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
+// SetupAdmin operation middleware
+func (sh *strictHandler) SetupAdmin(w http.ResponseWriter, r *http.Request) {
+	var request SetupAdminRequestObject
+
+	var body SetupAdminJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetupAdmin(ctx, request.(SetupAdminRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetupAdmin")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetupAdminResponseObject); ok {
+		if err := validResponse.VisitSetupAdminResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // CheckSetup operation middleware
 func (sh *strictHandler) CheckSetup(w http.ResponseWriter, r *http.Request) {
 	var request CheckSetupRequestObject
@@ -1441,6 +2015,37 @@ func (sh *strictHandler) CheckSetup(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CheckSetupResponseObject); ok {
 		if err := validResponse.VisitCheckSetupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetupDatabase operation middleware
+func (sh *strictHandler) SetupDatabase(w http.ResponseWriter, r *http.Request) {
+	var request SetupDatabaseRequestObject
+
+	var body SetupDatabaseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetupDatabase(ctx, request.(SetupDatabaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetupDatabase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetupDatabaseResponseObject); ok {
+		if err := validResponse.VisitSetupDatabaseResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

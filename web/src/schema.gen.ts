@@ -30,8 +30,96 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Whether a setup link is the current one */
+        /** Whether a setup link is the current one, and what setup needs next */
         post: operations["checkSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/database": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Choose the database, the first step of setup */
+        post: operations["setupDatabase"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/setup/admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create the first admin, the last step of setup
+         * @description The admin is logged in right away.
+         */
+        post: operations["setupAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log in */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log out */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who is logged in */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -208,12 +296,30 @@ export interface components {
             /** @example ok */
             status: string;
             version: string;
-            /** @enum {string} */
-            database: "sqlite" | "postgres";
-            /** @description True while the hub waits to be set up. */
-            setup: boolean;
+            /**
+             * @description Missing until setup has chosen one.
+             * @enum {string}
+             */
+            database?: "sqlite" | "postgres";
+            setup?: components["schemas"]["SetupStep"];
             /** @description How many agents are connected. */
             agents: number;
+        };
+        /**
+         * @description What setup needs next; missing once the hub is set up. Setup takes the one-time token from the hub's log.
+         * @enum {string}
+         */
+        SetupStep: "database" | "admin";
+        SetupToken: {
+            token: string;
+        };
+        User: {
+            /** Format: int64 */
+            id: number;
+            email: string;
+            name: string;
+            /** @enum {string} */
+            role: "admin" | "viewer";
         };
         Host: {
             /** Format: int64 */
@@ -389,6 +495,24 @@ export interface components {
         };
     };
     responses: {
+        /** @description The hub is already set up, or past this step. */
+        AlreadySetUp: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description The setup token is not the current one. */
+        InvalidSetupToken: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description The request is not valid. */
         BadRequest: {
             headers: {
@@ -418,7 +542,10 @@ export interface components {
         Points: number;
     };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /** @description The session cookie. */
+        SetCookie: string;
+    };
     pathItems: never;
 }
 export type $defs = Record<string, never>;
@@ -452,13 +579,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    token: string;
-                };
+                "application/json": components["schemas"]["SetupToken"];
             };
         };
         responses: {
-            /** @description Whether the token is valid. */
+            /** @description Whether the token is valid, and the next step if it is. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -466,16 +591,160 @@ export interface operations {
                 content: {
                     "application/json": {
                         valid: boolean;
+                        step?: components["schemas"]["SetupStep"];
+                        /** @description A Postgres URL the hub could connect to, such as the one of the compose file's postgres profile. */
+                        postgres?: string;
                     };
                 };
             };
-            /** @description The hub is already set up. */
-            409: {
+            409: components["responses"]["AlreadySetUp"];
+        };
+    };
+    setupDatabase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupToken"] & {
+                    /** @enum {string} */
+                    kind: "sqlite" | "postgres";
+                    /** @description The Postgres URL; not used for SQLite. */
+                    url?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The database works and is saved. The hub switches to it; the next step is the admin. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["InvalidSetupToken"];
+            409: components["responses"]["AlreadySetUp"];
+        };
+    };
+    setupAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetupToken"] & {
+                    name: string;
+                    email: string;
+                    password: string;
+                    /** @description Where people and agents reach the hub. */
+                    url: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The admin, logged in. */
+            200: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["InvalidSetupToken"];
+            409: components["responses"]["AlreadySetUp"];
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Logged in. */
+            200: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Wrong email or password. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Too many failed attempts; try again later. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logged out. */
+            204: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The user. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
                 };
             };
         };
