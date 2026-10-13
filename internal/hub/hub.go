@@ -15,6 +15,7 @@ import (
 
 	"lotse.sh/internal/auth"
 	"lotse.sh/internal/protocol"
+	"lotse.sh/internal/secret"
 	"lotse.sh/internal/store"
 	"lotse.sh/internal/ui"
 	"lotse.sh/internal/version"
@@ -35,9 +36,10 @@ type Config struct {
 	// URL is where people and agents reach the hub. Set, it wins over what
 	// setup saved.
 	URL string
-	// AgentKey is the token all agents show until enrollment arrives with
-	// milestone 3. Empty means no agent is let in.
-	AgentKey string
+	// SecretKey seals what the hub keeps but must read again, such as
+	// enrollment tokens. Empty means the key in DataDir/secret.key, made on
+	// first start.
+	SecretKey string
 }
 
 func ConfigFromEnv() Config {
@@ -46,7 +48,7 @@ func ConfigFromEnv() Config {
 		Listen:      cmp.Or(os.Getenv("LOTSE_LISTEN"), ":8080"),
 		DatabaseURL: os.Getenv("LOTSE_DATABASE_URL"),
 		URL:         os.Getenv("LOTSE_URL"),
-		AgentKey:    os.Getenv("LOTSE_AGENT_KEY"),
+		SecretKey:   os.Getenv("LOTSE_SECRET_KEY"),
 	}
 }
 
@@ -61,8 +63,17 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	key, err := secret.LoadKey(cfg.SecretKey, cfg.DataDir)
+	if err != nil {
+		return err
+	}
+	box, err := secret.NewBox(key)
+	if err != nil {
+		return err
+	}
 	setup := &setupState{}
 	shared := shared{
+		box:       box,
 		log:       log,
 		cfg:       cfg,
 		setup:     setup,
@@ -126,9 +137,6 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		stop()
 		return err
 	}
-	if h.agentKey == "" {
-		log.Warn("LOTSE_AGENT_KEY is not set, so no agent can connect")
-	}
 	log.Info("lotse hub ready", "database", db.Dialect())
 	if setup.pending() {
 		shared.announceSetup("create the admin")
@@ -167,6 +175,7 @@ type shared struct {
 	setup     *setupState
 	publicURL *atomic.Pointer[string]
 	logins    *auth.Limiter
+	box       *secret.Box
 	// chosen gets the database URL that setup chose.
 	chosen chan string
 }
@@ -184,11 +193,10 @@ func (s shared) announceSetup(step string) {
 type hub struct {
 	shared
 	// db is nil during the database step of setup.
-	db       *store.Store
-	agentKey string
-	agents   agents
-	live     live
-	writer   *writer
+	db     *store.Store
+	agents agents
+	live   live
+	writer *writer
 	// How often agents read their machine and its containers.
 	hostInterval, containerInterval time.Duration
 }
@@ -199,7 +207,6 @@ func newHub(ctx context.Context, s shared, db *store.Store) (*hub, error) {
 	h := &hub{
 		shared:            s,
 		db:                db,
-		agentKey:          s.cfg.AgentKey,
 		writer:            &writer{db: db, log: s.log},
 		hostInterval:      15 * time.Second,
 		containerInterval: 30 * time.Second,
@@ -220,6 +227,7 @@ func (h *hub) routes() http.Handler {
 	mux := http.NewServeMux()
 	h.apiHandler(mux)
 	mux.HandleFunc("GET "+protocol.ConnectPath, h.connectAgent)
+	mux.HandleFunc("POST "+protocol.EnrollPath, h.enroll)
 	mux.HandleFunc("GET /api/live", h.connectLive)
 	mux.Handle("/api/", http.NotFoundHandler())
 	mux.Handle("/", ui.Handler(ui.Files()))

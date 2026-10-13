@@ -239,6 +239,54 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/scopes/{id}/enrollment:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getEnrollment
+      summary: An environment's enrollment token, for the install commands
+      responses:
+        "200":
+          description: The token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: There is no such environment, or it has no token yet.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    post:
+      operationId: newEnrollment
+      summary: Make a new enrollment token for an environment
+      description: >
+        The token it had stops working. Agents that enrolled with it keep
+        their own credentials.
+      responses:
+        "200":
+          description: The new token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/hosts/{id}/agent:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    delete:
+      operationId: revokeAgent
+      summary: Revoke the host's agent credential and disconnect it
+      description: >
+        The agent can only come back by enrolling again, with a current
+        enrollment token and its old credential deleted.
+      responses:
+        "204":
+          description: Revoked.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/environments:
     post:
       operationId: createEnvironment
@@ -667,6 +715,19 @@ components:
       properties:
         level: { $ref: "#/components/schemas/ConfigLevel" }
         value: {}
+
+    Enrollment:
+      type: object
+      required: [token, created_at, created_by, hub]
+      properties:
+        token:
+          type: string
+          description: The enrollment token, lotse_enr_….
+        created_at: { type: integer, format: int64 }
+        created_by: { type: string }
+        hub:
+          type: string
+          description: The hub's address, for the install commands.
 
     Host:
       type: object

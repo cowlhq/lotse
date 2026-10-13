@@ -10,16 +10,16 @@ func TestConfigCheck(t *testing.T) {
 		cfg Config
 		ok  bool
 	}{
-		{Config{Hub: "https://lotse.example.com", Token: "t"}, true},
-		{Config{Hub: "http://localhost:8080", Token: "t"}, true},
-		{Config{Hub: "http://127.0.0.1:8080", Token: "t"}, true},
-		{Config{Hub: "http://[::1]:8080", Token: "t"}, true},
-		{Config{Hub: "http://hub:8080", Token: "t"}, false},
-		{Config{Hub: "http://hub:8080", Token: "t", Insecure: true}, true},
+		{Config{Hub: "https://lotse.example.com", DataDir: "d"}, true},
+		{Config{Hub: "http://localhost:8080", DataDir: "d"}, true},
+		{Config{Hub: "http://127.0.0.1:8080", DataDir: "d"}, true},
+		{Config{Hub: "http://[::1]:8080", DataDir: "d"}, true},
+		{Config{Hub: "http://hub:8080", DataDir: "d"}, false},
+		{Config{Hub: "http://hub:8080", DataDir: "d", Insecure: true}, true},
 		{Config{Hub: "https://lotse.example.com"}, false},
-		{Config{Hub: "lotse.example.com", Token: "t"}, false},
-		{Config{Hub: "ftp://lotse.example.com", Token: "t"}, false},
-		{Config{Token: "t"}, false},
+		{Config{Hub: "lotse.example.com", DataDir: "d"}, false},
+		{Config{Hub: "ftp://lotse.example.com", DataDir: "d"}, false},
+		{Config{DataDir: "d"}, false},
 	} {
 		if err := c.cfg.Check(); (err == nil) != c.ok {
 			t.Errorf("%+v: got %v, want ok=%v", c.cfg, err, c.ok)

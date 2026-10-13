@@ -18,11 +18,14 @@ import (
 
 	"lotse.sh/internal/auth"
 	"lotse.sh/internal/hub/api"
+	"lotse.sh/internal/secret"
 	"lotse.sh/internal/store"
 )
 
 func testShared(t *testing.T) shared {
+	box, _ := secret.NewBox("a test key, long enough")
 	s := shared{
+		box:       box,
 		log:       slog.New(slog.DiscardHandler),
 		cfg:       Config{DataDir: t.TempDir()},
 		setup:     &setupState{},

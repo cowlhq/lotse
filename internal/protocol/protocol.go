@@ -20,8 +20,38 @@ const Version = 1
 // Versions are all the versions this build speaks, newest first.
 var Versions = []int{1}
 
-// ConnectPath is where agents open their WebSocket.
+// ConnectPath is where agents open their WebSocket, with their credential
+// as bearer token.
 const ConnectPath = "/api/agent/v1/connect"
+
+// EnrollPath is where an agent enrolls once (design 7): it shows its
+// environment's enrollment token and gets a credential of its own.
+const EnrollPath = "/api/agent/v1/enroll"
+
+// EnrollRequest is what an agent sends to enroll, as JSON.
+type EnrollRequest struct {
+	Token     string `json:"token"`
+	Hostname  string `json:"hostname"`
+	MachineID string `json:"machine_id"`
+}
+
+// EnrollResponse is the agent's credential and the host it is now.
+type EnrollResponse struct {
+	Credential string `json:"credential"`
+	HostID     int64  `json:"host_id"`
+	HostName   string `json:"host_name"`
+	// Environment is the path of the host's environment.
+	Environment string `json:"environment"`
+}
+
+// MachineKey is how the hub knows a machine: its machine ID, or its
+// hostname where it has none.
+func MachineKey(machineID, hostname string) string {
+	if machineID != "" {
+		return machineID
+	}
+	return "hostname:" + hostname
+}
 
 // Subprotocol is the WebSocket subprotocol for version v.
 func Subprotocol(v int) string { return "lotse." + strconv.Itoa(v) }
