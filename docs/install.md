@@ -102,9 +102,11 @@ The agent no longer needs to run as root then.
 ### Revoking an agent
 
 **Revoke agent** on a host disconnects it and revokes its credential. It
-does not come back by itself; to enroll it again, delete
-`/var/lib/lotse/agent.json` on the machine and run the install command with
-a current token.
+does not come back by itself. To bring it back, run the install command
+again on the machine, with a current token: it notices the revoked
+credential and enrolls again, as the same host. For a container agent, run
+`lotse agent enroll` in it with `LOTSE_TOKEN` set, or delete the volume
+`lotse-agent` and start it again.
 
 ### Removing the agent
 
