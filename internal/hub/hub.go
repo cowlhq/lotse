@@ -146,8 +146,7 @@ func newHub(ctx context.Context, db *store.Store, log *slog.Logger) (*hub, error
 
 func (h *hub) routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/health", h.health)
-	mux.HandleFunc("POST /api/setup/check", h.checkSetup)
+	h.apiHandler(mux)
 	mux.HandleFunc("GET "+protocol.ConnectPath, h.connectAgent)
 	mux.Handle("/api/", http.NotFoundHandler())
 	mux.Handle("/", ui.Handler(ui.Files()))
