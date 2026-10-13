@@ -9,6 +9,7 @@
 package protocol
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -27,6 +28,47 @@ const ConnectPath = "/api/agent/v1/connect"
 // EnrollPath is where an agent enrolls once (design 7): it shows its
 // environment's enrollment token and gets a credential of its own.
 const EnrollPath = "/api/agent/v1/enroll"
+
+// Probes connect at ProbeConnectPath and enroll at ProbeEnrollPath, as
+// agents do at theirs.
+const (
+	ProbeConnectPath = "/api/probe/v1/connect"
+	ProbeEnrollPath  = "/api/probe/v1/enroll"
+)
+
+// ProbeEnrollRequest is what a probe sends to enroll.
+type ProbeEnrollRequest struct {
+	Token    string `json:"token"`
+	Slug     string `json:"slug"`
+	Name     string `json:"name"`
+	Location string `json:"location"`
+}
+
+// ProbeEnrollResponse is the probe's credential.
+type ProbeEnrollResponse struct {
+	Credential string `json:"credential"`
+	ProbeID    int64  `json:"probe_id"`
+}
+
+// ProbeCheck is a check a probe runs. Intervals are in seconds.
+type ProbeCheck struct {
+	CheckID  int64           `json:"check_id"`
+	Type     string          `json:"type"`
+	Spec     json.RawMessage `json:"spec"`
+	Interval int             `json:"interval"`
+	Timeout  int             `json:"timeout"`
+}
+
+// CheckResult is one run of a check by a probe.
+type CheckResult struct {
+	CheckID      int64   `json:"check_id"`
+	TS           int64   `json:"ts"`
+	OK           bool    `json:"ok"`
+	LatencyMS    float64 `json:"latency_ms"`
+	StatusCode   int     `json:"status_code,omitempty"`
+	CertNotAfter int64   `json:"cert_not_after,omitempty"`
+	Error        string  `json:"error,omitempty"`
+}
 
 // CheckPath answers whether the credential an agent shows as bearer token
 // is still accepted: 204 if it is, 401 if not.
@@ -88,7 +130,11 @@ const (
 	// UpdateStatus is how it went.
 	TypeUpdate       = "update"
 	TypeUpdateStatus = "update_status"
-	TypeHost         = "host"
+	// Checks is the full list of checks a probe runs, sent on connecting
+	// and whenever it changes; Result is one run.
+	TypeChecks = "checks"
+	TypeResult = "result"
+	TypeHost   = "host"
 	// Containers is the full list of the machine's containers: after
 	// connecting, and every few minutes as a safety net for missed events.
 	TypeContainers     = "containers"
@@ -106,7 +152,10 @@ type Message struct {
 
 	Update       *Update       `json:"update,omitempty"`
 	UpdateStatus *UpdateStatus `json:"update_status,omitempty"`
-	Host         *HostSample   `json:"host,omitempty"`
+
+	Checks *[]ProbeCheck `json:"checks,omitempty"`
+	Result *CheckResult  `json:"result,omitempty"`
+	Host   *HostSample   `json:"host,omitempty"`
 
 	Containers     *ContainerList  `json:"containers,omitempty"`
 	ContainerEvent *ContainerEvent `json:"container_event,omitempty"`
