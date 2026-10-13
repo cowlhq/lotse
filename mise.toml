@@ -1,0 +1,18 @@
+[tools]
+go = "1.27"
+
+[tasks.setup]
+description = "Install toolchains and dependencies"
+run = ["mise install", "go mod download"]
+
+[tasks.build]
+description = "Build the lotse binary into bin/"
+run = "go build -trimpath -o bin/lotse ./cmd/lotse"
+
+[tasks.check]
+description = "Everything CI runs"
+run = [
+  "test -z \"$(gofmt -l .)\" || (gofmt -l .; exit 1)",
+  "go vet ./...",
+  "go test -race ./...",
+]
