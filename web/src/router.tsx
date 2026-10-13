@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getHealth, getMe, logout, Unauthorized } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Check } from "@/routes/Check";
 import { Container } from "@/routes/Container";
 import { Scope } from "@/routes/Scope";
 import { Settings } from "@/routes/Settings";
@@ -96,6 +97,15 @@ const scope = createRoute({
   },
 });
 
+const check = createRoute({
+  getParentRoute: () => root,
+  path: "/checks/$id",
+  component: function CheckRoute() {
+    const { id } = check.useParams();
+    return <Check id={Number(id)} />;
+  },
+});
+
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: Settings });
 
 const setup = createRoute({
@@ -122,7 +132,7 @@ const login = createRoute({
   },
 });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, host, container, scope, settings, setup, login]) });
+export const router = createRouter({ routeTree: root.addChildren([overview, host, container, scope, check, settings, setup, login]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

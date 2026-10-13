@@ -2,7 +2,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { listHosts, listScopes, type HostSummary } from "@/api";
+import { listChecks, listHosts, listScopes, type Check, type HostSummary } from "@/api";
+import { CheckState } from "@/components/CheckState";
 import { NewEnvironment } from "@/components/NewEnvironment";
 import { useMe } from "@/lib/useMe";
 import { useUpdates } from "@/lib/useUpdates";
@@ -19,6 +20,7 @@ export function Overview() {
   const { isAdmin } = useMe();
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts, refetchInterval: 60_000 });
   const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
+  const checks = useQuery({ queryKey: ["checks", "all"], queryFn: () => listChecks(), refetchInterval: 30_000 });
   const client = useQueryClient();
   useLive(["hosts"], (m) => {
     if (m.type === "host") {
@@ -70,6 +72,7 @@ export function Overview() {
                     {env.name} <span className="font-normal text-muted-foreground">{byID.get(env.id)?.path}</span>
                   </Link>
                   <HostGrid hosts={hostsIn(env.id)} empty={t("overview.noHosts")} />
+                  <CheckChips checks={(checks.data ?? []).filter((c) => c.environment_id === env.id)} />
                 </div>
               ))}
             </div>
@@ -145,6 +148,21 @@ function Usage({ label, pct, color }: { label: string; pct: number | null | unde
         <span className="tabular-nums">{percent(pct)}</span>
       </div>
       <Meter pct={pct} color={color} />
+    </div>
+  );
+}
+
+// CheckChips shows an environment's checks compactly: name and state.
+function CheckChips({ checks }: { checks: Check[] }) {
+  if (checks.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {checks.map((c) => (
+        <Link key={c.id} to="/checks/$id" params={{ id: String(c.id) }} className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs hover:bg-muted/50">
+          <span className="font-medium">{c.name}</span>
+          <CheckState state={c.state} />
+        </Link>
+      ))}
     </div>
   );
 }

@@ -96,7 +96,9 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
           label: l.label,
           stroke: palette[i],
           width: 2,
-          points: { show: false },
+          // Dots while there are only a few readings, which lines alone
+          // would not show.
+          points: { show: (u: uPlot) => u.data[0].length <= 30, size: 5 },
           value: (_u: uPlot, v: number | null) => format(v),
         })),
       ],
