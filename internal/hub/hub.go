@@ -84,6 +84,17 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	}
 	// Shutdown does not wait for WebSockets; agents are told to go.
 	server.RegisterOnShutdown(h.agents.closeAll)
+	writerCtx, stopWriter := context.WithCancel(context.WithoutCancel(ctx))
+	writerDone := make(chan struct{})
+	go func() {
+		h.writer.run(writerCtx)
+		close(writerDone)
+	}()
+	defer func() {
+		// What arrived until the very end is still written.
+		stopWriter()
+		<-writerDone
+	}()
 	errs := make(chan error, 1)
 	go func() { errs <- server.ListenAndServe() }()
 	select {
@@ -111,10 +122,17 @@ type hub struct {
 	setupToken string
 	agentKey   string
 	agents     agents
+	writer     *writer
+	// hostInterval is how often agents read their machine.
+	hostInterval time.Duration
 }
 
 func newHub(ctx context.Context, db *store.Store, log *slog.Logger) (*hub, error) {
-	h := &hub{db: db, log: log}
+	h := &hub{
+		db: db, log: log,
+		writer:       &writer{db: db, log: log},
+		hostInterval: 15 * time.Second,
+	}
 	users, err := db.CountUsers(ctx)
 	if err != nil {
 		return nil, err

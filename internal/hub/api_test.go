@@ -24,6 +24,7 @@ func newTestHub(t *testing.T) (*hub, *httptest.Server) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	go h.writer.run(t.Context())
 	server := httptest.NewServer(h.routes())
 	t.Cleanup(server.Close)
 	return h, server
