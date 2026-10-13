@@ -4,10 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call: # release.yml checks a release with it
 
-# A newer push to the same ref makes the older run pointless.
+# A newer push to the same ref makes the older run pointless. When release.yml
+# calls this workflow, github.workflow is "release", so the release's check
+# and the normal run on main do not cancel each other.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

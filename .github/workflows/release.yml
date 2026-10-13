@@ -1,0 +1,97 @@
+# Releases. release-please keeps a release pull request up to date; merging
+# it writes the changelog, tags the version and makes the GitHub release.
+# The files and the image of that version are built here, in the same run:
+# a tag pushed with the workflow's own token starts no other workflow.
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+  id-token: write # cosign signs keyless with the workflow's identity
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # A release is a commit that passed.
+  check:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    uses: ./.github/workflows/ci.yml
+
+  files:
+    needs: [release-please, check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          fetch-depth: 0
+      - uses: jdx/mise-action@v4
+      - run: mise run setup
+      - name: Install minisign
+        run: go install aead.dev/minisign/cmd/minisign@v0.3.0
+      - name: Write the signing key
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+        run: |
+          test -n "$MINISIGN_SECRET_KEY" || { echo "secret MINISIGN_SECRET_KEY is missing"; exit 1; }
+          printf '%s\n' "$MINISIGN_SECRET_KEY" > "$RUNNER_TEMP/minisign.key"
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MINISIGN_KEY_FILE: ${{ runner.temp }}/minisign.key
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+
+  image:
+    needs: [release-please, check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: sigstore/cosign-installer@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Only the final stage runs for the target platform, and it only
+      # copies files, so arm64 needs no emulation.
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: VERSION=${{ needs.release-please.outputs.version }}
+          tags: |
+            ghcr.io/cowlhq/lotse:${{ needs.release-please.outputs.version }}
+            ghcr.io/cowlhq/lotse:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/cowlhq/lotse
+            org.opencontainers.image.version=${{ needs.release-please.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=AGPL-3.0-only
+      - name: Sign the image
+        run: cosign sign --yes "ghcr.io/cowlhq/lotse@${{ steps.build.outputs.digest }}"
