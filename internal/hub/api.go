@@ -263,7 +263,7 @@ func (s apiServer) toHost(h store.Host) api.Host {
 		Kernel: h.Kernel, Arch: h.Arch, CpuModel: h.CPUModel, Cores: h.Cores,
 		MemTotal: h.MemTotal, BootTime: h.BootTime, AgentVersion: h.AgentVersion,
 		DockerVersion: h.DockerVersion, FirstSeen: h.FirstSeen, LastSeen: h.LastSeen,
-		Online: s.agents.connected(h.ID),
+		Online: s.agents.connected(h.ID), EnvironmentId: h.EnvironmentID,
 	}
 }
 

@@ -177,6 +177,139 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
 
+  /api/scopes:
+    get:
+      operationId: listScopes
+      summary: The tree of customers, projects and environments
+      description: Every scope but the global one, by path. parent_id links them.
+      responses:
+        "200":
+          description: The scopes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Scope" }
+
+  /api/scopes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getScope
+      summary: A customer, project or environment
+      responses:
+        "200":
+          description: The scope.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scope" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: renameScope
+      summary: Rename a scope; its key stays
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        "200":
+          description: The renamed scope.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scope" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteScope
+      summary: Delete a scope that is empty
+      responses:
+        "204":
+          description: Deleted.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: It still has scopes or hosts in it.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/environments:
+    post:
+      operationId: createEnvironment
+      summary: Create an environment, and its customer and project if needed
+      description: >
+        Each level is matched by its slug; what exists is used as it is,
+        what does not is created with the name given.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer, project, environment]
+              properties:
+                customer: { $ref: "#/components/schemas/ScopeName" }
+                project: { $ref: "#/components/schemas/ScopeName" }
+                environment: { $ref: "#/components/schemas/ScopeName" }
+      responses:
+        "201":
+          description: The environment.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scope" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/hosts/{id}/environment:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    put:
+      operationId: setHostEnvironment
+      summary: Put a host into an environment, or take it out of all
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                environment_id:
+                  type: integer
+                  format: int64
+                  nullable: true
+      responses:
+        "204":
+          description: Moved.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/changes:
+    get:
+      operationId: listChanges
+      summary: The history of an object
+      parameters:
+        - name: subject
+          in: query
+          required: true
+          description: The object, as kind:id, such as environment:4 or host:3.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Its changes, newest first, at most 200.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Change" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
   /api/hosts:
     get:
       operationId: listHosts
@@ -335,6 +468,11 @@ components:
       schema: { type: integer, minimum: 1, maximum: 5000 }
 
   responses:
+    Forbidden:
+      description: Only an admin may do this.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     AlreadySetUp:
       description: The hub is already set up, or past this step.
       content:
@@ -400,6 +538,57 @@ components:
         name: { type: string }
         role: { type: string, enum: [admin, viewer] }
 
+    Scope:
+      type: object
+      required: [id, kind, slug, name, path]
+      properties:
+        id: { type: integer, format: int64 }
+        parent_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: The customer of a project, the project of an environment; null for customers.
+        kind: { type: string, enum: [customer, project, environment] }
+        slug:
+          type: string
+          description: The key within its parent.
+        name: { type: string }
+        path:
+          type: string
+          description: The stable key, such as acme/shop/prod.
+
+    ScopeName:
+      type: object
+      required: [slug, name]
+      properties:
+        slug:
+          type: string
+          description: Lowercase letters, digits and dashes, up to 40.
+        name: { type: string }
+
+    Change:
+      type: object
+      required: [id, at, batch_id, actor_kind, actor_name, via, subject_kind, subject_id, subject_path, field]
+      properties:
+        id: { type: integer, format: int64 }
+        at: { type: integer, format: int64 }
+        batch_id:
+          type: string
+          description: The same for everything one save, apply or deploy changed.
+        actor_kind: { type: string, enum: [user, token, label, system] }
+        actor_name: { type: string }
+        via: { type: string, enum: [ui, apply, label, api, setup, system] }
+        subject_kind: { type: string }
+        subject_id: { type: integer, format: int64 }
+        subject_path: { type: string }
+        field:
+          type: string
+          description: The changed field, or created or deleted.
+        old:
+          description: The value before; missing for something created.
+        new:
+          description: The value after; missing for something deleted.
+
     Host:
       type: object
       required: [id, name, hostname, os, platform, kernel, arch, cpu_model, cores, mem_total,
@@ -425,6 +614,11 @@ components:
         online:
           type: boolean
           description: Whether its agent is connected now.
+        environment_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Its environment; null until it is put into one.
 
     HostReading:
       type: object
