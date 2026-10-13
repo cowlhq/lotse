@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
 	"strconv"
 	"strings"
 
@@ -104,6 +105,17 @@ func Ping(ctx context.Context, url string) error {
 	}
 	defer s.Close()
 	return s.db.PingContext(ctx)
+}
+
+// Backup writes a consistent copy of a SQLite database to path, while it
+// is in use.
+func (s *Store) Backup(ctx context.Context, path string) error {
+	if s.dialect != SQLite {
+		return errors.New("only a SQLite database is backed up by lotse")
+	}
+	os.Remove(path)
+	_, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, path)
+	return err
 }
 
 // Close closes the database.

@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"lotse.sh/internal/secret"
 	"lotse.sh/internal/store"
 	"lotse.sh/internal/ui"
+	"lotse.sh/internal/update"
 	"lotse.sh/internal/version"
 )
 
@@ -36,6 +38,11 @@ type Config struct {
 	// URL is where people and agents reach the hub. Set, it wins over what
 	// setup saved.
 	URL string
+	// ReleaseURL is where hub updates come from; empty means GitHub. Like
+	// the agents', only the machine itself names another place.
+	ReleaseURL string
+	// ReleasesAPI is where the hub learns about new releases.
+	ReleasesAPI string
 	// SecretKey seals what the hub keeps but must read again, such as
 	// enrollment tokens. Empty means the key in DataDir/secret.key, made on
 	// first start.
@@ -49,6 +56,8 @@ func ConfigFromEnv() Config {
 		DatabaseURL: os.Getenv("LOTSE_DATABASE_URL"),
 		URL:         os.Getenv("LOTSE_URL"),
 		SecretKey:   os.Getenv("LOTSE_SECRET_KEY"),
+		ReleaseURL:  os.Getenv("LOTSE_RELEASE_URL"),
+		ReleasesAPI: cmp.Or(os.Getenv("LOTSE_RELEASES_API"), DefaultReleasesAPI),
 	}
 }
 
@@ -73,13 +82,16 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	}
 	setup := &setupState{}
 	shared := shared{
-		box:       box,
-		log:       log,
-		cfg:       cfg,
-		setup:     setup,
-		publicURL: new(atomic.Pointer[string]),
-		logins:    auth.NewLimiter(5, 15*time.Minute),
-		chosen:    make(chan string, 1),
+		box:         box,
+		log:         log,
+		cfg:         cfg,
+		setup:       setup,
+		publicURL:   new(atomic.Pointer[string]),
+		logins:      auth.NewLimiter(5, 15*time.Minute),
+		chosen:      make(chan string, 1),
+		releases:    &releases{api: cfg.ReleasesAPI},
+		restart:     make(chan struct{}),
+		restartOnce: new(sync.Once),
 	}
 	shared.setPublicURL(cmp.Or(cfg.URL, saved.URL, defaultURL(cfg.Listen)))
 	dbURL := cmp.Or(cfg.DatabaseURL, saved.DatabaseURL)
@@ -152,6 +164,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	}()
 	go h.keepLive(ctx)
 	go h.retain(ctx)
+	go h.releases.watch(ctx)
 	defer func() {
 		// What arrived until the very end is still written.
 		stopWriter()
@@ -163,6 +176,12 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	case err := <-errs:
 		return err
 	case <-ctx.Done():
+	case <-shared.restart:
+		// An update is installed: stop, and let the starter run it.
+		if err := stop(); err != nil {
+			return err
+		}
+		return update.ErrRestart
 	}
 	return stop()
 }
@@ -177,7 +196,11 @@ type shared struct {
 	logins    *auth.Limiter
 	box       *secret.Box
 	// chosen gets the database URL that setup chose.
-	chosen chan string
+	chosen   chan string
+	releases *releases
+	// restart is closed when the hub has installed an update.
+	restart     chan struct{}
+	restartOnce *sync.Once
 }
 
 func (s shared) setPublicURL(u string) { s.publicURL.Store(&u) }
