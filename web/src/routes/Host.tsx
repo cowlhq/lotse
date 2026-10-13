@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getHost, getSeries, listEvents, NotFound, type Container, type HostDetail } from "@/api";
+import { getHost, getSeries, listEvents, NotFound, type Container, type HostDetail, type Series } from "@/api";
+import { LiveBadge } from "@/components/LiveBadge";
 import { Chart, type Line } from "@/components/Chart";
 import { RangePicker, type RangeSeconds } from "@/components/Range";
 import { Meter, Online } from "@/components/Status";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ago, bytes, duration, number, percent, rate } from "@/lib/format";
 import { status, usageColor } from "@/lib/palette";
+import { appendReading, useLive } from "@/lib/live";
 import { useRange } from "@/lib/useRange";
 
 export function Host({ id }: { id: number }) {
@@ -31,6 +33,7 @@ export function Host({ id }: { id: number }) {
   });
 
   const charts = useCharts();
+  const lastLive = useLiveHost(id);
 
   if (host.isPending) return <Skeleton className="h-64 w-full" />;
   if (host.error instanceof NotFound) return <p>{t("host.notFound")}</p>;
@@ -38,7 +41,7 @@ export function Host({ id }: { id: number }) {
 
   return (
     <div className="space-y-6">
-      <Header detail={host.data} />
+      <Header detail={host.data} live={lastLive} />
       <div className="flex justify-end">
         <RangePicker value={seconds} onChange={setSeconds} />
       </div>
@@ -115,7 +118,37 @@ function useCharts() {
   }, [t]);
 }
 
-function Header({ detail }: { detail: HostDetail }) {
+// useLiveHost keeps the page current from the live connection: readings
+// are added to the graphs and tiles, changes of containers and state make
+// the host load again. It returns when the last reading came.
+function useLiveHost(id: number) {
+  const client = useQueryClient();
+  const [last, setLast] = useState(0);
+  useLive([`host:${id}`], (m) => {
+    if (m.host_id !== id) return;
+    switch (m.type) {
+      case "host": {
+        const r = m.reading!;
+        setLast(Date.now());
+        client.setQueriesData<Series>({ queryKey: ["series", "hosts", id] }, (s) => appendReading(s, r.ts, r));
+        client.setQueryData<HostDetail>(["host", id], (d) => d && { ...d, latest: r, host: { ...d.host, last_seen: r.ts } });
+        break;
+      }
+      case "container_stats":
+        client.setQueryData<HostDetail>(["host", id], (d) => {
+          if (!d) return d;
+          const byID = new Map(m.containers!.map((c) => [c.container_id, c.reading]));
+          return { ...d, containers: d.containers.map((c) => (byID.has(c.id) ? { ...c, latest: byID.get(c.id) } : c)) };
+        });
+        break;
+      default:
+        client.invalidateQueries({ queryKey: ["host", id] });
+    }
+  });
+  return last;
+}
+
+function Header({ detail, live }: { detail: HostDetail; live: number }) {
   const { t } = useTranslation();
   const { host, latest } = detail;
   const facts: [string, string][] = [
@@ -133,6 +166,7 @@ function Header({ detail }: { detail: HostDetail }) {
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-semibold">{host.name}</h2>
         <Online online={host.online} />
+        <LiveBadge last={live} />
       </div>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
         {facts.map(([k, v]) => (

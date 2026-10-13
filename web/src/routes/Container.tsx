@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getContainer, getSeries, listEvents, NotFound, type Event } from "@/api";
+import { getContainer, getSeries, listEvents, NotFound, type Container as ContainerData, type Event, type Series } from "@/api";
+import { LiveBadge } from "@/components/LiveBadge";
+import { appendReading, useLive } from "@/lib/live";
 import { Chart, type Line } from "@/components/Chart";
 import { RangePicker, type RangeSeconds } from "@/components/Range";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +27,23 @@ export function Container({ id }: { id: number }) {
     queryKey: ["events", "container", id, range],
     queryFn: () => listEvents(`container:${id}`, range),
     placeholderData: (prev) => prev,
+  });
+
+  const client = useQueryClient();
+  const [lastLive, setLastLive] = useState(0);
+  const hostID = container.data?.host_id;
+  useLive(hostID ? [`host:${hostID}`] : [], (m) => {
+    if (m.host_id !== hostID) return;
+    if (m.type === "container_stats") {
+      const r = m.containers!.find((c) => c.container_id === id)?.reading;
+      if (!r) return;
+      setLastLive(Date.now());
+      client.setQueriesData<Series>({ queryKey: ["series", "containers", id] }, (s) => appendReading(s, r.ts, r));
+      client.setQueryData<ContainerData>(["container", id], (c) => c && { ...c, latest: r });
+    } else if (m.type === "containers") {
+      client.invalidateQueries({ queryKey: ["container", id] });
+      client.invalidateQueries({ queryKey: ["events", "container", id] });
+    }
   });
 
   const charts = useMemo(() => {
@@ -60,6 +79,7 @@ export function Container({ id }: { id: number }) {
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-semibold">{c.slug}</h2>
           <ContainerState container={c} />
+          <LiveBadge last={lastLive} />
         </div>
         <p className="text-sm text-muted-foreground">
           {c.image} · {t("container.restartCount", { count: c.restarts })}
