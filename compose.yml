@@ -1,6 +1,7 @@
 # Local development: `docker compose up --build`, then open
-# http://localhost:8080 (or the port in LOTSE_PORT). The setup link is in
-# `docker compose logs hub`.
+# http://localhost:8080 (or the port in LOTSE_PORT). It runs a hub, an agent
+# watching this machine and its containers, and three demo containers. The
+# setup link is in `docker compose logs hub`.
 #
 # With --profile postgres, Postgres runs as well; the hub uses it when
 # LOTSE_DATABASE_URL is set, for example in a .env file:
@@ -28,15 +29,45 @@ services:
         required: false
     restart: unless-stopped
 
+  # The agent watches the machine Docker runs on: its / is mounted read-only
+  # at /host, and the Docker socket to list containers. It runs as root to
+  # read the socket. Even mounted read-only, the socket allows the whole
+  # Docker API; see the docs for putting a socket proxy in between.
   agent:
     image: lotse:dev
     command: ["start", "agent", "--hub", "http://hub:8080", "--insecure"]
+    user: "0"
     environment:
       LOTSE_TOKEN: dev-agent-key
+      LOTSE_HOST_ROOT: /host
     volumes:
       - agent:/var/lib/lotse
+      - /:/host:ro,rslave
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - hub
+    restart: unless-stopped
+
+  # Something to look at: a healthy, an unhealthy and a crashing container.
+  demo-web:
+    image: nginx:alpine
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/"]
+      interval: 10s
+    restart: unless-stopped
+
+  demo-sick:
+    image: alpine
+    command: ["sleep", "infinity"]
+    healthcheck:
+      test: ["CMD", "false"]
+      interval: 10s
+      retries: 2
+    restart: unless-stopped
+
+  demo-flaky:
+    image: alpine
+    command: ["sh", "-c", "sleep 120; echo giving up; exit 1"]
     restart: unless-stopped
 
   postgres:
