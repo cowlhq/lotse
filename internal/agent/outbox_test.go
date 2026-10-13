@@ -34,3 +34,20 @@ func TestOutbox(t *testing.T) {
 		t.Errorf("left: %d messages, want only the third", len(left))
 	}
 }
+
+func TestOutboxLatest(t *testing.T) {
+	o := newOutbox(time.Minute)
+	list := func() protocol.Message {
+		return protocol.Message{Type: protocol.TypeContainers, Containers: &protocol.ContainerList{}}
+	}
+	o.addLatest(list())
+	o.add(hostMsg(1))
+	pending := o.pending()
+	newest := list()
+	o.addLatest(newest)
+	o.sent(pending)
+	left := o.pending()
+	if len(left) != 1 || left[0].Containers != newest.Containers {
+		t.Errorf("left %d messages, want only the newest list", len(left))
+	}
+}

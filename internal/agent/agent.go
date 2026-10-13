@@ -68,18 +68,21 @@ func isLocal(host string) bool {
 const (
 	// bufferAge is how much the agent keeps while the hub is away.
 	bufferAge = 15 * time.Minute
-	// defaultHostInterval holds until the hub says otherwise.
-	defaultHostInterval = 15 * time.Second
-	writeTimeout        = 10 * time.Second
+	// The intervals hold until the hub says otherwise.
+	defaultHostInterval      = 15 * time.Second
+	defaultContainerInterval = 30 * time.Second
+	writeTimeout             = 10 * time.Second
 )
 
 type agent struct {
-	cfg  Config
-	log  *slog.Logger
-	host *hostCollector
-	out  *outbox
+	cfg    Config
+	log    *slog.Logger
+	host   *hostCollector
+	docker *docker
+	out    *outbox
 
-	hostInterval atomic.Int64 // nanoseconds
+	hostInterval      atomic.Int64 // nanoseconds
+	containerInterval atomic.Int64
 	// intervalChanged wakes the sampler when the interval changes.
 	intervalChanged chan struct{}
 }
@@ -99,10 +102,14 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		out:             newOutbox(bufferAge),
 		intervalChanged: make(chan struct{}, 1),
 	}
+	a.docker = newDocker(log, a.out.add, a.out.addLatest)
 	a.hostInterval.Store(int64(defaultHostInterval))
+	a.containerInterval.Store(int64(defaultContainerInterval))
 	log.Info("lotse agent starting", "version", version.Version, "hub", cfg.Hub, "root", cfg.Root)
 
 	go a.sampleHost(ctx)
+	go a.docker.watch(ctx)
+	go a.docker.sampleStats(ctx, func() time.Duration { return time.Duration(a.containerInterval.Load()) })
 
 	wait := backoff{min: time.Second, max: time.Minute}
 	for {
@@ -141,15 +148,20 @@ func (a *agent) sampleHost(ctx context.Context) {
 }
 
 func (a *agent) apply(c protocol.Config) {
-	if c.HostInterval <= 0 {
-		return
+	if c.HostInterval > 0 {
+		d := time.Duration(c.HostInterval) * time.Second
+		if a.hostInterval.Swap(int64(d)) != int64(d) {
+			a.log.Info("reading the machine every " + d.String())
+			select {
+			case a.intervalChanged <- struct{}{}:
+			default:
+			}
+		}
 	}
-	d := time.Duration(c.HostInterval) * time.Second
-	if a.hostInterval.Swap(int64(d)) != int64(d) {
-		a.log.Info("reading the machine every " + d.String())
-		select {
-		case a.intervalChanged <- struct{}{}:
-		default:
+	if c.ContainerInterval > 0 {
+		d := time.Duration(c.ContainerInterval) * time.Second
+		if a.containerInterval.Swap(int64(d)) != int64(d) {
+			a.log.Info("reading containers every " + d.String())
 		}
 	}
 }
@@ -189,6 +201,7 @@ func (a *agent) connect(ctx context.Context) error {
 
 	hello := a.host.hello(ctx)
 	hello.Version = version.Version
+	hello.DockerVersion = a.docker.Version()
 	if err := a.write(bg, conn, protocol.Message{Type: protocol.TypeHello, Hello: &hello}); err != nil {
 		return err
 	}
@@ -201,6 +214,8 @@ func (a *agent) connect(ctx context.Context) error {
 	}
 	a.apply(m.Welcome.Config)
 	a.log.Info("connected to the hub", "hub_version", m.Welcome.HubVersion, "protocol", conn.Subprotocol())
+	// The hub learns the containers' identities from the full list.
+	a.docker.Refresh()
 
 	readErr := make(chan error, 1)
 	go func() {
