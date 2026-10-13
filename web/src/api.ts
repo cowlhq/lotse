@@ -6,6 +6,7 @@ export type Health = {
   version: string;
   database: string;
   setup: boolean;
+  agents: number;
 };
 
 export async function getHealth(): Promise<Health> {

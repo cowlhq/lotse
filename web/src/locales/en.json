@@ -8,7 +8,9 @@
     "running": "The hub is running.",
     "version": "Version {{version}}",
     "database": "Database: {{database}}",
-    "notSetUp": "This hub is not set up yet. Open the setup link from its log."
+    "notSetUp": "This hub is not set up yet. Open the setup link from its log.",
+    "agents_one": "{{count}} agent connected",
+    "agents_other": "{{count}} agents connected"
   },
   "setup": {
     "title": "Set up lotse",
