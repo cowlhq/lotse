@@ -3,15 +3,36 @@
     "name": "lotse",
     "unreachable": "The hub does not answer."
   },
-  "home": {
-    "notSetUp": "This hub is not set up yet. Open the setup link from its log."
-  },
   "setup": {
     "title": "Set up lotse",
+    "step": "Step {{n}} of {{of}}",
+    "noToken": "This hub is not set up yet. Open the setup link from its log: docker compose logs hub.",
     "checking": "Checking the setup link…",
-    "valid": "The setup link is valid. The setup wizard comes with milestone 3.",
-    "invalid": "This setup link is not valid. Take the current one from the hub's log.",
-    "done": "This hub is already set up."
+    "invalid": "This setup link is not valid. Take the current one from the hub's log; it changes when the hub restarts.",
+    "done": "This hub is already set up.",
+    "continue": "Continue",
+    "database": {
+      "title": "Database",
+      "description": "Where the hub keeps everything. This is fixed once chosen.",
+      "sqlite": "SQLite (recommended)",
+      "sqliteHint": "One file in the hub's data directory. Nothing to set up; a backup is a copy of the file.",
+      "postgres": "Postgres",
+      "postgresHint": "A Postgres database you run, for example with the compose file's postgres profile.",
+      "postgresFound": "The compose file's Postgres answers; its address is filled in.",
+      "url": "Postgres URL",
+      "testing": "Setting up the database…"
+    },
+    "admin": {
+      "title": "Admin",
+      "description": "The first user, who can do everything. You are logged in right away.",
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "passwordHint": "At least 10 characters.",
+      "url": "Address of this hub",
+      "urlHint": "Where people and agents reach the hub. Agents' install commands use it.",
+      "finish": "Finish setup"
+    }
   },
   "overview": {
     "empty": "No hosts yet. Start an agent, and its machine appears here.",
@@ -92,5 +113,12 @@
   "chart": {
     "empty": "No readings in this time range"
   },
-  "live": "live"
+  "live": "live",
+  "login": {
+    "title": "Log in to lotse",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "logout": "Log out"
+  }
 }

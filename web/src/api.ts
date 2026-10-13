@@ -12,6 +12,8 @@ export type Filesystem = Schemas["Filesystem"];
 export type Container = Schemas["Container"];
 export type Series = Schemas["Series"];
 export type Event = Schemas["Event"];
+export type User = Schemas["User"];
+export type SetupStep = Schemas["SetupStep"];
 
 export type Range = { from: number; to: number };
 
@@ -26,24 +28,51 @@ export const getSeries = (kind: "hosts" | "filesystems" | "containers", id: numb
 export const listEvents = (subject: string, r: Range) =>
   get<Event[]>(`/api/events?subject=${subject}&from=${r.from}&to=${r.to}`);
 
-export async function checkSetupToken(token: string): Promise<{ valid: boolean }> {
-  const res = await fetch("/api/setup/check", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  });
-  if (res.status === 409) return Promise.reject(new SetupDone());
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
+export type SetupCheck = { valid: boolean; step?: SetupStep; postgres?: string };
 
-export class SetupDone extends Error {}
+export const checkSetup = (token: string) => post<SetupCheck>("/api/setup/check", { token });
+export const setupDatabase = (token: string, kind: "sqlite" | "postgres", url?: string) =>
+  post<void>("/api/setup/database", { token, kind, url });
+export const setupAdmin = (token: string, admin: { name: string; email: string; password: string; url: string }) =>
+  post<User>("/api/setup/admin", { token, ...admin });
+
+export const getMe = () => get<User>("/api/auth/me");
+export const login = (email: string, password: string) => post<User>("/api/auth/login", { email, password });
+export const logout = () => post<void>("/api/auth/logout");
 
 export class NotFound extends Error {}
+export class Unauthorized extends Error {}
+
+// ApiError carries the hub's own words for what went wrong.
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path);
+  return answer<T>(await fetch(path), path);
+}
+
+async function post<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return answer<T>(res, path);
+}
+
+async function answer<T>(res: Response, path: string): Promise<T> {
+  if (res.status === 401 && path !== "/api/auth/login") throw new Unauthorized(path);
   if (res.status === 404) throw new NotFound(path);
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.error ?? `${res.status} ${res.statusText}`);
+  }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
