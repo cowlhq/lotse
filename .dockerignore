@@ -1,0 +1,9 @@
+*
+!go.mod
+!go.sum
+!cmd
+!internal
+!client
+!web
+web/node_modules
+internal/ui/dist
