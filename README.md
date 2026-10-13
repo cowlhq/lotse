@@ -15,8 +15,9 @@ Work in progress. See [docs/design.md](docs/design.md).
 docker compose up --build
 ```
 
-starts a hub on http://localhost:8080 and an agent connected to it. The setup
-link is in `docker compose logs hub`. `LOTSE_PORT=18080 docker compose up`
+starts a hub on http://localhost:8080, an agent watching this machine and its
+containers, and three demo containers: a healthy one, an unhealthy one and one
+that crashes every two minutes. The setup link is in `docker compose logs hub`. `LOTSE_PORT=18080 docker compose up`
 uses another port; `docker compose --profile postgres up` with
 `LOTSE_DATABASE_URL` set (see `compose.yml`) runs on Postgres instead of
 SQLite.
