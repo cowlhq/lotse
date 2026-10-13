@@ -699,6 +699,8 @@ export interface components {
             last_seen: number;
             /** @description Whether its agent is connected now. */
             online: boolean;
+            /** @description Whether its agent's credential is revoked; it comes back only by enrolling again. */
+            agent_revoked: boolean;
             /**
              * Format: int64
              * @description Its environment; null until it is put into one.
