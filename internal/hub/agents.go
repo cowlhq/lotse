@@ -67,6 +67,22 @@ func (a *agents) count() int {
 	return len(a.conn)
 }
 
+type agentConn struct {
+	conn   *websocket.Conn
+	hostID int64
+}
+
+// all returns every connected agent.
+func (a *agents) all() []agentConn {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	list := make([]agentConn, 0, len(a.conn))
+	for c, id := range a.conn {
+		list = append(list, agentConn{c, id})
+	}
+	return list
+}
+
 // of returns the connections of a host's agents.
 func (a *agents) of(hostID int64) []*websocket.Conn {
 	a.mu.Lock()
@@ -143,7 +159,7 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 	log := h.log.With("host", host.Name, "host_id", host.ID, "agent_version", hello.Version, "protocol", v)
 	if err := wsjson.Write(ctx, conn, protocol.Message{
 		Type:    protocol.TypeWelcome,
-		Welcome: &protocol.Welcome{HubVersion: version.Version, Config: h.agentConfig()},
+		Welcome: &protocol.Welcome{HubVersion: version.Version, Config: h.agentConfig(ctx, host.ID)},
 	}); err != nil {
 		return
 	}
@@ -203,15 +219,6 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Error("cannot save what the agent sent", "type", m.Type, "err", err)
 		}
-	}
-}
-
-// agentConfig is what every agent is told. Milestone 3 makes it a setting
-// that is inherited down the tree.
-func (h *hub) agentConfig() protocol.Config {
-	return protocol.Config{
-		HostInterval:      int(h.hostInterval / time.Second),
-		ContainerInterval: int(h.containerInterval / time.Second),
 	}
 }
 

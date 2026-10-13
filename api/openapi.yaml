@@ -310,6 +310,53 @@ paths:
                 items: { $ref: "#/components/schemas/Change" }
         "400": { $ref: "#/components/responses/BadRequest" }
 
+  /api/config:
+    get:
+      operationId: getConfig
+      summary: The effective settings of an object, and where each comes from
+      parameters:
+        - name: subject
+          in: query
+          required: true
+          description: >
+            host:<id>, environment:<id>, project:<id>, customer:<id>, or
+            global:1.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Every setting the object has, effective value first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ConfigValue" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/settings:
+    put:
+      operationId: setSetting
+      summary: Set a setting on an object, or unset it with null
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, key, value]
+              properties:
+                subject: { type: string }
+                key: { type: string }
+                value:
+                  nullable: true
+                  description: The value; null unsets it, so it is inherited again.
+      responses:
+        "204":
+          description: Saved.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/hosts:
     get:
       operationId: listHosts
@@ -588,6 +635,38 @@ components:
           description: The value before; missing for something created.
         new:
           description: The value after; missing for something deleted.
+
+    ConfigLevel:
+      type: object
+      required: [kind, id, path, name]
+      properties:
+        kind: { type: string, enum: [host, environment, project, customer, global] }
+        id: { type: integer, format: int64 }
+        path: { type: string }
+        name: { type: string }
+
+    ConfigValue:
+      type: object
+      required: [key, type, description, value, overrides]
+      properties:
+        key: { type: string, example: agent.interval.host }
+        type: { type: string, enum: [duration, bool] }
+        description: { type: string }
+        value:
+          description: The effective value.
+        from:
+          $ref: "#/components/schemas/ConfigLevel"
+        overrides:
+          type: array
+          description: Values set further up that this one overrides, nearest first.
+          items: { $ref: "#/components/schemas/ConfigOverride" }
+
+    ConfigOverride:
+      type: object
+      required: [level, value]
+      properties:
+        level: { $ref: "#/components/schemas/ConfigLevel" }
+        value: {}
 
     Host:
       type: object

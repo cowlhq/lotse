@@ -70,6 +70,51 @@ func (e ChangeVia) Valid() bool {
 	}
 }
 
+// Defines values for ConfigLevelKind.
+const (
+	ConfigLevelKindCustomer    ConfigLevelKind = "customer"
+	ConfigLevelKindEnvironment ConfigLevelKind = "environment"
+	ConfigLevelKindGlobal      ConfigLevelKind = "global"
+	ConfigLevelKindHost        ConfigLevelKind = "host"
+	ConfigLevelKindProject     ConfigLevelKind = "project"
+)
+
+// Valid indicates whether the value is a known member of the ConfigLevelKind enum.
+func (e ConfigLevelKind) Valid() bool {
+	switch e {
+	case ConfigLevelKindCustomer:
+		return true
+	case ConfigLevelKindEnvironment:
+		return true
+	case ConfigLevelKindGlobal:
+		return true
+	case ConfigLevelKindHost:
+		return true
+	case ConfigLevelKindProject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ConfigValueType.
+const (
+	Bool     ConfigValueType = "bool"
+	Duration ConfigValueType = "duration"
+)
+
+// Valid indicates whether the value is a known member of the ConfigValueType enum.
+func (e ConfigValueType) Valid() bool {
+	switch e {
+	case Bool:
+		return true
+	case Duration:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EventSubjectKind.
 const (
 	EventSubjectKindContainer EventSubjectKind = "container"
@@ -108,19 +153,19 @@ func (e HealthDatabase) Valid() bool {
 
 // Defines values for ScopeKind.
 const (
-	Customer    ScopeKind = "customer"
-	Environment ScopeKind = "environment"
-	Project     ScopeKind = "project"
+	ScopeKindCustomer    ScopeKind = "customer"
+	ScopeKindEnvironment ScopeKind = "environment"
+	ScopeKindProject     ScopeKind = "project"
 )
 
 // Valid indicates whether the value is a known member of the ScopeKind enum.
 func (e ScopeKind) Valid() bool {
 	switch e {
-	case Customer:
+	case ScopeKindCustomer:
 		return true
-	case Environment:
+	case ScopeKindEnvironment:
 		return true
-	case Project:
+	case ScopeKindProject:
 		return true
 	default:
 		return false
@@ -210,6 +255,42 @@ type ChangeActorKind string
 
 // ChangeVia defines model for Change.Via.
 type ChangeVia string
+
+// ConfigLevel defines model for ConfigLevel.
+type ConfigLevel struct {
+	Id   int64           `json:"id"`
+	Kind ConfigLevelKind `json:"kind"`
+	Name string          `json:"name"`
+	Path string          `json:"path"`
+}
+
+// ConfigLevelKind defines model for ConfigLevel.Kind.
+type ConfigLevelKind string
+
+// ConfigOverride defines model for ConfigOverride.
+type ConfigOverride struct {
+	Level ConfigLevel `json:"level"`
+	Value interface{} `json:"value"`
+}
+
+// ConfigValue defines model for ConfigValue.
+type ConfigValue struct {
+	Description string       `json:"description"`
+	From        *ConfigLevel `json:"from,omitempty"`
+
+	// Key Example: agent.interval.host
+	Key string `json:"key"`
+
+	// Overrides Values set further up that this one overrides, nearest first.
+	Overrides []ConfigOverride `json:"overrides"`
+	Type      ConfigValueType  `json:"type"`
+
+	// Value The effective value.
+	Value interface{} `json:"value"`
+}
+
+// ConfigValueType defines model for ConfigValue.Type.
+type ConfigValueType string
 
 // Container defines model for Container.
 type Container struct {
@@ -468,6 +549,12 @@ type ListChangesParams struct {
 	Subject string `form:"subject" json:"subject"`
 }
 
+// GetConfigParams defines parameters for GetConfig.
+type GetConfigParams struct {
+	// Subject host:<id>, environment:<id>, project:<id>, customer:<id>, or global:1.
+	Subject string `form:"subject" json:"subject"`
+}
+
 // GetContainerSeriesParams defines parameters for GetContainerSeries.
 type GetContainerSeriesParams struct {
 	// From Start, in Unix seconds. Defaults to an hour before to.
@@ -533,6 +620,15 @@ type RenameScopeJSONBody struct {
 	Name string `json:"name"`
 }
 
+// SetSettingJSONBody defines parameters for SetSetting.
+type SetSettingJSONBody struct {
+	Key     string `json:"key"`
+	Subject string `json:"subject"`
+
+	// Value The value; null unsets it, so it is inherited again.
+	Value interface{} `json:"value"`
+}
+
 // SetupAdminJSONBody defines parameters for SetupAdmin.
 type SetupAdminJSONBody struct {
 	Email    string `json:"email"`
@@ -568,6 +664,9 @@ type SetHostEnvironmentJSONRequestBody SetHostEnvironmentJSONBody
 // RenameScopeJSONRequestBody defines body for RenameScope for application/json ContentType.
 type RenameScopeJSONRequestBody RenameScopeJSONBody
 
+// SetSettingJSONRequestBody defines body for SetSetting for application/json ContentType.
+type SetSettingJSONRequestBody SetSettingJSONBody
+
 // SetupAdminJSONRequestBody defines body for SetupAdmin for application/json ContentType.
 type SetupAdminJSONRequestBody SetupAdminJSONBody
 
@@ -591,6 +690,9 @@ type ServerInterface interface {
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(w http.ResponseWriter, r *http.Request, params ListChangesParams)
+	// GetConfig The effective settings of an object, and where each comes from
+	// (GET /api/config)
+	GetConfig(w http.ResponseWriter, r *http.Request, params GetConfigParams)
 	// GetContainer A container
 	// (GET /api/containers/{id})
 	GetContainer(w http.ResponseWriter, r *http.Request, id ID)
@@ -633,6 +735,9 @@ type ServerInterface interface {
 	// RenameScope Rename a scope; its key stays
 	// (PATCH /api/scopes/{id})
 	RenameScope(w http.ResponseWriter, r *http.Request, id ID)
+	// SetSetting Set a setting on an object, or unset it with null
+	// (PUT /api/settings)
+	SetSetting(w http.ResponseWriter, r *http.Request)
 	// SetupAdmin Create the first admin, the last step of setup
 	// (POST /api/setup/admin)
 	SetupAdmin(w http.ResponseWriter, r *http.Request)
@@ -719,6 +824,39 @@ func (siw *ServerInterfaceWrapper) ListChanges(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListChanges(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetConfig operation middleware
+func (siw *ServerInterfaceWrapper) GetConfig(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetConfigParams
+
+	// ------------- Required query parameter "subject" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "subject", r.URL.Query(), &params.Subject, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConfig(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1203,6 +1341,20 @@ func (siw *ServerInterfaceWrapper) RenameScope(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// SetSetting operation middleware
+func (siw *ServerInterfaceWrapper) SetSetting(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetSetting(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetupAdmin operation middleware
 func (siw *ServerInterfaceWrapper) SetupAdmin(w http.ResponseWriter, r *http.Request) {
 
@@ -1379,6 +1531,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/environments", wrapper.CreateEnvironment)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/hosts/{id}/environment", wrapper.SetHostEnvironment)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/changes", wrapper.ListChanges)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/config", wrapper.GetConfig)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/settings", wrapper.SetSetting)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts", wrapper.ListHosts)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}", wrapper.GetHost)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}/series", wrapper.GetHostSeries)
@@ -1536,6 +1690,56 @@ func (response ListChanges400JSONResponse) VisitListChangesResponse(w http.Respo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetConfigRequestObject struct {
+	Params GetConfigParams
+}
+
+type GetConfigResponseObject interface {
+	VisitGetConfigResponse(w http.ResponseWriter) error
+}
+
+type GetConfig200JSONResponse []ConfigValue
+
+func (response GetConfig200JSONResponse) VisitGetConfigResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetConfig400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetConfig400JSONResponse) VisitGetConfigResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetConfig404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetConfig404JSONResponse) VisitGetConfigResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -2104,6 +2308,64 @@ func (response RenameScope404JSONResponse) VisitRenameScopeResponse(w http.Respo
 	return err
 }
 
+type SetSettingRequestObject struct {
+	Body *SetSettingJSONRequestBody
+}
+
+type SetSettingResponseObject interface {
+	VisitSetSettingResponse(w http.ResponseWriter) error
+}
+
+type SetSetting204Response struct {
+}
+
+func (response SetSetting204Response) VisitSetSettingResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetSetting400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetSetting400JSONResponse) VisitSetSettingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetSetting403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetSetting403JSONResponse) VisitSetSettingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetSetting404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetSetting404JSONResponse) VisitSetSettingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetupAdminRequestObject struct {
 	Body *SetupAdminJSONRequestBody
 }
@@ -2293,6 +2555,9 @@ type StrictServerInterface interface {
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(ctx context.Context, request ListChangesRequestObject) (ListChangesResponseObject, error)
+	// GetConfig The effective settings of an object, and where each comes from
+	// (GET /api/config)
+	GetConfig(ctx context.Context, request GetConfigRequestObject) (GetConfigResponseObject, error)
 	// GetContainer A container
 	// (GET /api/containers/{id})
 	GetContainer(ctx context.Context, request GetContainerRequestObject) (GetContainerResponseObject, error)
@@ -2335,6 +2600,9 @@ type StrictServerInterface interface {
 	// RenameScope Rename a scope; its key stays
 	// (PATCH /api/scopes/{id})
 	RenameScope(ctx context.Context, request RenameScopeRequestObject) (RenameScopeResponseObject, error)
+	// SetSetting Set a setting on an object, or unset it with null
+	// (PUT /api/settings)
+	SetSetting(ctx context.Context, request SetSettingRequestObject) (SetSettingResponseObject, error)
 	// SetupAdmin Create the first admin, the last step of setup
 	// (POST /api/setup/admin)
 	SetupAdmin(ctx context.Context, request SetupAdminRequestObject) (SetupAdminResponseObject, error)
@@ -2483,6 +2751,32 @@ func (sh *strictHandler) ListChanges(w http.ResponseWriter, r *http.Request, par
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListChangesResponseObject); ok {
 		if err := validResponse.VisitListChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetConfig operation middleware
+func (sh *strictHandler) GetConfig(w http.ResponseWriter, r *http.Request, params GetConfigParams) {
+	var request GetConfigRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetConfig(ctx, request.(GetConfigRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetConfig")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetConfigResponseObject); ok {
+		if err := validResponse.VisitGetConfigResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2863,6 +3157,37 @@ func (sh *strictHandler) RenameScope(w http.ResponseWriter, r *http.Request, id 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RenameScopeResponseObject); ok {
 		if err := validResponse.VisitRenameScopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetSetting operation middleware
+func (sh *strictHandler) SetSetting(w http.ResponseWriter, r *http.Request) {
+	var request SetSettingRequestObject
+
+	var body SetSettingJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetSetting(ctx, request.(SetSettingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetSetting")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetSettingResponseObject); ok {
+		if err := validResponse.VisitSetSettingResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
