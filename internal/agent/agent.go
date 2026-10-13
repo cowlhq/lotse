@@ -27,8 +27,11 @@ import (
 type Config struct {
 	// Hub is the hub's address, such as https://lotse.example.com.
 	Hub string
-	// Token proves the agent to the hub.
+	// Token is the environment's enrollment token. It is needed once, to
+	// enroll; after that the agent has a credential of its own.
 	Token string
+	// DataDir keeps the agent's credential (agent.json).
+	DataDir string
 	// Insecure allows plain HTTP to a hub that is not on this machine.
 	Insecure bool
 	// Root is where the machine's / is: "/" for an agent installed on the
@@ -51,8 +54,8 @@ func (c Config) Check() error {
 	default:
 		return fmt.Errorf("%q is not the address of a hub", c.Hub)
 	}
-	if c.Token == "" {
-		return errors.New("no token given")
+	if c.DataDir == "" {
+		return errors.New("no data directory given")
 	}
 	return nil
 }
@@ -203,16 +206,22 @@ func (a *agent) apply(c protocol.Config) {
 }
 
 func (a *agent) connect(ctx context.Context) error {
+	credential, err := a.credential(ctx)
+	if err != nil {
+		return err
+	}
 	u := strings.TrimSuffix(a.cfg.Hub, "/") + protocol.ConnectPath
 	dialCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	conn, res, err := websocket.Dial(dialCtx, u, &websocket.DialOptions{
 		Subprotocols: protocol.Subprotocols(),
-		HTTPHeader:   http.Header{"Authorization": {"Bearer " + a.cfg.Token}},
+		HTTPHeader:   http.Header{"Authorization": {"Bearer " + credential}},
 	})
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusUnauthorized {
-			return errors.New("the hub does not accept this agent's token")
+			// Revoked: enrolling again on its own would undo that. It takes
+			// someone deleting the credential and a new token.
+			return fmt.Errorf("%w; to enroll again, delete %s and start with a current enrollment token", errRevoked, a.statePath())
 		}
 		return err
 	}

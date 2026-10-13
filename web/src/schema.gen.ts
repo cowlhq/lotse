@@ -167,6 +167,51 @@ export interface paths {
         patch: operations["renameScope"];
         trace?: never;
     };
+    "/api/scopes/{id}/enrollment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** An environment's enrollment token, for the install commands */
+        get: operations["getEnrollment"];
+        put?: never;
+        /**
+         * Make a new enrollment token for an environment
+         * @description The token it had stops working. Agents that enrolled with it keep their own credentials.
+         */
+        post: operations["newEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hosts/{id}/agent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke the host's agent credential and disconnect it
+         * @description The agent can only come back by enrolling again, with a current enrollment token and its old credential deleted.
+         */
+        delete: operations["revokeAgent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/environments": {
         parameters: {
             query?: never;
@@ -519,6 +564,15 @@ export interface components {
         ConfigOverride: {
             level: components["schemas"]["ConfigLevel"];
             value: unknown;
+        };
+        Enrollment: {
+            /** @description The enrollment token, lotse_enr_…. */
+            token: string;
+            /** Format: int64 */
+            created_at: number;
+            created_by: string;
+            /** @description The hub's address, for the install commands. */
+            hub: string;
         };
         Host: {
             /** Format: int64 */
@@ -1063,6 +1117,84 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enrollment"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            /** @description There is no such environment, or it has no token yet. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    newEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enrollment"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    revokeAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
         };

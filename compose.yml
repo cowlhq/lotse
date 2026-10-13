@@ -1,7 +1,7 @@
-# Local development: `docker compose up --build`, then open
-# http://localhost:8080 (or the port in LOTSE_PORT). It runs a hub, an agent
-# watching this machine and its containers, and three demo containers. The
-# setup link is in `docker compose logs hub`.
+# Local development: `docker compose up --build`, then open the setup link
+# from `docker compose logs hub`. It runs a hub on http://localhost:8080 (or
+# the port in LOTSE_PORT) and three demo containers; the agent starts once
+# it has an enrollment token (see below).
 #
 # With --profile postgres, Postgres runs as well; the hub uses it when
 # LOTSE_DATABASE_URL is set, for example in a .env file:
@@ -15,9 +15,6 @@ services:
     environment:
       LOTSE_URL: http://localhost:${LOTSE_PORT:-8080}
       LOTSE_DATABASE_URL: ${LOTSE_DATABASE_URL:-}
-      # Development only: the key all agents show until enrollment arrives
-      # with milestone 3.
-      LOTSE_AGENT_KEY: dev-agent-key
     ports:
       - "127.0.0.1:${LOTSE_PORT:-8080}:8080"
     volumes:
@@ -33,12 +30,17 @@ services:
   # at /host, and the Docker socket to list containers. It runs as root to
   # read the socket. Even mounted read-only, the socket allows the whole
   # Docker API; see the docs for putting a socket proxy in between.
+  #
+  # It enrolls like any agent: after setup, "Add agent" on an environment
+  # shows the line that starts it, LOTSE_TOKEN=… docker compose --profile
+  # agent up -d.
   agent:
     image: lotse:dev
+    profiles: [agent]
     command: ["start", "agent", "--hub", "http://hub:8080", "--insecure"]
     user: "0"
     environment:
-      LOTSE_TOKEN: dev-agent-key
+      LOTSE_TOKEN: ${LOTSE_TOKEN:-}
       LOTSE_HOST_ROOT: /host
     volumes:
       - agent:/var/lib/lotse

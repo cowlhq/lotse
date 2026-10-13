@@ -1,8 +1,10 @@
 package hub
 
 import (
+	"cmp"
 	"context"
-	"crypto/subtle"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -12,6 +14,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
+	"lotse.sh/internal/auth"
 	"lotse.sh/internal/hub/api"
 	"lotse.sh/internal/protocol"
 	"lotse.sh/internal/store"
@@ -108,19 +111,59 @@ func (a *agents) connected(hostID int64) bool {
 	return false
 }
 
-// authorized checks the agent's bearer token. Until enrollment arrives with
-// milestone 3, every agent shows the same key, LOTSE_AGENT_KEY; without it,
-// no agent gets in.
-func (h *hub) authorized(r *http.Request) bool {
+// agentHost returns the host whose agent shows the credential in the
+// request's bearer token.
+func (h *hub) agentHost(r *http.Request) (store.Host, error) {
 	token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-	return ok && h.agentKey != "" &&
-		subtle.ConstantTimeCompare([]byte(token), []byte(h.agentKey)) == 1
+	if !ok || token == "" {
+		return store.Host{}, store.ErrNotFound
+	}
+	return h.db.AgentHost(r.Context(), auth.HashToken(token), time.Now().Unix())
+}
+
+// enroll gives an agent with its environment's enrollment token a
+// credential of its own (decision 0007, design 7).
+func (h *hub) enroll(w http.ResponseWriter, r *http.Request) {
+	var req protocol.EnrollRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil || req.Token == "" || req.MachineID == "" {
+		writeError(w, http.StatusBadRequest, "token, hostname and machine_id are needed")
+		return
+	}
+	credential, credHash := auth.NewToken("lotse_agt_")
+	e, err := h.db.Enroll(r.Context(), auth.HashToken(req.Token), req.MachineID,
+		cmp.Or(req.Hostname, req.MachineID), credHash, time.Now().Unix())
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusUnauthorized, "this enrollment token is not accepted")
+		return
+	}
+	if err != nil {
+		h.log.Error("cannot enroll an agent", "err", err)
+		writeError(w, http.StatusInternalServerError, "the hub cannot enroll this agent")
+		return
+	}
+	env, err := h.db.Scope(r.Context(), *e.Host.EnvironmentID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "the hub cannot enroll this agent")
+		return
+	}
+	h.log.Info("agent enrolled", "host", e.Host.Name, "environment", env.Path, "took_over", e.TookOver)
+	// The host may be new: the overview should show it.
+	h.live.publish(LiveMessage{Type: "containers", HostID: e.Host.ID})
+	writeJSON(w, http.StatusOK, protocol.EnrollResponse{
+		Credential: credential, HostID: e.Host.ID, HostName: e.Host.Name, Environment: env.Path,
+	})
 }
 
 // connectAgent is the WebSocket an agent keeps open to the hub.
 func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
-	if !h.authorized(r) {
-		writeError(w, http.StatusUnauthorized, "this agent's token is not accepted")
+	host, err := h.agentHost(r)
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusUnauthorized, "this agent's credential is not accepted")
+		return
+	}
+	if err != nil {
+		h.log.Error("cannot check an agent's credential", "err", err)
+		writeError(w, http.StatusInternalServerError, "the hub cannot check this agent")
 		return
 	}
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
@@ -150,7 +193,14 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hello := *m.Hello
-	host, err := h.saveHost(ctx, hello)
+	// A credential belongs to the machine it was given to; copied to
+	// another, it does not work there.
+	if protocol.MachineKey(hello.MachineID, hello.Hostname) != host.MachineID {
+		h.log.Warn("an agent showed another machine's credential", "host", host.Name, "hostname", hello.Hostname)
+		conn.Close(websocket.StatusPolicyViolation, "this credential belongs to another machine")
+		return
+	}
+	host, err = h.updateHost(ctx, host.ID, hello)
 	if err != nil {
 		h.log.Error("cannot save a host", "hostname", hello.Hostname, "err", err)
 		conn.Close(websocket.StatusInternalError, "the hub cannot save this host")
@@ -222,14 +272,10 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// saveHost records the machine an agent says it is on, and its reboot.
-func (h *hub) saveHost(ctx context.Context, hello protocol.Hello) (store.Host, error) {
-	machineID := hello.MachineID
-	if machineID == "" {
-		machineID = "hostname:" + hello.Hostname
-	}
-	host, prevBoot, err := h.db.SaveHost(ctx, store.Host{
-		MachineID: machineID, Hostname: hello.Hostname, OS: hello.OS, Platform: hello.Platform,
+// updateHost records what an agent says about its machine, and its reboot.
+func (h *hub) updateHost(ctx context.Context, hostID int64, hello protocol.Hello) (store.Host, error) {
+	host, prevBoot, err := h.db.UpdateHost(ctx, store.Host{
+		ID: hostID, Hostname: hello.Hostname, OS: hello.OS, Platform: hello.Platform,
 		Kernel: hello.Kernel, Arch: hello.Arch, CPUModel: hello.CPUModel, Cores: hello.Cores,
 		MemTotal: hello.MemTotal, BootTime: hello.BootTime, AgentVersion: hello.Version,
 		DockerVersion: hello.DockerVersion, LastSeen: time.Now().Unix(),

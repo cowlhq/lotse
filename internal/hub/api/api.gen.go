@@ -339,6 +339,18 @@ type ContainerReading struct {
 	Ts       int64    `json:"ts"`
 }
 
+// Enrollment defines model for Enrollment.
+type Enrollment struct {
+	CreatedAt int64  `json:"created_at"`
+	CreatedBy string `json:"created_by"`
+
+	// Hub The hub's address, for the install commands.
+	Hub string `json:"hub"`
+
+	// Token The enrollment token, lotse_enr_….
+	Token string `json:"token"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Error string `json:"error"`
@@ -717,6 +729,9 @@ type ServerInterface interface {
 	// GetHost A host, its filesystems and its containers
 	// (GET /api/hosts/{id})
 	GetHost(w http.ResponseWriter, r *http.Request, id ID)
+	// RevokeAgent Revoke the host's agent credential and disconnect it
+	// (DELETE /api/hosts/{id}/agent)
+	RevokeAgent(w http.ResponseWriter, r *http.Request, id ID)
 	// SetHostEnvironment Put a host into an environment, or take it out of all
 	// (PUT /api/hosts/{id}/environment)
 	SetHostEnvironment(w http.ResponseWriter, r *http.Request, id ID)
@@ -735,6 +750,12 @@ type ServerInterface interface {
 	// RenameScope Rename a scope; its key stays
 	// (PATCH /api/scopes/{id})
 	RenameScope(w http.ResponseWriter, r *http.Request, id ID)
+	// GetEnrollment An environment's enrollment token, for the install commands
+	// (GET /api/scopes/{id}/enrollment)
+	GetEnrollment(w http.ResponseWriter, r *http.Request, id ID)
+	// NewEnrollment Make a new enrollment token for an environment
+	// (POST /api/scopes/{id}/enrollment)
+	NewEnrollment(w http.ResponseWriter, r *http.Request, id ID)
 	// SetSetting Set a setting on an object, or unset it with null
 	// (PUT /api/settings)
 	SetSetting(w http.ResponseWriter, r *http.Request)
@@ -1155,6 +1176,32 @@ func (siw *ServerInterfaceWrapper) GetHost(w http.ResponseWriter, r *http.Reques
 	handler.ServeHTTP(w, r)
 }
 
+// RevokeAgent operation middleware
+func (siw *ServerInterfaceWrapper) RevokeAgent(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeAgent(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetHostEnvironment operation middleware
 func (siw *ServerInterfaceWrapper) SetHostEnvironment(w http.ResponseWriter, r *http.Request) {
 
@@ -1332,6 +1379,58 @@ func (siw *ServerInterfaceWrapper) RenameScope(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RenameScope(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEnrollment operation middleware
+func (siw *ServerInterfaceWrapper) GetEnrollment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEnrollment(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// NewEnrollment operation middleware
+func (siw *ServerInterfaceWrapper) NewEnrollment(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.NewEnrollment(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1528,6 +1627,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/scopes/{id}", wrapper.DeleteScope)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/scopes/{id}", wrapper.GetScope)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/scopes/{id}", wrapper.RenameScope)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/scopes/{id}/enrollment", wrapper.GetEnrollment)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/scopes/{id}/enrollment", wrapper.NewEnrollment)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/hosts/{id}/agent", wrapper.RevokeAgent)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/environments", wrapper.CreateEnvironment)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/hosts/{id}/environment", wrapper.SetHostEnvironment)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/changes", wrapper.ListChanges)
@@ -2018,6 +2120,50 @@ func (response GetHost404JSONResponse) VisitGetHostResponse(w http.ResponseWrite
 	return err
 }
 
+type RevokeAgentRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type RevokeAgentResponseObject interface {
+	VisitRevokeAgentResponse(w http.ResponseWriter) error
+}
+
+type RevokeAgent204Response struct {
+}
+
+func (response RevokeAgent204Response) VisitRevokeAgentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeAgent403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RevokeAgent403JSONResponse) VisitRevokeAgentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeAgent404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RevokeAgent404JSONResponse) VisitRevokeAgentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetHostEnvironmentRequestObject struct {
 	Id   ID `json:"id"`
 	Body *SetHostEnvironmentJSONRequestBody
@@ -2308,6 +2454,106 @@ func (response RenameScope404JSONResponse) VisitRenameScopeResponse(w http.Respo
 	return err
 }
 
+type GetEnrollmentRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type GetEnrollmentResponseObject interface {
+	VisitGetEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type GetEnrollment200JSONResponse Enrollment
+
+func (response GetEnrollment200JSONResponse) VisitGetEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEnrollment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetEnrollment403JSONResponse) VisitGetEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetEnrollment404JSONResponse Error
+
+func (response GetEnrollment404JSONResponse) VisitGetEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewEnrollmentRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type NewEnrollmentResponseObject interface {
+	VisitNewEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type NewEnrollment200JSONResponse Enrollment
+
+func (response NewEnrollment200JSONResponse) VisitNewEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewEnrollment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response NewEnrollment403JSONResponse) VisitNewEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewEnrollment404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response NewEnrollment404JSONResponse) VisitNewEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetSettingRequestObject struct {
 	Body *SetSettingJSONRequestBody
 }
@@ -2582,6 +2828,9 @@ type StrictServerInterface interface {
 	// GetHost A host, its filesystems and its containers
 	// (GET /api/hosts/{id})
 	GetHost(ctx context.Context, request GetHostRequestObject) (GetHostResponseObject, error)
+	// RevokeAgent Revoke the host's agent credential and disconnect it
+	// (DELETE /api/hosts/{id}/agent)
+	RevokeAgent(ctx context.Context, request RevokeAgentRequestObject) (RevokeAgentResponseObject, error)
 	// SetHostEnvironment Put a host into an environment, or take it out of all
 	// (PUT /api/hosts/{id}/environment)
 	SetHostEnvironment(ctx context.Context, request SetHostEnvironmentRequestObject) (SetHostEnvironmentResponseObject, error)
@@ -2600,6 +2849,12 @@ type StrictServerInterface interface {
 	// RenameScope Rename a scope; its key stays
 	// (PATCH /api/scopes/{id})
 	RenameScope(ctx context.Context, request RenameScopeRequestObject) (RenameScopeResponseObject, error)
+	// GetEnrollment An environment's enrollment token, for the install commands
+	// (GET /api/scopes/{id}/enrollment)
+	GetEnrollment(ctx context.Context, request GetEnrollmentRequestObject) (GetEnrollmentResponseObject, error)
+	// NewEnrollment Make a new enrollment token for an environment
+	// (POST /api/scopes/{id}/enrollment)
+	NewEnrollment(ctx context.Context, request NewEnrollmentRequestObject) (NewEnrollmentResponseObject, error)
 	// SetSetting Set a setting on an object, or unset it with null
 	// (PUT /api/settings)
 	SetSetting(ctx context.Context, request SetSettingRequestObject) (SetSettingResponseObject, error)
@@ -2995,6 +3250,32 @@ func (sh *strictHandler) GetHost(w http.ResponseWriter, r *http.Request, id ID) 
 	}
 }
 
+// RevokeAgent operation middleware
+func (sh *strictHandler) RevokeAgent(w http.ResponseWriter, r *http.Request, id ID) {
+	var request RevokeAgentRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeAgent(ctx, request.(RevokeAgentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeAgent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeAgentResponseObject); ok {
+		if err := validResponse.VisitRevokeAgentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SetHostEnvironment operation middleware
 func (sh *strictHandler) SetHostEnvironment(w http.ResponseWriter, r *http.Request, id ID) {
 	var request SetHostEnvironmentRequestObject
@@ -3157,6 +3438,58 @@ func (sh *strictHandler) RenameScope(w http.ResponseWriter, r *http.Request, id 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RenameScopeResponseObject); ok {
 		if err := validResponse.VisitRenameScopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetEnrollment operation middleware
+func (sh *strictHandler) GetEnrollment(w http.ResponseWriter, r *http.Request, id ID) {
+	var request GetEnrollmentRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetEnrollment(ctx, request.(GetEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetEnrollment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetEnrollmentResponseObject); ok {
+		if err := validResponse.VisitGetEnrollmentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// NewEnrollment operation middleware
+func (sh *strictHandler) NewEnrollment(w http.ResponseWriter, r *http.Request, id ID) {
+	var request NewEnrollmentRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.NewEnrollment(ctx, request.(NewEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "NewEnrollment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(NewEnrollmentResponseObject); ok {
+		if err := validResponse.VisitNewEnrollmentResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

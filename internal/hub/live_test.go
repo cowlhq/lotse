@@ -18,12 +18,12 @@ import (
 // while it does.
 func TestLive(t *testing.T) {
 	h, server := newTestHub(t)
-	h.agentKey = "key"
+	token := enrollmentToken(t, h)
 	h.hostInterval = time.Minute // without live, a minute between readings
 
 	ctx, stop := context.WithCancel(t.Context())
 	defer stop()
-	go agent.Run(ctx, agent.Config{Hub: server.URL, Token: "key"}, slog.New(slog.DiscardHandler))
+	go agent.Run(ctx, agent.Config{Hub: server.URL, Token: token, DataDir: t.TempDir()}, slog.New(slog.DiscardHandler))
 	waitFor(t, "the agent to connect", func() bool { return h.agents.count() == 1 })
 	hosts, _ := h.db.Hosts(ctx)
 
