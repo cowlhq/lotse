@@ -4,6 +4,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteScope, getScope, listHosts, listScopes, NotFound, renameScope } from "@/api";
+import { AddAgent } from "@/components/AddAgent";
 import { Config } from "@/components/Config";
 import { History } from "@/components/History";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -57,7 +58,10 @@ export function Scope({ id }: { id: number }) {
         </p>
       </div>
       {scope.data.kind === "environment" ? (
-        <HostGrid hosts={mine} empty={t("overview.noHosts")} />
+        <div className="space-y-3">
+          {isAdmin && <AddAgent envID={id} />}
+          <HostGrid hosts={mine} empty={t("overview.noHostsAdd")} />
+        </div>
       ) : (
         <ul className="space-y-1 text-sm">
           {children.map((c) => (

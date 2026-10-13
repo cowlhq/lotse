@@ -17,6 +17,7 @@ export type Scope = Schemas["Scope"];
 export type ScopeName = Schemas["ScopeName"];
 export type Change = Schemas["Change"];
 export type ConfigValue = Schemas["ConfigValue"];
+export type Enrollment = Schemas["Enrollment"];
 export type SetupStep = Schemas["SetupStep"];
 
 export type Range = { from: number; to: number };
@@ -43,6 +44,9 @@ export const setHostEnvironment = (hostID: number, environmentID: number | null)
 export const getConfig = (subject: string) => get<ConfigValue[]>(`/api/config?subject=${subject}`);
 export const setSetting = (subject: string, key: string, value: unknown) =>
   send<void>("PUT", "/api/settings", { subject, key, value });
+export const getEnrollment = (envID: number) => get<Enrollment>(`/api/scopes/${envID}/enrollment`);
+export const newEnrollment = (envID: number) => post<Enrollment>(`/api/scopes/${envID}/enrollment`);
+export const revokeAgent = (hostID: number) => send<void>("DELETE", `/api/hosts/${hostID}/agent`);
 export const listChanges = (subject: string) => get<Change[]>(`/api/changes?subject=${subject}`);
 
 export type SetupCheck = { valid: boolean; step?: SetupStep; postgres?: string };
