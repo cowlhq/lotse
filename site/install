@@ -1,0 +1,233 @@
+#!/bin/sh
+# Installs lotse on a Linux machine: https://lotse.sh
+#
+#   curl -fsSL https://lotse.sh/install | sudo sh -s -- agent --hub URL --token TOKEN
+#   curl -fsSL https://lotse.sh/install | sudo sh -s -- hub
+#
+# agent  installs the agent as the service lotse-agent: the binary from the
+#        release, its checksum checked, in /usr/local/bin; it runs as user
+#        lotse, in group docker, and may write only to /var/lib/lotse. It
+#        enrolls once with the token, which is not kept.
+# hub    runs the hub with docker compose in /opt/lotse and prints the setup
+#        link.
+#
+# Running it again updates what it installed; the agent's credential and the
+# hub's data stay.
+#
+# Options: --version X.Y.Z (default: the latest release), --insecure (agent:
+# allow a plain http hub on another machine), --port N (hub, default 8080).
+# LOTSE_RELEASE_URL downloads from a mirror instead of GitHub.
+set -eu
+
+REPO=cowlhq/lotse
+
+say() { printf '%s\n' "$*"; }
+fail() { printf 'lotse install: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+usage() {
+	say "usage: install agent --hub URL --token TOKEN [--insecure] [--version X.Y.Z]"
+	say "       install hub [--port N] [--version X.Y.Z]"
+	exit 2
+}
+
+[ $# -ge 1 ] || usage
+mode=$1
+shift
+hub="" token="" insecure="" version="" port=8080
+while [ $# -gt 0 ]; do
+	case $1 in
+	--hub) hub=${2:-}; shift 2 ;;
+	--token) token=${2:-}; shift 2 ;;
+	--insecure) insecure=1; shift ;;
+	--version) version=${2:-}; shift 2 ;;
+	--port) port=${2:-}; shift 2 ;;
+	*) usage ;;
+	esac
+done
+
+[ "$(uname -s)" = Linux ] || fail "lotse runs on Linux"
+[ "$(id -u)" = 0 ] || fail "run it as root, with sudo"
+
+download() { # url file
+	if have curl; then
+		curl -fsSL -o "$2" "$1"
+	elif have wget; then
+		wget -q -O "$2" "$1"
+	else
+		fail "neither curl nor wget is installed"
+	fi
+}
+
+latest() {
+	# The latest release's tag, from where GitHub redirects /latest to.
+	if have curl; then
+		url=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest")
+	else
+		url=$(wget -S --spider "https://github.com/$REPO/releases/latest" 2>&1 | sed -n 's/^ *[Ll]ocation: *//p' | tail -n 1)
+	fi
+	tag=${url##*/}
+	case $tag in v[0-9]*) printf '%s' "${tag#v}" ;; *) fail "cannot find the latest release" ;; esac
+}
+
+install_agent() {
+	[ -n "$hub" ] || fail "--hub is needed: the hub's address"
+	case $(uname -m) in
+	x86_64 | amd64) arch=amd64 ;;
+	aarch64 | arm64) arch=arm64 ;;
+	*) fail "lotse is built for amd64 and arm64, not $(uname -m)" ;;
+	esac
+	have systemctl || fail "this installs a systemd service, and systemctl is missing; run the agent as a container instead"
+	[ -n "$version" ] || version=$(latest)
+	base=${LOTSE_RELEASE_URL:-https://github.com/$REPO/releases/download/v$version}
+	file=lotse_${version}_linux_$arch.tar.gz
+
+	tmp=$(mktemp -d)
+	trap 'rm -rf "$tmp"' EXIT
+	say "Downloading lotse $version for $arch"
+	download "$base/$file" "$tmp/$file"
+	download "$base/checksums.txt" "$tmp/checksums.txt"
+	# The checksum of what was downloaded must be the one the release lists
+	# (decision 0010).
+	want=$(grep " $file\$" "$tmp/checksums.txt" | cut -d' ' -f1)
+	[ -n "$want" ] || fail "checksums.txt does not list $file"
+	if have sha256sum; then
+		got=$(sha256sum "$tmp/$file" | cut -d' ' -f1)
+	else
+		got=$(shasum -a 256 "$tmp/$file" | cut -d' ' -f1)
+	fi
+	[ "$got" = "$want" ] || fail "the checksum of $file does not match; not installing it"
+	tar -xzf "$tmp/$file" -C "$tmp" lotse
+	install -m 0755 "$tmp/lotse" /usr/local/bin/lotse
+
+	if ! id lotse >/dev/null 2>&1; then
+		if have useradd; then
+			useradd --system --no-create-home --home-dir /var/lib/lotse --shell /usr/sbin/nologin lotse
+		else
+			adduser -S -D -H -h /var/lib/lotse -s /sbin/nologin lotse
+		fi
+	fi
+	groups=
+	if getent group docker >/dev/null 2>&1; then
+		groups="SupplementaryGroups=docker"
+	else
+		say "Docker is not installed: the agent watches the machine only, and Docker once it is there and lotse-agent is restarted."
+	fi
+	mkdir -p /var/lib/lotse
+	chown lotse:lotse /var/lib/lotse
+	chmod 0700 /var/lib/lotse
+
+	flags=
+	[ -z "$insecure" ] || flags=--insecure
+	if [ ! -f /var/lib/lotse/agent.json ]; then
+		[ -n "$token" ] || fail "--token is needed to enroll: the environment's enrollment token"
+		say "Enrolling with the hub"
+		# The token goes in through the environment, not the command line,
+		# where other users could see it. The credential then belongs to
+		# lotse; the token is not kept.
+		LOTSE_TOKEN=$token /usr/local/bin/lotse agent enroll --hub "$hub" --data-dir /var/lib/lotse $flags ||
+			fail "enrolling failed"
+		chown -R lotse:lotse /var/lib/lotse
+	fi
+	cat >/etc/systemd/system/lotse-agent.service <<EOF
+[Unit]
+Description=lotse agent
+Documentation=https://lotse.sh
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=lotse
+Group=lotse
+$groups
+Environment=LOTSE_HUB=$hub
+Environment=LOTSE_DATA_DIR=/var/lib/lotse
+Environment=LOTSE_INSECURE=${insecure:+true}
+ExecStart=/usr/local/bin/lotse start agent
+Restart=always
+RestartSec=5
+# Reads the machine, writes only its own directory.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/lotse
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+	systemctl daemon-reload
+	systemctl enable lotse-agent >/dev/null 2>&1
+	systemctl restart lotse-agent
+	say "lotse agent $version is running as lotse-agent; this machine shows up in lotse within seconds."
+}
+
+install_hub() {
+	if ! have docker || ! docker compose version >/dev/null 2>&1; then
+		say "The hub runs with Docker and docker compose, which are not installed."
+		printf 'Install Docker now, with https://get.docker.com? [y/N] '
+		read -r answer </dev/tty || answer=
+		case $answer in
+		y | Y | yes) download https://get.docker.com /tmp/get-docker.sh && sh /tmp/get-docker.sh && rm -f /tmp/get-docker.sh ;;
+		*) fail "install Docker, then run this again" ;;
+		esac
+	fi
+	mkdir -p /opt/lotse
+	# The same as deploy/compose.yml; a test keeps them so.
+	cat >/opt/lotse/compose.yml <<'EOF'
+# The hub, as the install script sets it up in /opt/lotse (decision 0011).
+# The image runs the starter, which updates the hub in its data volume;
+# pulling a newer image updates the starter itself.
+#
+# LOTSE_URL is where people and agents reach the hub, if setup should not
+# take it from the browser. Behind a reverse proxy (decision 0006), bind
+# the port to 127.0.0.1 and let the proxy forward to it.
+services:
+  hub:
+    image: ghcr.io/cowlhq/lotse:${LOTSE_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "${LOTSE_PORT:-8080}:8080"
+    environment:
+      LOTSE_URL: ${LOTSE_URL:-}
+    volumes:
+      - data:/var/lib/lotse
+
+volumes:
+  data:
+EOF
+	{
+		printf 'LOTSE_PORT=%s\n' "$port"
+		[ -z "$version" ] || printf 'LOTSE_VERSION=%s\n' "$version"
+	} >/opt/lotse/.env
+	say "Starting the hub"
+	# Pulling brings a newer starter; without the network, the image that is
+	# here still runs.
+	(cd /opt/lotse && docker compose pull -q) || say "Cannot pull the image; starting the one that is here."
+	(cd /opt/lotse && docker compose up -d) || fail "the hub did not start"
+	link=
+	i=0
+	while [ $i -lt 60 ]; do
+		link=$(cd /opt/lotse && docker compose logs hub 2>/dev/null | sed -n 's/.*\(\/setup?token=[A-Za-z0-9_-]*\).*/\1/p' | tail -n 1)
+		[ -z "$link" ] || break
+		if (cd /opt/lotse && docker compose logs hub 2>/dev/null | grep -q "lotse hub ready") &&
+			! (cd /opt/lotse && docker compose logs hub 2>/dev/null | grep -q "setup?token="); then
+			break
+		fi
+		i=$((i + 1))
+		sleep 1
+	done
+	address=$(hostname -I 2>/dev/null | cut -d' ' -f1)
+	[ -n "$address" ] || address=localhost
+	if [ -n "$link" ]; then
+		say "The hub is running. Set it up: http://$address:$port$link"
+	else
+		say "The hub is running at http://$address:$port"
+	fi
+}
+
+case $mode in
+agent) install_agent ;;
+hub) install_hub ;;
+*) usage ;;
+esac
