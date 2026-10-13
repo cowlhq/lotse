@@ -1,0 +1,22 @@
+# Local development. `docker compose up` grows into hub, agent and demo
+# containers over milestone 1; Postgres runs with --profile postgres.
+services:
+  postgres:
+    image: postgres:18
+    profiles: [postgres]
+    environment:
+      POSTGRES_USER: lotse
+      POSTGRES_PASSWORD: lotse
+      POSTGRES_DB: lotse
+    ports:
+      - "127.0.0.1:54330:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "lotse"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+volumes:
+  postgres:

@@ -1,6 +1,10 @@
 [tools]
 go = "1.27"
 
+# Development defaults only.
+[env]
+LOTSE_TEST_POSTGRES_URL = "postgres://lotse:lotse@127.0.0.1:54330/lotse?sslmode=disable"
+
 [tasks.setup]
 description = "Install toolchains and dependencies"
 run = ["mise install", "go mod download"]
@@ -9,6 +13,12 @@ run = ["mise install", "go mod download"]
 description = "Build the lotse binary into bin/"
 run = "go build -trimpath -o bin/lotse ./cmd/lotse"
 
+[tasks."dev:db"]
+description = "Postgres for tests and development, on port 54330"
+run = "docker compose --profile postgres up -d --wait postgres"
+
+# Store tests run against SQLite and against Postgres from dev:db; without
+# it, the Postgres runs are skipped locally (in CI they must pass).
 [tasks.check]
 description = "Everything CI runs"
 run = [
