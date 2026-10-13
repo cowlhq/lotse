@@ -1,5 +1,7 @@
 [tools]
 go = "1.27"
+node = "24"
+pnpm = "10"
 
 # Development defaults only.
 [env]
@@ -7,11 +9,26 @@ LOTSE_TEST_POSTGRES_URL = "postgres://lotse:lotse@127.0.0.1:54330/lotse?sslmode=
 
 [tasks.setup]
 description = "Install toolchains and dependencies"
-run = ["mise install", "go mod download"]
+run = ["mise install", "go mod download", "pnpm --dir web install --frozen-lockfile"]
 
 [tasks.build]
-description = "Build the lotse binary into bin/"
-run = "go build -trimpath -o bin/lotse ./cmd/lotse"
+description = "Build the web interface and the lotse binary with it into bin/"
+run = [
+  "pnpm --dir web build",
+  "go build -trimpath -ldflags \"-X lotse.sh/internal/version.Version=dev-$(git rev-parse --short HEAD)\" -o bin/lotse ./cmd/lotse",
+]
+
+[tasks.dev]
+description = "The hub on :8080 and the web dev server on http://localhost:3200"
+depends = ["dev:hub", "dev:web"]
+
+# The hub keeps its data in .dev/hub; delete it to start over.
+[tasks."dev:hub"]
+env = { LOTSE_DATA_DIR = ".dev/hub", LOTSE_URL = "http://localhost:3200" }
+run = "go run ./cmd/lotse hub"
+
+[tasks."dev:web"]
+run = "pnpm --dir web dev"
 
 [tasks."dev:db"]
 description = "Postgres for tests and development, on port 54330"
@@ -25,4 +42,6 @@ run = [
   "test -z \"$(gofmt -l .)\" || (gofmt -l .; exit 1)",
   "go vet ./...",
   "go test -race ./...",
+  "pnpm --dir web lint",
+  "pnpm --dir web exec tsc --noEmit",
 ]
