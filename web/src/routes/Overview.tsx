@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { listHosts, listScopes, type HostSummary } from "@/api";
 import { NewEnvironment } from "@/components/NewEnvironment";
 import { useMe } from "@/lib/useMe";
+import { useUpdates } from "@/lib/useUpdates";
+import { UpdateBadge } from "@/components/UpdateBadge";
 import { useLive } from "@/lib/live";
 import { Meter, Online } from "@/components/Status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -97,6 +99,7 @@ export function HostGrid({ hosts, empty }: { hosts: HostSummary[]; empty?: strin
 
 function HostCard({ summary }: { summary: HostSummary }) {
   const { t } = useTranslation();
+  const { updateFor } = useUpdates();
   const { host, latest, disk, containers } = summary;
   const mem = latest?.mem_used != null && host.mem_total > 0 ? (100 * latest.mem_used) / host.mem_total : null;
   return (
@@ -108,6 +111,7 @@ function HostCard({ summary }: { summary: HostSummary }) {
             <Online online={host.online} />
           </CardTitle>
           <p className="truncate text-xs text-muted-foreground">{host.platform || host.os}</p>
+          {updateFor(host.agent_version) && <UpdateBadge version={updateFor(host.agent_version)!} />}
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <Usage label={t("metric.cpu")} pct={latest?.cpu} color={series[0]} />

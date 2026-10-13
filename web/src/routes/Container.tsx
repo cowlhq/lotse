@@ -2,14 +2,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getContainer, getSeries, listEvents, NotFound, type Container as ContainerData, type Event, type Series } from "@/api";
+import { getContainer, getSeries, listEvents, NotFound, type Container as ContainerData, type Series } from "@/api";
+import { Events } from "@/components/Events";
 import { LiveBadge } from "@/components/LiveBadge";
 import { appendReading, useLive } from "@/lib/live";
 import { Chart, type Line } from "@/components/Chart";
 import { RangePicker, type RangeSeconds } from "@/components/Range";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ago, bytes, dateTime, percent, rate } from "@/lib/format";
+import { ago, bytes, percent, rate } from "@/lib/format";
 import { useRange } from "@/lib/useRange";
 import { ContainerState } from "./Host";
 
@@ -103,27 +104,5 @@ export function Container({ id }: { id: number }) {
       </div>
       <Events events={events.data ?? []} />
     </div>
-  );
-}
-
-function Events({ events }: { events: Event[] }) {
-  const { t } = useTranslation();
-  if (events.length === 0) return null;
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("container.events")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-1 text-sm">
-          {[...events].reverse().map((e) => (
-            <li key={e.id} className="flex gap-4">
-              <span className="tabular-nums text-muted-foreground">{dateTime(e.ts)}</span>
-              <span>{t(`event.${e.kind}`, { defaultValue: e.kind, code: e.data.exit_code })}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
   );
 }

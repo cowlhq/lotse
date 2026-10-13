@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteScope, getScope, listHosts, listScopes, NotFound, renameScope } from "@/api";
+import { deleteScope, getScope, listHosts, listScopes, NotFound, renameScope, updateScope, type HostSummary } from "@/api";
 import { AddAgent } from "@/components/AddAgent";
 import { Config } from "@/components/Config";
 import { History } from "@/components/History";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/lib/useMe";
+import { useUpdates } from "@/lib/useUpdates";
 import { HostGrid } from "./Overview";
 
 // Scope is the page of a customer, project or environment: what is in it,
@@ -37,6 +38,11 @@ export function Scope({ id }: { id: number }) {
   const children = all.filter((s) => s.parent_id === id);
   const mine = (hosts.data ?? []).filter((h) => h.host.environment_id === id);
   const subject = `${scope.data.kind}:${id}`;
+  // Whether an environment lies in this scope.
+  const below = (envID?: number | null) => {
+    const env = envID ? byID.get(envID) : undefined;
+    return !!env && (env.path === scope.data.path || env.path.startsWith(scope.data.path + "/"));
+  };
 
   return (
     <div className="space-y-6">
@@ -74,6 +80,7 @@ export function Scope({ id }: { id: number }) {
           ))}
         </ul>
       )}
+      {isAdmin && <UpdateAgents scopeID={id} hosts={(hosts.data ?? []).filter((h) => below(h.host.environment_id))} />}
       <Config subject={subject} />
       <History subject={subject} />
       {isAdmin && mine.length === 0 && children.length === 0 && <Delete id={id} />}
@@ -148,6 +155,24 @@ function Delete({ id }: { id: number }) {
           <AlertDescription>{del.error.message}</AlertDescription>
         </Alert>
       )}
+    </div>
+  );
+}
+
+// UpdateAgents asks every agent in the scope that is behind to update.
+export function UpdateAgents({ scopeID, hosts }: { scopeID: number; hosts: HostSummary[] }) {
+  const { t } = useTranslation();
+  const { updateFor, latest } = useUpdates();
+  const behind = hosts.filter((h) => h.host.online && updateFor(h.host.agent_version));
+  const ask = useMutation({ mutationFn: () => updateScope(scopeID) });
+  if (!latest || behind.length === 0) return null;
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <Button size="sm" variant="outline" disabled={ask.isPending || ask.isSuccess} onClick={() => ask.mutate()}>
+        {t("update.agents", { count: behind.length, version: latest })}
+      </Button>
+      {ask.isSuccess && <span className="text-muted-foreground">{t("update.asked", { count: ask.data.asked })}</span>}
+      {ask.isError && <span className="text-destructive">{ask.error.message}</span>}
     </div>
   );
 }

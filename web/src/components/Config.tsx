@@ -55,7 +55,26 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
         <p className="font-mono text-xs">{v.key}</p>
         <p className="text-muted-foreground">{v.description}</p>
       </div>
-      {editing ? (
+      {v.type === "bool" ? (
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="font-medium">{v.value ? t("config.on") : t("config.off")}</p>
+            <p className="text-xs text-muted-foreground">{from}</p>
+          </div>
+          {isAdmin && (
+            <>
+              <Button variant="outline" size="sm" disabled={save.isPending} onClick={() => save.mutate(!v.value)}>
+                {v.value ? t("config.turnOff") : t("config.turnOn")}
+              </Button>
+              {here && (
+                <Button variant="ghost" size="icon-sm" aria-label={t("config.reset")} title={t("config.reset")} onClick={() => save.mutate(null)}>
+                  <Undo2 className="size-3.5" />
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      ) : editing ? (
         <form
           className="flex items-center gap-2"
           onSubmit={(e) => {

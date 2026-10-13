@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getHost, getSeries, listEvents, listScopes, NotFound, revokeAgent, setHostEnvironment, type Container, type HostDetail, type Series } from "@/api";
+import { getHost, getSeries, listEvents, listScopes, NotFound, revokeAgent, setHostEnvironment, updateHost, type Container, type Host as HostData, type HostDetail, type Series } from "@/api";
 import { Config } from "@/components/Config";
+import { Events } from "@/components/Events";
+import { UpdateBadge } from "@/components/UpdateBadge";
 import { History } from "@/components/History";
 import { LiveBadge } from "@/components/LiveBadge";
 import { Chart, type Line } from "@/components/Chart";
@@ -15,8 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ago, bytes, duration, number, percent, rate } from "@/lib/format";
-import { status, usageColor } from "@/lib/palette";
-import { appendReading, useLive } from "@/lib/live";
+import { status, status as statusColors, usageColor } from "@/lib/palette";
+import { appendReading, useLive, type LiveMessage } from "@/lib/live";
+import { useUpdates } from "@/lib/useUpdates";
 import { useMe } from "@/lib/useMe";
 import { useRange } from "@/lib/useRange";
 
@@ -37,7 +40,7 @@ export function Host({ id }: { id: number }) {
   });
 
   const charts = useCharts();
-  const lastLive = useLiveHost(id);
+  const { last: lastLive, update } = useLiveHost(id);
 
   if (host.isPending) return <Skeleton className="h-64 w-full" />;
   if (host.error instanceof NotFound) return <p>{t("host.notFound")}</p>;
@@ -46,6 +49,7 @@ export function Host({ id }: { id: number }) {
   return (
     <div className="space-y-6">
       <Header detail={host.data} live={lastLive} />
+      <AgentUpdate host={host.data.host} status={update} />
       <div className="flex justify-end">
         <RangePicker value={seconds} onChange={setSeconds} />
       </div>
@@ -63,6 +67,7 @@ export function Host({ id }: { id: number }) {
       </div>
       <Filesystems detail={host.data} />
       <Containers containers={host.data.containers} />
+      <Events events={events.data ?? []} />
       <Config subject={`host:${id}`} />
       <History subject={`host:${id}`} />
       <Revoke hostID={id} />
@@ -131,6 +136,7 @@ function useCharts() {
 function useLiveHost(id: number) {
   const client = useQueryClient();
   const [last, setLast] = useState(0);
+  const [update, setUpdate] = useState<LiveMessage["update"]>();
   useLive([`host:${id}`], (m) => {
     if (m.host_id !== id) return;
     switch (m.type) {
@@ -148,11 +154,16 @@ function useLiveHost(id: number) {
           return { ...d, containers: d.containers.map((c) => (byID.has(c.id) ? { ...c, latest: byID.get(c.id) } : c)) };
         });
         break;
+      case "update":
+        setUpdate(m.update);
+        client.invalidateQueries({ queryKey: ["events", "host", id] });
+        break;
       default:
         client.invalidateQueries({ queryKey: ["host", id] });
+        client.invalidateQueries({ queryKey: ["events", "host", id] });
     }
   });
-  return last;
+  return { last, update };
 }
 
 function Header({ detail, live }: { detail: HostDetail; live: number }) {
@@ -337,6 +348,39 @@ function Revoke({ hostID }: { hostID: number }) {
         {t("agent.revoke")}
       </Button>
       <p className="text-xs text-muted-foreground">{t("agent.revokeHint")}</p>
+    </div>
+  );
+}
+
+// AgentUpdate offers the newest release to the host's agent, and shows how
+// the update goes as the agent reports it.
+function AgentUpdate({ host, status }: { host: HostData; status?: LiveMessage["update"] }) {
+  const { t } = useTranslation();
+  const { isAdmin } = useMe();
+  const { updateFor } = useUpdates();
+  const ask = useMutation({ mutationFn: () => updateHost(host.id) });
+  const latest = updateFor(host.agent_version);
+  if (status) {
+    return (
+      <p className="text-sm">
+        {status.state === "failed" ? (
+          <span style={{ color: statusColors.critical }}>{t("update.failed", { version: status.version, error: status.error })}</span>
+        ) : (
+          t(`update.${status.state}`, { version: status.version })
+        )}
+      </p>
+    );
+  }
+  if (!latest) return null;
+  return (
+    <div className="flex items-center gap-3">
+      <UpdateBadge version={latest} />
+      {isAdmin && host.online && (
+        <Button size="sm" variant="outline" disabled={ask.isPending || ask.isSuccess} onClick={() => ask.mutate()}>
+          {t("update.agent", { version: latest })}
+        </Button>
+      )}
+      {ask.isError && <span className="text-sm text-destructive">{ask.error.message}</span>}
     </div>
   );
 }
