@@ -28,6 +28,10 @@ const ConnectPath = "/api/agent/v1/connect"
 // environment's enrollment token and gets a credential of its own.
 const EnrollPath = "/api/agent/v1/enroll"
 
+// CheckPath answers whether the credential an agent shows as bearer token
+// is still accepted: 204 if it is, 401 if not.
+const CheckPath = "/api/agent/v1/check"
+
 // EnrollRequest is what an agent sends to enroll, as JSON.
 type EnrollRequest struct {
 	Token     string `json:"token"`

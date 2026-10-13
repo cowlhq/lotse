@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -113,8 +114,24 @@ func Enroll(ctx context.Context, cfg Config, log *slog.Logger) error {
 	cfg.Root = cmp.Or(cfg.Root, "/")
 	a := &agent{cfg: cfg, log: log, host: newHostCollector(cfg.Root)}
 	if s, err := a.loadState(); err == nil && s.Credential != "" {
-		log.Info("already enrolled", "host", s.HostName)
-		return nil
+		// Enrolled already: keep that, unless the hub revoked it and a
+		// token to enroll again was given. Someone with root on the machine
+		// and a current token wants the agent back.
+		ok, err := a.checkCredential(ctx, s.Credential)
+		switch {
+		case err != nil:
+			log.Warn("cannot ask the hub about the credential; keeping it", "err", err)
+			return nil
+		case ok:
+			log.Info("already enrolled", "host", s.HostName)
+			return nil
+		case cfg.Token == "":
+			return fmt.Errorf("%w, and no enrollment token is given to enroll again", errRevoked)
+		}
+		log.Info("the hub revoked this agent's credential; enrolling again")
+		if err := os.Remove(a.statePath()); err != nil {
+			return err
+		}
 	}
 	_, err := a.credential(ctx)
 	return err

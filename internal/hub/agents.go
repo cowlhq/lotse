@@ -121,6 +121,17 @@ func (h *hub) agentHost(r *http.Request) (store.Host, error) {
 	return h.db.AgentHost(r.Context(), auth.HashToken(token), time.Now().Unix())
 }
 
+// checkAgent tells an agent whether its credential is still accepted, so
+// that enrolling again (from the install script) can tell a revoked
+// credential from a good one.
+func (h *hub) checkAgent(w http.ResponseWriter, r *http.Request) {
+	if _, err := h.agentHost(r); err != nil {
+		writeError(w, http.StatusUnauthorized, "this agent's credential is not accepted")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // enroll gives an agent with its environment's enrollment token a
 // credential of its own (decision 0007, design 7).
 func (h *hub) enroll(w http.ResponseWriter, r *http.Request) {

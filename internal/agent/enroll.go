@@ -98,3 +98,23 @@ func (a *agent) credential(ctx context.Context) (string, error) {
 	a.log.Info("enrolled", "host", e.HostName, "environment", e.Environment)
 	return e.Credential, nil
 }
+
+// checkCredential asks the hub whether credential is still accepted.
+func (a *agent) checkCredential(ctx context.Context, credential string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSuffix(a.cfg.Hub, "/")+protocol.CheckPath, nil)
+	req.Header.Set("Authorization", "Bearer "+credential)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	res.Body.Close()
+	switch res.StatusCode {
+	case http.StatusNoContent:
+		return true, nil
+	case http.StatusUnauthorized:
+		return false, nil
+	}
+	return false, fmt.Errorf("checking the credential: %s", res.Status)
+}

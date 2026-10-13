@@ -17,6 +17,7 @@ import (
 
 	"lotse.sh/internal/agent"
 	"lotse.sh/internal/auth"
+	"lotse.sh/internal/hub/api"
 	"lotse.sh/internal/protocol"
 	"lotse.sh/internal/store"
 )
@@ -139,6 +140,33 @@ func TestRevokedAgent(t *testing.T) {
 	time.Sleep(3 * time.Second) // it tries again, with the revoked credential
 	if h.agents.count() != 0 {
 		t.Error("the revoked agent came back")
+	}
+	var detail api.HostDetail
+	getJSON(t, server, fmt.Sprintf("/api/hosts/%d", hosts[0].ID), &detail)
+	if !detail.Host.AgentRevoked {
+		t.Error("the host does not say its agent is revoked")
+	}
+	stop()
+
+	// Enrolling again, as the install script does: without a token it
+	// stays revoked; with one, the agent is back, as the same host.
+	log := slog.New(slog.DiscardHandler)
+	if err := agent.Enroll(t.Context(), agent.Config{Hub: server.URL, DataDir: dir}, log); err == nil {
+		t.Error("enrolling again without a token worked")
+	}
+	if err := agent.Enroll(t.Context(), agent.Config{Hub: server.URL, Token: token, DataDir: dir}, log); err != nil {
+		t.Fatal(err)
+	}
+	ctx2, stop2 := context.WithCancel(t.Context())
+	defer stop2()
+	go agent.Run(ctx2, agent.Config{Hub: server.URL, DataDir: dir}, log)
+	waitFor(t, "the agent to be back", func() bool { return h.agents.count() == 1 })
+	getJSON(t, server, fmt.Sprintf("/api/hosts/%d", hosts[0].ID), &detail)
+	if detail.Host.AgentRevoked {
+		t.Error("the host still says its agent is revoked")
+	}
+	if all, _ := h.db.Hosts(t.Context()); len(all) != 1 {
+		t.Errorf("%d hosts, want the same one", len(all))
 	}
 }
 

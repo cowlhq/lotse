@@ -252,6 +252,7 @@ func (h *hub) routes() http.Handler {
 	h.apiHandler(mux)
 	mux.HandleFunc("GET "+protocol.ConnectPath, h.connectAgent)
 	mux.HandleFunc("POST "+protocol.EnrollPath, h.enroll)
+	mux.HandleFunc("GET "+protocol.CheckPath, h.checkAgent)
 	mux.HandleFunc("GET /api/live", h.connectLive)
 	mux.Handle("/api/", http.NotFoundHandler())
 	mux.Handle("/", ui.Handler(ui.Files()))
