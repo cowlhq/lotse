@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.3](https://github.com/cowlhq/lotse/compare/v0.1.2...v0.1.3) (2026-10-13)
+
+
+### Features
+
+* **agent:** enrolling again with a token brings back a revoked agent ([e38c37e](https://github.com/cowlhq/lotse/commit/e38c37e68496e4a94c2b32817bd6da3b65e29f01))
+* **hub:** hosts say whether their agent is revoked ([88528b7](https://github.com/cowlhq/lotse/commit/88528b7be6c01e657233170b875a94e39eeb1bba))
+* **site:** the install command brings back a revoked agent ([5a36449](https://github.com/cowlhq/lotse/commit/5a36449d91c525ee0e57a80f07d880198636cacd))
+
+
+### Bug Fixes
+
+* **web:** a revoked agent shows as revoked, and revoking takes one click ([3b06d69](https://github.com/cowlhq/lotse/commit/3b06d69d79dc1a5c2f9a1a024d89ced694036599))
+
 ## [0.1.2](https://github.com/cowlhq/lotse/compare/v0.1.1...v0.1.2) (2026-10-13)
 
 
