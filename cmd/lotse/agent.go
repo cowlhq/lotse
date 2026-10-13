@@ -1,0 +1,20 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"log/slog"
+	"os"
+
+	"lotse.sh/internal/agent"
+)
+
+func agentCommand(ctx context.Context, args []string, log *slog.Logger) error {
+	flags := flag.NewFlagSet("lotse agent", flag.ExitOnError)
+	var cfg agent.Config
+	flags.StringVar(&cfg.Hub, "hub", os.Getenv("LOTSE_HUB"), "the hub's address (or LOTSE_HUB)")
+	flags.StringVar(&cfg.Token, "token", os.Getenv("LOTSE_TOKEN"), "the token that proves this agent (or LOTSE_TOKEN)")
+	flags.BoolVar(&cfg.Insecure, "insecure", os.Getenv("LOTSE_INSECURE") == "true", "allow plain HTTP to a hub on another machine")
+	flags.Parse(args)
+	return agent.Run(ctx, cfg, log)
+}
