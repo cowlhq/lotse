@@ -93,6 +93,23 @@ type agent struct {
 	intervalChanged, containersWake chan struct{}
 }
 
+// Enroll only enrolls: it gets the agent's credential with the enrollment
+// token and keeps it, if it has none yet. The install script does this
+// once, so that the service it sets up never sees the token.
+func Enroll(ctx context.Context, cfg Config, log *slog.Logger) error {
+	if err := cfg.Check(); err != nil {
+		return err
+	}
+	cfg.Root = cmp.Or(cfg.Root, "/")
+	a := &agent{cfg: cfg, log: log, host: newHostCollector(cfg.Root)}
+	if s, err := a.loadState(); err == nil && s.Credential != "" {
+		log.Info("already enrolled", "host", s.HostName)
+		return nil
+	}
+	_, err := a.credential(ctx)
+	return err
+}
+
 // Run reads the machine and reports to the hub until ctx ends. Losing the
 // connection is normal: it reconnects, waiting longer after each failure,
 // and sends what it read meanwhile.
