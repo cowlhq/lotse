@@ -92,6 +92,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		close(writerDone)
 	}()
 	go h.keepLive(ctx)
+	go h.retain(ctx)
 	defer func() {
 		// What arrived until the very end is still written.
 		stopWriter()
