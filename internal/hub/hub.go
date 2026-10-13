@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"lotse.sh/internal/auth"
+	"lotse.sh/internal/probe"
 	"lotse.sh/internal/protocol"
 	"lotse.sh/internal/secret"
 	"lotse.sh/internal/store"
@@ -156,6 +157,8 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 
 	// Shutdown does not wait for WebSockets; agents are told to go.
 	server.RegisterOnShutdown(h.agents.closeAll)
+	server.RegisterOnShutdown(h.probes.closeAll)
+	defer h.builtinProbe.Stop()
 	writerCtx, stopWriter := context.WithCancel(context.WithoutCancel(ctx))
 	writerDone := make(chan struct{})
 	go func() {
@@ -165,6 +168,8 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	go h.keepLive(ctx)
 	go h.retain(ctx)
 	go h.releases.watch(ctx)
+	go h.heartbeats(ctx)
+	go h.keepAssigned(ctx)
 	go h.autoUpdate(ctx)
 	defer func() {
 		// What arrived until the very end is still written.
@@ -223,6 +228,11 @@ type hub struct {
 	writer *writer
 	// How often agents read their machine and its containers.
 	hostInterval, containerInterval time.Duration
+	// checkInterval, if set, overrides every check's interval (in tests).
+	checkInterval time.Duration
+	checks        checkState
+	builtinProbe  *probe.Scheduler
+	probes        probeConns
 }
 
 // newHub makes the hub for a database. Without users, setup goes on with
@@ -235,6 +245,9 @@ func newHub(ctx context.Context, s shared, db *store.Store) (*hub, error) {
 		hostInterval:      15 * time.Second,
 		containerInterval: 30 * time.Second,
 	}
+	h.builtinProbe = &probe.Scheduler{Runner: &probe.Runner{}, Report: func(id int64, at time.Time, r probe.Result) {
+		h.checkResult(context.Background(), store.BuiltinProbe, id, at, r)
+	}}
 	users, err := db.CountUsers(ctx)
 	if err != nil {
 		return nil, err
@@ -253,6 +266,10 @@ func (h *hub) routes() http.Handler {
 	mux.HandleFunc("GET "+protocol.ConnectPath, h.connectAgent)
 	mux.HandleFunc("POST "+protocol.EnrollPath, h.enroll)
 	mux.HandleFunc("GET "+protocol.CheckPath, h.checkAgent)
+	mux.HandleFunc("POST "+protocol.ProbeEnrollPath, h.enrollProbe)
+	mux.HandleFunc("GET "+protocol.ProbeConnectPath, h.connectProbe)
+	mux.HandleFunc("/ping/{token}", h.ping)
+	mux.HandleFunc("/ping/{token}/{rest}", h.ping)
 	mux.HandleFunc("GET /api/live", h.connectLive)
 	mux.Handle("/api/", http.NotFoundHandler())
 	mux.Handle("/", ui.Handler(ui.Files()))
@@ -279,3 +296,20 @@ func defaultURL(listen string) string {
 	}
 	return fmt.Sprintf("http://localhost:%s", port)
 }
+
+// keepAssigned works out the checks' assignments now and every few
+// minutes, as a safety net for changes that did not reassign them.
+func (h *hub) keepAssigned(ctx context.Context) {
+	t := time.NewTicker(5 * time.Minute)
+	defer t.Stop()
+	for {
+		h.reassign(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
+func versionString() string { return version.Version }

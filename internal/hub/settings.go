@@ -28,6 +28,13 @@ func (h *hub) levels(ctx context.Context, subject string) ([]config.Level, error
 	var levels []config.Level
 	var scopeID int64
 	switch kind {
+	case "check":
+		c, err := h.db.Check(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		levels = append(levels, config.Level{Kind: "check", ID: c.ID, Path: c.Path, Name: c.Name})
+		scopeID = c.EnvironmentID
 	case "host":
 		host, err := h.db.Host(ctx, id)
 		if err != nil {
@@ -59,7 +66,7 @@ func (h *hub) levels(ctx context.Context, subject string) ([]config.Level, error
 	}
 }
 
-var errBadSubject = errors.New("subject must be host:<id>, environment:<id>, project:<id>, customer:<id> or global:1")
+var errBadSubject = errors.New("subject must be check:<id>, host:<id>, environment:<id>, project:<id>, customer:<id> or global:1")
 
 // effective resolves the settings of a subject.
 func (h *hub) effective(ctx context.Context, subject string) ([]config.Value, error) {
@@ -196,5 +203,6 @@ func (s apiServer) SetSetting(ctx context.Context, req api.SetSettingRequestObje
 		return nil, err
 	}
 	s.pushConfig(context.WithoutCancel(ctx))
+	s.reassign(context.WithoutCancel(ctx))
 	return api.SetSetting204Response{}, nil
 }
