@@ -1,0 +1,20 @@
+{
+  "app": {
+    "name": "lotse",
+    "loading": "Loading…",
+    "unreachable": "The hub does not answer."
+  },
+  "home": {
+    "running": "The hub is running.",
+    "version": "Version {{version}}",
+    "database": "Database: {{database}}",
+    "notSetUp": "This hub is not set up yet. Open the setup link from its log."
+  },
+  "setup": {
+    "title": "Set up lotse",
+    "checking": "Checking the setup link…",
+    "valid": "The setup link is valid. The setup wizard comes with milestone 3.",
+    "invalid": "This setup link is not valid. Take the current one from the hub's log.",
+    "done": "This hub is already set up."
+  }
+}
