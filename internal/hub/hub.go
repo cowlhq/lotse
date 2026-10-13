@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"lotse.sh/internal/protocol"
 	"lotse.sh/internal/store"
 	"lotse.sh/internal/ui"
 	"lotse.sh/internal/version"
@@ -33,6 +34,9 @@ type Config struct {
 	// URL is where people and agents reach the hub. Empty means
 	// http://localhost and the port of Listen.
 	URL string
+	// AgentKey is the token all agents show until enrollment arrives with
+	// milestone 3. Empty means no agent is let in.
+	AgentKey string
 }
 
 func ConfigFromEnv() Config {
@@ -41,6 +45,7 @@ func ConfigFromEnv() Config {
 		Listen:      cmp.Or(os.Getenv("LOTSE_LISTEN"), ":8080"),
 		DatabaseURL: os.Getenv("LOTSE_DATABASE_URL"),
 		URL:         os.Getenv("LOTSE_URL"),
+		AgentKey:    os.Getenv("LOTSE_AGENT_KEY"),
 	}
 }
 
@@ -60,6 +65,10 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	h.agentKey = cfg.AgentKey
+	if h.agentKey == "" {
+		log.Warn("LOTSE_AGENT_KEY is not set, so no agent can connect")
+	}
 	log.Info("lotse hub starting", "version", version.Version, "database", db.Dialect(), "listen", cfg.Listen)
 	if h.setupToken != "" {
 		base := cmp.Or(cfg.URL, defaultURL(cfg.Listen))
@@ -73,6 +82,8 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		IdleTimeout:       2 * time.Minute,
 		ErrorLog:          slog.NewLogLogger(log.Handler(), slog.LevelWarn),
 	}
+	// Shutdown does not wait for WebSockets; agents are told to go.
+	server.RegisterOnShutdown(h.agents.closeAll)
 	errs := make(chan error, 1)
 	go func() { errs <- server.ListenAndServe() }()
 	select {
@@ -98,6 +109,8 @@ type hub struct {
 	// setupToken is set while the hub has no users. Whoever shows it may set
 	// the hub up (decision 0005). A new one is made at every start.
 	setupToken string
+	agentKey   string
+	agents     agents
 }
 
 func newHub(ctx context.Context, db *store.Store, log *slog.Logger) (*hub, error) {
@@ -116,6 +129,7 @@ func (h *hub) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", h.health)
 	mux.HandleFunc("POST /api/setup/check", h.checkSetup)
+	mux.HandleFunc("GET "+protocol.ConnectPath, h.connectAgent)
 	mux.Handle("/api/", http.NotFoundHandler())
 	mux.Handle("/", ui.Handler(ui.Files()))
 	return mux
