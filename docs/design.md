@@ -131,10 +131,12 @@ secrets is generated at setup into `secret.key`, or taken from
 - `ci.yml`: `mise run check` on every pull request and on `main`, with a
   Postgres service container.
 - `release.yml`: release-please; when it tags a release, the same run checks
-  the tag, builds the UI, and runs GoReleaser:
-  - binaries as tar.gz for linux amd64 and arm64
-  - `checksums.txt` and `checksums.txt.minisig`
-  - `ghcr.io/cowlhq/lotse:<version>` and `:latest`, multi-arch, signed with cosign
+  the tag and then builds:
+  - with GoReleaser: binaries as tar.gz for linux amd64 and arm64,
+    `checksums.txt` and `checksums.txt.minisig`
+  - from `deploy/Dockerfile`, the same file `docker compose` builds:
+    `ghcr.io/cowlhq/lotse:<version>` and `:latest`, multi-arch, signed with
+    cosign
 - `site.yml`: publishes `site/` to GitHub Pages when it changes on `main`.
 
 ## 4. Runtime
