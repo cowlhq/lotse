@@ -123,15 +123,16 @@ type hub struct {
 	agentKey   string
 	agents     agents
 	writer     *writer
-	// hostInterval is how often agents read their machine.
-	hostInterval time.Duration
+	// How often agents read their machine and its containers.
+	hostInterval, containerInterval time.Duration
 }
 
 func newHub(ctx context.Context, db *store.Store, log *slog.Logger) (*hub, error) {
 	h := &hub{
 		db: db, log: log,
-		writer:       &writer{db: db, log: log},
-		hostInterval: 15 * time.Second,
+		writer:            &writer{db: db, log: log},
+		hostInterval:      15 * time.Second,
+		containerInterval: 30 * time.Second,
 	}
 	users, err := db.CountUsers(ctx)
 	if err != nil {

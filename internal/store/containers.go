@@ -138,3 +138,12 @@ func (s *Store) Container(ctx context.Context, id int64) (Container, error) {
 	}
 	return c, err
 }
+
+// ContainerGone marks the container with Docker ID dockerID gone, if it is
+// still the one its row stands for: after a redeploy, the row already
+// belongs to the new container.
+func (s *Store) ContainerGone(ctx context.Context, hostID int64, dockerID string, ts int64) error {
+	_, err := s.exec(ctx, `UPDATE containers SET gone_at = ?
+		WHERE host_id = ? AND docker_id = ? AND gone_at IS NULL`, ts, hostID, dockerID)
+	return err
+}
