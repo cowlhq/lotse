@@ -14,6 +14,8 @@ type health struct {
 	Database string `json:"database"`
 	// Setup is true while the hub waits to be set up.
 	Setup bool `json:"setup"`
+	// Agents is how many agents are connected.
+	Agents int `json:"agents"`
 }
 
 func (h *hub) health(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +24,7 @@ func (h *hub) health(w http.ResponseWriter, r *http.Request) {
 		Version:  version.Version,
 		Database: h.db.Dialect().String(),
 		Setup:    h.setupToken != "",
+		Agents:   h.agents.count(),
 	})
 }
 
