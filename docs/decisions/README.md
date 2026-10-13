@@ -21,3 +21,4 @@ old one.
 | [0013](0013-platforms.md) | Linux amd64 and arm64 only | 2026-10-13 |
 | [0014](0014-language.md) | English everywhere, UI ready for translation | 2026-10-13 |
 | [0015](0015-tooling-and-git.md) | mise, release-please, GoReleaser; rebase-merged PRs | 2026-10-13 |
+| [0016](0016-versions.md) | Until 1.0, releases count up the patch version | 2026-10-13 |
