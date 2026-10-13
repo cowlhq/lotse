@@ -214,7 +214,11 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.agents.add(conn, host.ID)
-	h.event(host.ID, "agent.connected", "")
+	h.event(host.ID, "agent.connected", mustJSON(map[string]string{"version": hello.Version}))
+	if hello.RolledBackFrom != "" {
+		log.Warn("the agent's starter went back from a version that kept failing", "version", hello.RolledBackFrom)
+		h.event(host.ID, "agent.update.rolled_back", mustJSON(map[string]string{"version": hello.RolledBackFrom}))
+	}
 	h.publishState(host.ID)
 	log.Info("agent connected")
 	if slices.Contains(h.live.watchedHosts(), host.ID) {
@@ -263,6 +267,8 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 			err = h.containerEvent(ctx, host.ID, *m.ContainerEvent, ids)
 		case m.Type == protocol.TypeContainerStats && m.ContainerStats != nil:
 			h.containerStats(host.ID, *m.ContainerStats, ids)
+		case m.Type == protocol.TypeUpdateStatus && m.UpdateStatus != nil:
+			h.updateStatus(host.ID, *m.UpdateStatus)
 		default:
 			log.Debug("ignoring a message of unknown type", "type", m.Type)
 		}
@@ -325,10 +331,15 @@ func (h *hub) hostSample(hostID int64, s protocol.HostSample) {
 	})
 }
 
+// event records something that happened to a host; host 0 is the hub.
 func (h *hub) event(hostID int64, kind, data string) {
+	subject := "host"
+	if hostID == 0 {
+		subject = "hub"
+	}
 	h.writer.add(func(b *store.Batch) {
 		b.Events = append(b.Events, store.Event{
-			TS: time.Now().Unix(), SubjectKind: "host", SubjectID: hostID, Kind: kind, Data: data,
+			TS: time.Now().Unix(), SubjectKind: subject, SubjectID: hostID, Kind: kind, Data: data,
 		})
 	})
 }

@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,13 +26,16 @@ import (
 func testShared(t *testing.T) shared {
 	box, _ := secret.NewBox("a test key, long enough")
 	s := shared{
-		box:       box,
-		log:       slog.New(slog.DiscardHandler),
-		cfg:       Config{DataDir: t.TempDir()},
-		setup:     &setupState{},
-		publicURL: new(atomic.Pointer[string]),
-		logins:    auth.NewLimiter(5, 15*time.Minute),
-		chosen:    make(chan string, 1),
+		box:         box,
+		log:         slog.New(slog.DiscardHandler),
+		cfg:         Config{DataDir: t.TempDir()},
+		setup:       &setupState{},
+		publicURL:   new(atomic.Pointer[string]),
+		logins:      auth.NewLimiter(5, 15*time.Minute),
+		chosen:      make(chan string, 1),
+		releases:    &releases{api: "http://127.0.0.1:1/none"},
+		restart:     make(chan struct{}),
+		restartOnce: new(sync.Once),
 	}
 	s.setPublicURL("http://lotse.example")
 	return s

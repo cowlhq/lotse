@@ -28,12 +28,13 @@ import (
 
 // LiveMessage is what the hub sends to the browser.
 type LiveMessage struct {
-	Type string `json:"type"` // host, host_state, container_stats, containers
+	Type string `json:"type"` // host, host_state, container_stats, containers, update
 	// HostID is the host the message is about.
 	HostID     int64                  `json:"host_id"`
 	Reading    *api.HostReading       `json:"reading,omitempty"`
 	Online     *bool                  `json:"online,omitempty"`
 	Containers []LiveContainerReading `json:"containers,omitempty"`
+	Update     *protocol.UpdateStatus `json:"update,omitempty"`
 }
 
 type LiveContainerReading struct {

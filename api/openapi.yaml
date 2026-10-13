@@ -405,6 +405,87 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/updates:
+    get:
+      operationId: getUpdates
+      summary: The hub's version and the newest release
+      responses:
+        "200":
+          description: What is running and what is out.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Updates" }
+    post:
+      operationId: checkUpdates
+      summary: Look for a newer release now, instead of at the next check
+      responses:
+        "200":
+          description: What is running and what is out.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Updates" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/hub/update:
+    post:
+      operationId: updateHub
+      summary: Update the hub to the newest release
+      description: >
+        The hub downloads the release, checks its signature, saves a copy of
+        a SQLite database, and restarts into it (decision 0009). The UI
+        loses it for a few seconds.
+      responses:
+        "202":
+          description: Installed; the hub restarts now.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: There is nothing newer, or the hub cannot update itself.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/hosts/{id}/update:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: updateHost
+      summary: Ask a host's agent to update to the newest release
+      responses:
+        "202":
+          description: Asked; how it goes arrives as events and live.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: The agent is not connected, or already has the newest release.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/scopes/{id}/update:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: updateScope
+      summary: Ask every connected agent below a scope to update
+      description: Use global:1's id, 1, for all agents.
+      responses:
+        "202":
+          description: How many agents were asked.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [asked]
+                properties:
+                  asked: { type: integer }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: There is no newer release known.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/hosts:
     get:
       operationId: listHosts
@@ -698,7 +779,7 @@ components:
       required: [key, type, description, value, overrides]
       properties:
         key: { type: string, example: agent.interval.host }
-        type: { type: string, enum: [duration, bool] }
+        type: { type: string, enum: [duration, bool, window] }
         description: { type: string }
         value:
           description: The effective value.
@@ -728,6 +809,34 @@ components:
         hub:
           type: string
           description: The hub's address, for the install commands.
+
+    Updates:
+      type: object
+      required: [hub_version, can_update_hub]
+      properties:
+        hub_version: { type: string }
+        can_update_hub:
+          type: boolean
+          description: Whether the hub runs under the starter and can update itself.
+        latest: { $ref: "#/components/schemas/Release" }
+        checked_at:
+          type: integer
+          format: int64
+          description: When the hub last looked.
+        check_error:
+          type: string
+          description: Why the last look failed, if it did.
+
+    Release:
+      type: object
+      required: [version, published_at, url, notes]
+      properties:
+        version: { type: string, example: 0.1.2 }
+        published_at: { type: integer, format: int64 }
+        url: { type: string }
+        notes:
+          type: string
+          description: The release notes, in Markdown.
 
     Host:
       type: object

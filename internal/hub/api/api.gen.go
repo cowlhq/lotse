@@ -101,6 +101,7 @@ func (e ConfigLevelKind) Valid() bool {
 const (
 	Bool     ConfigValueType = "bool"
 	Duration ConfigValueType = "duration"
+	Window   ConfigValueType = "window"
 )
 
 // Valid indicates whether the value is a known member of the ConfigValueType enum.
@@ -109,6 +110,8 @@ func (e ConfigValueType) Valid() bool {
 	case Bool:
 		return true
 	case Duration:
+		return true
+	case Window:
 		return true
 	default:
 		return false
@@ -467,6 +470,17 @@ type HostSummary struct {
 	Latest *HostReading `json:"latest,omitempty"`
 }
 
+// Release defines model for Release.
+type Release struct {
+	// Notes The release notes, in Markdown.
+	Notes       string `json:"notes"`
+	PublishedAt int64  `json:"published_at"`
+	Url         string `json:"url"`
+
+	// Version Example: 0.1.2
+	Version string `json:"version"`
+}
+
 // Scope defines model for Scope.
 type Scope struct {
 	Id   int64     `json:"id"`
@@ -509,6 +523,20 @@ type SetupStep string
 // SetupToken defines model for SetupToken.
 type SetupToken struct {
 	Token string `json:"token"`
+}
+
+// Updates defines model for Updates.
+type Updates struct {
+	// CanUpdateHub Whether the hub runs under the starter and can update itself.
+	CanUpdateHub bool `json:"can_update_hub"`
+
+	// CheckError Why the last look failed, if it did.
+	CheckError *string `json:"check_error,omitempty"`
+
+	// CheckedAt When the hub last looked.
+	CheckedAt  *int64   `json:"checked_at,omitempty"`
+	HubVersion string   `json:"hub_version"`
+	Latest     *Release `json:"latest,omitempty"`
 }
 
 // User defines model for User.
@@ -738,6 +766,12 @@ type ServerInterface interface {
 	// GetHostSeries A host's readings over time
 	// (GET /api/hosts/{id}/series)
 	GetHostSeries(w http.ResponseWriter, r *http.Request, id ID, params GetHostSeriesParams)
+	// UpdateHost Ask a host's agent to update to the newest release
+	// (POST /api/hosts/{id}/update)
+	UpdateHost(w http.ResponseWriter, r *http.Request, id ID)
+	// UpdateHub Update the hub to the newest release
+	// (POST /api/hub/update)
+	UpdateHub(w http.ResponseWriter, r *http.Request)
 	// ListScopes The tree of customers, projects and environments
 	// (GET /api/scopes)
 	ListScopes(w http.ResponseWriter, r *http.Request)
@@ -756,6 +790,9 @@ type ServerInterface interface {
 	// NewEnrollment Make a new enrollment token for an environment
 	// (POST /api/scopes/{id}/enrollment)
 	NewEnrollment(w http.ResponseWriter, r *http.Request, id ID)
+	// UpdateScope Ask every connected agent below a scope to update
+	// (POST /api/scopes/{id}/update)
+	UpdateScope(w http.ResponseWriter, r *http.Request, id ID)
 	// SetSetting Set a setting on an object, or unset it with null
 	// (PUT /api/settings)
 	SetSetting(w http.ResponseWriter, r *http.Request)
@@ -768,6 +805,12 @@ type ServerInterface interface {
 	// SetupDatabase Choose the database, the first step of setup
 	// (POST /api/setup/database)
 	SetupDatabase(w http.ResponseWriter, r *http.Request)
+	// GetUpdates The hub's version and the newest release
+	// (GET /api/updates)
+	GetUpdates(w http.ResponseWriter, r *http.Request)
+	// CheckUpdates Look for a newer release now, instead of at the next check
+	// (POST /api/updates)
+	CheckUpdates(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1296,6 +1339,46 @@ func (siw *ServerInterfaceWrapper) GetHostSeries(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// UpdateHost operation middleware
+func (siw *ServerInterfaceWrapper) UpdateHost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateHost(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateHub operation middleware
+func (siw *ServerInterfaceWrapper) UpdateHub(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateHub(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListScopes operation middleware
 func (siw *ServerInterfaceWrapper) ListScopes(w http.ResponseWriter, r *http.Request) {
 
@@ -1440,6 +1523,32 @@ func (siw *ServerInterfaceWrapper) NewEnrollment(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// UpdateScope operation middleware
+func (siw *ServerInterfaceWrapper) UpdateScope(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateScope(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetSetting operation middleware
 func (siw *ServerInterfaceWrapper) SetSetting(w http.ResponseWriter, r *http.Request) {
 
@@ -1487,6 +1596,34 @@ func (siw *ServerInterfaceWrapper) SetupDatabase(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SetupDatabase(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUpdates operation middleware
+func (siw *ServerInterfaceWrapper) GetUpdates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUpdates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CheckUpdates operation middleware
+func (siw *ServerInterfaceWrapper) CheckUpdates(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckUpdates(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1635,6 +1772,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/changes", wrapper.ListChanges)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/config", wrapper.GetConfig)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/settings", wrapper.SetSetting)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/updates", wrapper.GetUpdates)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/updates", wrapper.CheckUpdates)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/hub/update", wrapper.UpdateHub)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/hosts/{id}/update", wrapper.UpdateHost)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/scopes/{id}/update", wrapper.UpdateScope)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts", wrapper.ListHosts)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}", wrapper.GetHost)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}/series", wrapper.GetHostSeries)
@@ -2274,6 +2416,107 @@ func (response GetHostSeries404JSONResponse) VisitGetHostSeriesResponse(w http.R
 	return err
 }
 
+type UpdateHostRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type UpdateHostResponseObject interface {
+	VisitUpdateHostResponse(w http.ResponseWriter) error
+}
+
+type UpdateHost202Response struct {
+}
+
+func (response UpdateHost202Response) VisitUpdateHostResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type UpdateHost403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateHost403JSONResponse) VisitUpdateHostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHost404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateHost404JSONResponse) VisitUpdateHostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHost409JSONResponse Error
+
+func (response UpdateHost409JSONResponse) VisitUpdateHostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHubRequestObject struct {
+}
+
+type UpdateHubResponseObject interface {
+	VisitUpdateHubResponse(w http.ResponseWriter) error
+}
+
+type UpdateHub202Response struct {
+}
+
+func (response UpdateHub202Response) VisitUpdateHubResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type UpdateHub403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateHub403JSONResponse) VisitUpdateHubResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateHub409JSONResponse Error
+
+func (response UpdateHub409JSONResponse) VisitUpdateHubResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListScopesRequestObject struct {
 }
 
@@ -2554,6 +2797,72 @@ func (response NewEnrollment404JSONResponse) VisitNewEnrollmentResponse(w http.R
 	return err
 }
 
+type UpdateScopeRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type UpdateScopeResponseObject interface {
+	VisitUpdateScopeResponse(w http.ResponseWriter) error
+}
+
+type UpdateScope202JSONResponse struct {
+	Asked int `json:"asked"`
+}
+
+func (response UpdateScope202JSONResponse) VisitUpdateScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateScope403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateScope403JSONResponse) VisitUpdateScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateScope404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateScope404JSONResponse) VisitUpdateScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateScope409JSONResponse Error
+
+func (response UpdateScope409JSONResponse) VisitUpdateScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetSettingRequestObject struct {
 	Body *SetSettingJSONRequestBody
 }
@@ -2787,6 +3096,62 @@ func (response SetupDatabase409JSONResponse) VisitSetupDatabaseResponse(w http.R
 	return err
 }
 
+type GetUpdatesRequestObject struct {
+}
+
+type GetUpdatesResponseObject interface {
+	VisitGetUpdatesResponse(w http.ResponseWriter) error
+}
+
+type GetUpdates200JSONResponse Updates
+
+func (response GetUpdates200JSONResponse) VisitGetUpdatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckUpdatesRequestObject struct {
+}
+
+type CheckUpdatesResponseObject interface {
+	VisitCheckUpdatesResponse(w http.ResponseWriter) error
+}
+
+type CheckUpdates200JSONResponse Updates
+
+func (response CheckUpdates200JSONResponse) VisitCheckUpdatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckUpdates403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CheckUpdates403JSONResponse) VisitCheckUpdatesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Login Log in
@@ -2837,6 +3202,12 @@ type StrictServerInterface interface {
 	// GetHostSeries A host's readings over time
 	// (GET /api/hosts/{id}/series)
 	GetHostSeries(ctx context.Context, request GetHostSeriesRequestObject) (GetHostSeriesResponseObject, error)
+	// UpdateHost Ask a host's agent to update to the newest release
+	// (POST /api/hosts/{id}/update)
+	UpdateHost(ctx context.Context, request UpdateHostRequestObject) (UpdateHostResponseObject, error)
+	// UpdateHub Update the hub to the newest release
+	// (POST /api/hub/update)
+	UpdateHub(ctx context.Context, request UpdateHubRequestObject) (UpdateHubResponseObject, error)
 	// ListScopes The tree of customers, projects and environments
 	// (GET /api/scopes)
 	ListScopes(ctx context.Context, request ListScopesRequestObject) (ListScopesResponseObject, error)
@@ -2855,6 +3226,9 @@ type StrictServerInterface interface {
 	// NewEnrollment Make a new enrollment token for an environment
 	// (POST /api/scopes/{id}/enrollment)
 	NewEnrollment(ctx context.Context, request NewEnrollmentRequestObject) (NewEnrollmentResponseObject, error)
+	// UpdateScope Ask every connected agent below a scope to update
+	// (POST /api/scopes/{id}/update)
+	UpdateScope(ctx context.Context, request UpdateScopeRequestObject) (UpdateScopeResponseObject, error)
 	// SetSetting Set a setting on an object, or unset it with null
 	// (PUT /api/settings)
 	SetSetting(ctx context.Context, request SetSettingRequestObject) (SetSettingResponseObject, error)
@@ -2867,6 +3241,12 @@ type StrictServerInterface interface {
 	// SetupDatabase Choose the database, the first step of setup
 	// (POST /api/setup/database)
 	SetupDatabase(ctx context.Context, request SetupDatabaseRequestObject) (SetupDatabaseResponseObject, error)
+	// GetUpdates The hub's version and the newest release
+	// (GET /api/updates)
+	GetUpdates(ctx context.Context, request GetUpdatesRequestObject) (GetUpdatesResponseObject, error)
+	// CheckUpdates Look for a newer release now, instead of at the next check
+	// (POST /api/updates)
+	CheckUpdates(ctx context.Context, request CheckUpdatesRequestObject) (CheckUpdatesResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -3336,6 +3716,56 @@ func (sh *strictHandler) GetHostSeries(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
+// UpdateHost operation middleware
+func (sh *strictHandler) UpdateHost(w http.ResponseWriter, r *http.Request, id ID) {
+	var request UpdateHostRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateHost(ctx, request.(UpdateHostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateHost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateHostResponseObject); ok {
+		if err := validResponse.VisitUpdateHostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateHub operation middleware
+func (sh *strictHandler) UpdateHub(w http.ResponseWriter, r *http.Request) {
+	var request UpdateHubRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateHub(ctx, request.(UpdateHubRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateHub")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateHubResponseObject); ok {
+		if err := validResponse.VisitUpdateHubResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListScopes operation middleware
 func (sh *strictHandler) ListScopes(w http.ResponseWriter, r *http.Request) {
 	var request ListScopesRequestObject
@@ -3497,6 +3927,32 @@ func (sh *strictHandler) NewEnrollment(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
+// UpdateScope operation middleware
+func (sh *strictHandler) UpdateScope(w http.ResponseWriter, r *http.Request, id ID) {
+	var request UpdateScopeRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateScope(ctx, request.(UpdateScopeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateScope")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateScopeResponseObject); ok {
+		if err := validResponse.VisitUpdateScopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SetSetting operation middleware
 func (sh *strictHandler) SetSetting(w http.ResponseWriter, r *http.Request) {
 	var request SetSettingRequestObject
@@ -3614,6 +4070,54 @@ func (sh *strictHandler) SetupDatabase(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(SetupDatabaseResponseObject); ok {
 		if err := validResponse.VisitSetupDatabaseResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetUpdates operation middleware
+func (sh *strictHandler) GetUpdates(w http.ResponseWriter, r *http.Request) {
+	var request GetUpdatesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUpdates(ctx, request.(GetUpdatesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUpdates")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetUpdatesResponseObject); ok {
+		if err := validResponse.VisitGetUpdatesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CheckUpdates operation middleware
+func (sh *strictHandler) CheckUpdates(w http.ResponseWriter, r *http.Request) {
+	var request CheckUpdatesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckUpdates(ctx, request.(CheckUpdatesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckUpdates")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckUpdatesResponseObject); ok {
+		if err := validResponse.VisitCheckUpdatesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

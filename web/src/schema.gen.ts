@@ -302,6 +302,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The hub's version and the newest release */
+        get: operations["getUpdates"];
+        put?: never;
+        /** Look for a newer release now, instead of at the next check */
+        post: operations["checkUpdates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hub/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Update the hub to the newest release
+         * @description The hub downloads the release, checks its signature, saves a copy of a SQLite database, and restarts into it (decision 0009). The UI loses it for a few seconds.
+         */
+        post: operations["updateHub"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hosts/{id}/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a host's agent to update to the newest release */
+        post: operations["updateHost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scopes/{id}/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask every connected agent below a scope to update
+         * @description Use global:1's id, 1, for all agents.
+         */
+        post: operations["updateScope"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hosts": {
         parameters: {
             query?: never;
@@ -553,7 +632,7 @@ export interface components {
             /** @example agent.interval.host */
             key: string;
             /** @enum {string} */
-            type: "duration" | "bool";
+            type: "duration" | "bool" | "window";
             description: string;
             /** @description The effective value. */
             value: unknown;
@@ -573,6 +652,28 @@ export interface components {
             created_by: string;
             /** @description The hub's address, for the install commands. */
             hub: string;
+        };
+        Updates: {
+            hub_version: string;
+            /** @description Whether the hub runs under the starter and can update itself. */
+            can_update_hub: boolean;
+            latest?: components["schemas"]["Release"];
+            /**
+             * Format: int64
+             * @description When the hub last looked.
+             */
+            checked_at?: number;
+            /** @description Why the last look failed, if it did. */
+            check_error?: string;
+        };
+        Release: {
+            /** @example 0.1.2 */
+            version: string;
+            /** Format: int64 */
+            published_at: number;
+            url: string;
+            /** @description The release notes, in Markdown. */
+            notes: string;
         };
         Host: {
             /** Format: int64 */
@@ -1336,6 +1437,141 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getUpdates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What is running and what is out. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Updates"];
+                };
+            };
+        };
+    };
+    checkUpdates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What is running and what is out. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Updates"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateHub: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Installed; the hub restarts now. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            /** @description There is nothing newer, or the hub cannot update itself. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asked; how it goes arrives as events and live. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description The agent is not connected, or already has the newest release. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How many agents were asked. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        asked: number;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description There is no newer release known. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     listHosts: {
