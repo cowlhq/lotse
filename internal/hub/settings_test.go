@@ -45,20 +45,20 @@ func TestSettingsAPI(t *testing.T) {
 
 	var values []api.ConfigValue
 	getJSON(t, server, fmt.Sprintf("/api/config?subject=host:%d", host.ID), &values)
-	hostInterval := values[0]
+	hostInterval := configValue(values, "agent.interval.host")
 	if hostInterval.Key != "agent.interval.host" || hostInterval.Value != "20s" || hostInterval.From == nil ||
 		hostInterval.From.Kind != "environment" || len(hostInterval.Overrides) != 1 || hostInterval.Overrides[0].Level.Kind != "customer" {
 		t.Errorf("host interval: %+v", hostInterval)
 	}
-	if values[1].Value != "30s" || values[1].From != nil {
-		t.Errorf("container interval: %+v", values[1])
+	if c := configValue(values, "agent.interval.containers"); c.Value != "30s" || c.From != nil {
+		t.Errorf("container interval: %+v", c)
 	}
 
 	// Unset on the environment: the customer's value shows through.
 	put(fmt.Sprintf("environment:%d", env.ID), "agent.interval.host", `null`)
 	getJSON(t, server, fmt.Sprintf("/api/config?subject=host:%d", host.ID), &values)
-	if values[0].Value != "60s" || values[0].From.Kind != "customer" {
-		t.Errorf("after unsetting: %+v", values[0])
+	if v := configValue(values, "agent.interval.host"); v.Value != "60s" || v.From.Kind != "customer" {
+		t.Errorf("after unsetting: %+v", v)
 	}
 	if status, _ := do(t, server, "GET", "/api/config?subject=host:999", ""); status != http.StatusNotFound {
 		t.Errorf("a missing host: %d", status)
@@ -96,4 +96,13 @@ func TestSettingsReachAgents(t *testing.T) {
 func ada() store.Actor {
 	id := int64(1)
 	return store.Actor{Kind: "user", ID: &id, Name: "admin@example.com", Via: "ui"}
+}
+
+func configValue(values []api.ConfigValue, key string) api.ConfigValue {
+	for _, v := range values {
+		if v.Key == key {
+			return v
+		}
+	}
+	return api.ConfigValue{}
 }

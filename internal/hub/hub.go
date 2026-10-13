@@ -165,6 +165,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	go h.keepLive(ctx)
 	go h.retain(ctx)
 	go h.releases.watch(ctx)
+	go h.autoUpdate(ctx)
 	defer func() {
 		// What arrived until the very end is still written.
 		stopWriter()

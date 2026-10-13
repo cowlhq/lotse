@@ -37,6 +37,29 @@ var Keys = []Key{
 		Check:       durationBetween(5*time.Second, time.Hour),
 	},
 	{
+		Name:        "agent.auto_update",
+		Type:        "bool",
+		Description: "Whether the agent updates itself to new releases, in its update window.",
+		Default:     json.RawMessage(`false`),
+		On:          []string{"host"},
+		Check:       isBool,
+	},
+	{
+		Name:        "agent.update_window",
+		Type:        "window",
+		Description: "When automatic updates may happen, daily, in the hub's time zone, such as 04:00-06:00.",
+		Default:     json.RawMessage(`"04:00-06:00"`),
+		On:          []string{"host"},
+		Check: func(v json.RawMessage) error {
+			var s string
+			if json.Unmarshal(v, &s) != nil {
+				return fmt.Errorf("a window such as 04:00-06:00")
+			}
+			_, _, err := ParseWindow(s)
+			return err
+		},
+	},
+	{
 		Name:        "agent.interval.containers",
 		Type:        "duration",
 		Description: "How often the agent reads its containers' usage.",
@@ -162,4 +185,37 @@ func short(d time.Duration) string {
 		}
 	}
 	return s
+}
+
+func isBool(v json.RawMessage) error {
+	var b bool
+	if json.Unmarshal(v, &b) != nil {
+		return fmt.Errorf("true or false")
+	}
+	return nil
+}
+
+// ParseWindow reads a daily window, HH:MM-HH:MM, as minutes after
+// midnight. The end may be earlier than the start: 22:00-02:00 runs
+// over midnight.
+func ParseWindow(s string) (start, end int, err error) {
+	var h1, m1, h2, m2 int
+	if _, err := fmt.Sscanf(s, "%d:%d-%d:%d", &h1, &m1, &h2, &m2); err != nil ||
+		h1 > 23 || h2 > 24 || m1 > 59 || m2 > 59 || h1 < 0 || h2 < 0 || m1 < 0 || m2 < 0 {
+		return 0, 0, fmt.Errorf("a window such as 04:00-06:00")
+	}
+	start, end = h1*60+m1, h2*60+m2
+	if start == end {
+		return 0, 0, fmt.Errorf("a window needs a start and a different end")
+	}
+	return start, end, nil
+}
+
+// InWindow says whether t falls in the window start-end.
+func InWindow(t time.Time, start, end int) bool {
+	m := t.Hour()*60 + t.Minute()
+	if start < end {
+		return m >= start && m < end
+	}
+	return m >= start || m < end
 }
