@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.1.1](https://github.com/cowlhq/lotse/compare/v0.1.0...v0.1.1) (2026-10-13)
+
+
+### Features
+
+* **agent:** lotse agent enroll only enrolls, for the install script ([7c5c665](https://github.com/cowlhq/lotse/commit/7c5c6658b95f1c883d702798367ffd1cd40fef2d))
+* agents enroll with their environment's token and keep a credential of their own ([f580c20](https://github.com/cowlhq/lotse/commit/f580c20c3aceeda0ec21b799700cc90bba2f7a36))
+* **auth:** Argon2id passwords, session tokens and a brake on guessing ([3112441](https://github.com/cowlhq/lotse/commit/311244154bc127854640e737f40685b65945c1b7))
+* **config:** the settings there are, and how they are inherited ([22f033e](https://github.com/cowlhq/lotse/commit/22f033e18d2491ed38681b3fa15ac14b2e4eb1b4))
+* **hub:** effective settings with their origin, and agents told at once ([b53c2a9](https://github.com/cowlhq/lotse/commit/b53c2a9b92033dd0513c21497dca02d5b711d86c))
+* **hub:** setup in two steps, database and admin, and login with sessions ([e221137](https://github.com/cowlhq/lotse/commit/e2211372c64c7e0108e288b1aa3e2a5ef35c439f))
+* **hub:** the tree, hosts in environments, and the history of changes ([cfa34b9](https://github.com/cowlhq/lotse/commit/cfa34b9d3e0495132fd8580e0ae36fd886b619b6))
+* **secret:** seal what the hub keeps but must read again ([a643e80](https://github.com/cowlhq/lotse/commit/a643e809dab43b8b9371120c4f52e81a6a70563a))
+* **site:** publish lotse's signing key and check signatures in the install script ([02fffad](https://github.com/cowlhq/lotse/commit/02fffad7945ae6a8a1f9ba6bb5dd18e21fbd5e70))
+* **site:** the install script, for agents with systemd and for the hub with compose ([797ba0b](https://github.com/cowlhq/lotse/commit/797ba0b44cd8ea9a46d31d2b5809165980343e17))
+* **store:** customers, projects and environments, and a history of changes ([7a64b42](https://github.com/cowlhq/lotse/commit/7a64b425ba027792e62e1de6ee83959ba5389dce))
+* **store:** enrollment tokens and agent credentials ([7ea8a2c](https://github.com/cowlhq/lotse/commit/7ea8a2c0bd843a44038b2d184306c8513f511ca1))
+* **store:** settings on objects and scopes, with history ([2d18c08](https://github.com/cowlhq/lotse/commit/2d18c08ed97576dfde50f7f788c9f8ee75104d06))
+* **store:** users by email, and sessions ([85a6a12](https://github.com/cowlhq/lotse/commit/85a6a12206a0f19c20e4c7a093c7a47d37dc01cb))
+* the compose hub listens where LOTSE_BIND says, such as the tailnet ([2a617cd](https://github.com/cowlhq/lotse/commit/2a617cdca3d693647c92f1a8fbb2d457d8e3448f))
+* **web:** add an agent with one line, and revoke it ([9474382](https://github.com/cowlhq/lotse/commit/947438272ae43a91a43f3c809ba9c0eaa4f210c4))
+* **web:** settings and where they come from on every host and scope ([7cae9e3](https://github.com/cowlhq/lotse/commit/7cae9e3f3277423c569f743ad556a93747b6387e))
+* **web:** the overview by customer, project and environment, new environments, history ([8255057](https://github.com/cowlhq/lotse/commit/8255057ceafec094603156a0e0b0c13536dbdaf7))
+* **web:** the setup wizard and the login page ([9d32eb5](https://github.com/cowlhq/lotse/commit/9d32eb50de2b58a90c8c6a23c87092f89ca66da7))
+
+
+### Bug Fixes
+
+* **agent:** the first reading already has rates ([d03735a](https://github.com/cowlhq/lotse/commit/d03735a7292c33d84a9489d8751ba0c9a7de0df0))
+
 ## 0.1.0 (2026-10-13)
 
 
