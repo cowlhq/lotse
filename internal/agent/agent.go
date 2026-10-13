@@ -139,6 +139,14 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 
 // sampleHost reads the machine at the current interval, connected or not.
 func (a *agent) sampleHost(ctx context.Context) {
+	// Rates need two readings: a first one, kept to itself, a second
+	// before the first one sent, so that one already has them.
+	a.host.sample(ctx, time.Now())
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(time.Second):
+	}
 	for {
 		s := a.host.sample(ctx, time.Now())
 		a.out.add(protocol.Message{Type: protocol.TypeHost, Host: &s})
