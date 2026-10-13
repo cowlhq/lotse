@@ -70,7 +70,7 @@ export function Host({ id }: { id: number }) {
       <Events events={events.data ?? []} />
       <Config subject={`host:${id}`} />
       <History subject={`host:${id}`} />
-      <Revoke hostID={id} />
+      {!host.data.host.agent_revoked && <Revoke hostID={id} />}
     </div>
   );
 }
@@ -183,7 +183,7 @@ function Header({ detail, live }: { detail: HostDetail; live: number }) {
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-semibold">{host.name}</h2>
-        <Online online={host.online} />
+        <Online online={host.online} revoked={host.agent_revoked} />
         <LiveBadge last={live} />
       </div>
       <EnvironmentPicker hostID={host.id} current={host.environment_id ?? null} />
@@ -338,13 +338,14 @@ function Revoke({ hostID }: { hostID: number }) {
     mutationFn: () => revokeAgent(hostID),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["host", hostID] });
+      client.invalidateQueries({ queryKey: ["hosts"] });
       client.invalidateQueries({ queryKey: ["changes", `host:${hostID}`] });
     },
   });
   if (!isAdmin) return null;
   return (
     <div className="space-y-1">
-      <Button variant="outline" size="sm" disabled={revoke.isPending} onClick={() => confirm(t("agent.revokeConfirm")) && revoke.mutate()}>
+      <Button variant="outline" size="sm" disabled={revoke.isPending || revoke.isSuccess} onClick={() => confirm(t("agent.revokeConfirm")) && revoke.mutate()}>
         {t("agent.revoke")}
       </Button>
       <p className="text-xs text-muted-foreground">{t("agent.revokeHint")}</p>

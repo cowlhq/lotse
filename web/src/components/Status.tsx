@@ -2,12 +2,13 @@ import { useTranslation } from "react-i18next";
 import { status } from "@/lib/palette";
 
 // Online is a status, so it never relies on color alone: dot and word.
-export function Online({ online }: { online: boolean }) {
+export function Online({ online, revoked = false }: { online: boolean; revoked?: boolean }) {
   const { t } = useTranslation();
+  const label = online ? t("status.online") : revoked ? t("status.revoked") : t("status.offline");
   return (
     <span className="inline-flex items-center gap-1.5 text-sm">
       <span className="size-2 rounded-full" style={{ background: online ? status.good : status.critical }} />
-      {online ? t("status.online") : t("status.offline")}
+      {label}
     </span>
   );
 }
