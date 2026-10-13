@@ -58,7 +58,7 @@ function Form({ customer: c0, project: p0, done }: { customer: string; project: 
     onSuccess: async (env) => {
       await client.invalidateQueries({ queryKey: ["scopes"] });
       done();
-      navigate({ to: "/environments/$id", params: { id: String(env.id) } });
+      navigate({ to: "/scopes/$id", params: { id: String(env.id) } });
     },
   });
 

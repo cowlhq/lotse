@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteScope, getScope, listHosts, listScopes, NotFound, renameScope } from "@/api";
+import { Config } from "@/components/Config";
 import { History } from "@/components/History";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/lib/useMe";
 import { HostGrid } from "./Overview";
 
-export function Environment({ id }: { id: number }) {
+// Scope is the page of a customer, project or environment: what is in it,
+// its settings and its history.
+export function Scope({ id }: { id: number }) {
   const { t } = useTranslation();
   const { isAdmin } = useMe();
   const scope = useQuery({ queryKey: ["scope", id], queryFn: () => getScope(id) });
@@ -23,25 +26,53 @@ export function Environment({ id }: { id: number }) {
   if (scope.error instanceof NotFound) return <p>{t("tree.notFound")}</p>;
   if (scope.isError) return <p className="text-destructive">{t("app.unreachable")}</p>;
 
-  const byID = new Map((scopes.data ?? []).map((s) => [s.id, s]));
-  const project = scope.data.parent_id ? byID.get(scope.data.parent_id) : undefined;
-  const customer = project?.parent_id ? byID.get(project.parent_id) : undefined;
+  const all = scopes.data ?? [];
+  const byID = new Map(all.map((s) => [s.id, s]));
+  const above: typeof all = [];
+  for (let p = scope.data.parent_id; p; p = byID.get(p)?.parent_id) {
+    const s = byID.get(p);
+    if (s) above.unshift(s);
+  }
+  const children = all.filter((s) => s.parent_id === id);
   const mine = (hosts.data ?? []).filter((h) => h.host.environment_id === id);
+  const subject = `${scope.data.kind}:${id}`;
 
   return (
     <div className="space-y-6">
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">
-          {customer?.name} / {project?.name}
+          {t(`config.kinds.${scope.data.kind}`)}
+          {above.map((s) => (
+            <span key={s.id}>
+              {" · "}
+              <Link to="/scopes/$id" params={{ id: String(s.id) }} className="hover:underline">
+                {s.name}
+              </Link>
+            </span>
+          ))}
         </p>
         <Title id={id} name={scope.data.name} canEdit={isAdmin} />
         <p className="text-xs text-muted-foreground">
           {t("tree.key")} <code>{scope.data.path}</code>
         </p>
       </div>
-      <HostGrid hosts={mine} empty={t("overview.noHosts")} />
-      <History subject={`environment:${id}`} />
-      {isAdmin && mine.length === 0 && <Delete id={id} />}
+      {scope.data.kind === "environment" ? (
+        <HostGrid hosts={mine} empty={t("overview.noHosts")} />
+      ) : (
+        <ul className="space-y-1 text-sm">
+          {children.map((c) => (
+            <li key={c.id}>
+              <Link to="/scopes/$id" params={{ id: String(c.id) }} className="font-medium hover:underline">
+                {c.name}
+              </Link>{" "}
+              <span className="text-muted-foreground">{c.path}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Config subject={subject} />
+      <History subject={subject} />
+      {isAdmin && mine.length === 0 && children.length === 0 && <Delete id={id} />}
     </div>
   );
 }

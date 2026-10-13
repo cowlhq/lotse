@@ -50,13 +50,21 @@ export function Overview() {
       {scopes.data.length === 0 && <p className="text-muted-foreground">{t("overview.start")}</p>}
       {children(null).map((customer) => (
         <section key={customer.id} className="space-y-4">
-          <h2 className="text-lg font-medium">{customer.name}</h2>
+          <h2 className="text-lg font-medium">
+            <Link to="/scopes/$id" params={{ id: String(customer.id) }} className="hover:underline">
+              {customer.name}
+            </Link>
+          </h2>
           {children(customer.id).map((project) => (
             <div key={project.id} className="space-y-3 border-l pl-4">
-              <h3 className="text-sm font-medium text-muted-foreground">{project.name}</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">
+                <Link to="/scopes/$id" params={{ id: String(project.id) }} className="hover:underline">
+                  {project.name}
+                </Link>
+              </h3>
               {children(project.id).map((env) => (
                 <div key={env.id} className="space-y-2">
-                  <Link to="/environments/$id" params={{ id: String(env.id) }} className="text-sm font-medium hover:underline">
+                  <Link to="/scopes/$id" params={{ id: String(env.id) }} className="text-sm font-medium hover:underline">
                     {env.name} <span className="font-normal text-muted-foreground">{byID.get(env.id)?.path}</span>
                   </Link>
                   <HostGrid hosts={hostsIn(env.id)} empty={t("overview.noHosts")} />
