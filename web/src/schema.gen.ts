@@ -223,6 +223,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The effective settings of an object, and where each comes from */
+        get: operations["getConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a setting on an object, or unset it with null */
+        put: operations["setSetting"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hosts": {
         parameters: {
             query?: never;
@@ -461,6 +495,30 @@ export interface components {
             old?: unknown;
             /** @description The value after; missing for something deleted. */
             new?: unknown;
+        };
+        ConfigLevel: {
+            /** @enum {string} */
+            kind: "host" | "environment" | "project" | "customer" | "global";
+            /** Format: int64 */
+            id: number;
+            path: string;
+            name: string;
+        };
+        ConfigValue: {
+            /** @example agent.interval.host */
+            key: string;
+            /** @enum {string} */
+            type: "duration" | "bool";
+            description: string;
+            /** @description The effective value. */
+            value: unknown;
+            from?: components["schemas"]["ConfigLevel"];
+            /** @description Values set further up that this one overrides, nearest first. */
+            overrides: components["schemas"]["ConfigOverride"][];
+        };
+        ConfigOverride: {
+            level: components["schemas"]["ConfigLevel"];
+            value: unknown;
         };
         Host: {
             /** Format: int64 */
@@ -1091,6 +1149,61 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    getConfig: {
+        parameters: {
+            query: {
+                /** @description host:<id>, environment:<id>, project:<id>, customer:<id>, or global:1. */
+                subject: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every setting the object has, effective value first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigValue"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    setSetting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    subject: string;
+                    key: string;
+                    /** @description The value; null unsets it, so it is inherited again. */
+                    value: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listHosts: {
