@@ -239,9 +239,12 @@ func (c *hostCollector) diskIO(ctx context.Context) (read, written uint64, ok bo
 // the EFI partition, …) is left out.
 var dataFilesystems = []string{"ext2", "ext3", "ext4", "xfs", "btrfs", "zfs", "f2fs", "bcachefs", "jfs", "reiserfs"}
 
-// filesystems reports each device once, at its shortest mount point.
+// filesystems reports each device once, at its shortest mount point. It
+// asks for all mounts, binds included, because on some machines / itself is
+// a bind mount (a directory of a btrfs subvolume, for one), which gopsutil
+// would otherwise leave out.
 func (c *hostCollector) filesystems(ctx context.Context) []protocol.Filesystem {
-	parts, err := disk.PartitionsWithContext(ctx, false)
+	parts, err := disk.PartitionsWithContext(ctx, true)
 	if err != nil {
 		return nil
 	}
