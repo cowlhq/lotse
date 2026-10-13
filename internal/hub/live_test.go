@@ -27,7 +27,8 @@ func TestLive(t *testing.T) {
 	waitFor(t, "the agent to connect", func() bool { return h.agents.count() == 1 })
 	hosts, _ := h.db.Hosts(ctx)
 
-	browser, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(server.URL, "http")+"/api/live", nil)
+	browser, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(server.URL, "http")+"/api/live",
+		&websocket.DialOptions{HTTPClient: server.Client()})
 	if err != nil {
 		t.Fatal(err)
 	}

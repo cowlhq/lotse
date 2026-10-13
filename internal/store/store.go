@@ -96,6 +96,16 @@ func open(url string) (*Store, error) {
 	return &Store{dialect: SQLite, db: db, read: read}, nil
 }
 
+// Ping says whether the database at url answers, without changing it.
+func Ping(ctx context.Context, url string) error {
+	s, err := open(url)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	return s.db.PingContext(ctx)
+}
+
 // Close closes the database.
 func (s *Store) Close() error {
 	err := s.db.Close()

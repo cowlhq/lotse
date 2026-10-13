@@ -3,7 +3,6 @@ package hub
 import (
 	"cmp"
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -40,23 +39,17 @@ func (h *hub) apiHandler(mux *http.ServeMux) {
 }
 
 func (s apiServer) GetHealth(ctx context.Context, _ api.GetHealthRequestObject) (api.GetHealthResponseObject, error) {
-	return api.GetHealth200JSONResponse{
-		Status:   "ok",
-		Version:  version.Version,
-		Database: api.HealthDatabase(s.db.Dialect().String()),
-		Setup:    s.setupToken != "",
-		Agents:   s.agents.count(),
-	}, nil
-}
-
-// CheckSetup says whether a setup token is the current one, so the UI can
-// tell a stale link from a good one before asking for anything.
-func (s apiServer) CheckSetup(ctx context.Context, req api.CheckSetupRequestObject) (api.CheckSetupResponseObject, error) {
-	if s.setupToken == "" {
-		return api.CheckSetup409JSONResponse{Error: "this hub is already set up"}, nil
+	out := api.GetHealth200JSONResponse{
+		Status:  "ok",
+		Version: version.Version,
+		Setup:   s.setupStep(),
+		Agents:  s.agents.count(),
 	}
-	valid := subtle.ConstantTimeCompare([]byte(req.Body.Token), []byte(s.setupToken)) == 1
-	return api.CheckSetup200JSONResponse{Valid: valid}, nil
+	if s.db != nil {
+		d := api.HealthDatabase(s.db.Dialect().String())
+		out.Database = &d
+	}
+	return out, nil
 }
 
 func (s apiServer) ListHosts(ctx context.Context, _ api.ListHostsRequestObject) (api.ListHostsResponseObject, error) {

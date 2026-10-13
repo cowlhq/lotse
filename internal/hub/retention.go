@@ -17,6 +17,9 @@ func (h *hub) retain(ctx context.Context) {
 	t := time.NewTicker(retentionEvery)
 	defer t.Stop()
 	for {
+		if err := h.db.DeleteExpiredSessions(ctx, time.Now().Unix()); err != nil && ctx.Err() == nil {
+			h.log.Error("cannot delete expired sessions", "err", err)
+		}
 		n, err := h.db.DeleteSamplesBefore(ctx, time.Now().Add(-rawRetention).Unix())
 		if err != nil && ctx.Err() == nil {
 			h.log.Error("cannot delete old readings", "err", err)
