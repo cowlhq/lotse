@@ -113,6 +113,19 @@
       "destroy": "removed",
       "health_status: healthy": "healthy",
       "health_status: unhealthy": "unhealthy"
+    },
+    "agent": {
+      "connected": "agent connected ({{version}})",
+      "disconnected": "agent disconnected",
+      "update": {
+        "started": "agent update to {{version}} started",
+        "installed": "agent update to {{version}} installed; restarting",
+        "failed": "agent update to {{version}} failed: {{error}}",
+        "rolled_back": "agent went back from {{version}}, which kept failing to start"
+      }
+    },
+    "host": {
+      "reboot": "machine rebooted"
     }
   },
   "chart": {
@@ -186,7 +199,11 @@
       "project": "project",
       "customer": "customer",
       "global": "global settings"
-    }
+    },
+    "on": "on",
+    "off": "off",
+    "turnOn": "Turn on here",
+    "turnOff": "Turn off here"
   },
   "settings": {
     "title": "Settings"
@@ -207,5 +224,29 @@
     "revoke": "Revoke agent",
     "revokeConfirm": "Revoke this host's agent? It is disconnected now and can only come back by enrolling again.",
     "revokeHint": "Disconnects the agent and revokes its credential. History and readings stay."
+  },
+  "events": {
+    "title": "Events"
+  },
+  "update": {
+    "available": "{{version}} available",
+    "agent": "Update agent to {{version}}",
+    "agents_one": "Update {{count}} agent to {{version}}",
+    "agents_other": "Update {{count}} agents to {{version}}",
+    "asked_one": "{{count}} agent asked",
+    "asked_other": "{{count}} agents asked",
+    "started": "Updating to {{version}}…",
+    "installed": "{{version}} installed; the agent restarts into it.",
+    "failed": "Update to {{version}} failed: {{error}}",
+    "hub": "Version",
+    "running": "This hub runs {{version}}",
+    "latest": "newest release {{version}}",
+    "checked": "looked {{time}} ago",
+    "notes": "What is new in {{version}}",
+    "check": "Look now",
+    "hubTo": "Update hub to {{version}}",
+    "hubConfirm": "Update the hub to {{version}}? It restarts; the page is back within seconds.",
+    "restarting": "Restarting…",
+    "hubManual": "This hub does not run under the starter, so it cannot update itself; pull the newer image."
   }
 }

@@ -8,11 +8,12 @@ import type { components } from "@/schema.gen";
 // seconds.
 
 export type LiveMessage = {
-  type: "host" | "host_state" | "container_stats" | "containers";
+  type: "host" | "host_state" | "container_stats" | "containers" | "update";
   host_id: number;
   reading?: HostReading;
   online?: boolean;
   containers?: { container_id: number; reading: components["schemas"]["ContainerReading"] }[];
+  update?: { version: string; state: "started" | "installed" | "failed"; error?: string };
 };
 
 type Listener = { topics: string[]; onMessage: (m: LiveMessage) => void };
