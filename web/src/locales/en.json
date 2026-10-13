@@ -1,16 +1,10 @@
 {
   "app": {
     "name": "lotse",
-    "loading": "Loading…",
     "unreachable": "The hub does not answer."
   },
   "home": {
-    "running": "The hub is running.",
-    "version": "Version {{version}}",
-    "database": "Database: {{database}}",
-    "notSetUp": "This hub is not set up yet. Open the setup link from its log.",
-    "agents_one": "{{count}} agent connected",
-    "agents_other": "{{count}} agents connected"
+    "notSetUp": "This hub is not set up yet. Open the setup link from its log."
   },
   "setup": {
     "title": "Set up lotse",
@@ -18,5 +12,84 @@
     "valid": "The setup link is valid. The setup wizard comes with milestone 3.",
     "invalid": "This setup link is not valid. Take the current one from the hub's log.",
     "done": "This hub is already set up."
+  },
+  "overview": {
+    "empty": "No hosts yet. Start an agent, and its machine appears here.",
+    "containers": "{{running}} of {{total}} containers up",
+    "unhealthy_one": "{{count}} container unhealthy",
+    "unhealthy_other": "{{count}} containers unhealthy"
+  },
+  "status": {
+    "online": "online",
+    "offline": "offline"
+  },
+  "range": {
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours"
+  },
+  "ago": "{{time}} ago",
+  "metric": {
+    "cpu": "CPU",
+    "cpuCore": "CPU (100 % = one core)",
+    "busy": "busy",
+    "iowait": "I/O wait",
+    "steal": "steal",
+    "memory": "Memory",
+    "used": "used",
+    "swap": "swap",
+    "disk": "Disk",
+    "load": "Load",
+    "load1": "1 min",
+    "load5": "5 min",
+    "load15": "15 min",
+    "network": "Network",
+    "received": "received",
+    "sent": "sent",
+    "diskio": "Disk I/O",
+    "read": "read",
+    "written": "written"
+  },
+  "host": {
+    "notFound": "There is no such host.",
+    "platform": "Platform",
+    "kernel": "Kernel",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "uptime": "Up for",
+    "agent": "Agent",
+    "docker": "Docker",
+    "noDocker": "not reachable",
+    "lastSeen": "Last heard from",
+    "filesystems": "Filesystems",
+    "containers": "Containers",
+    "cores_one": "{{count}} core",
+    "cores_other": "{{count}} cores"
+  },
+  "container": {
+    "notFound": "There is no such container.",
+    "name": "Container",
+    "state": "State",
+    "restarts": "Restarts",
+    "image": "Image",
+    "gone": "gone",
+    "exited": "exited ({{code}})",
+    "restartCount_one": "{{count}} restart",
+    "restartCount_other": "{{count}} restarts",
+    "upFor": "up for {{time}}",
+    "events": "Events"
+  },
+  "event": {
+    "container": {
+      "start": "started",
+      "die": "stopped with exit code {{code}}",
+      "oom": "ran out of memory",
+      "restart": "restarted",
+      "destroy": "removed",
+      "health_status: healthy": "healthy",
+      "health_status: unhealthy": "unhealthy"
+    }
+  },
+  "chart": {
+    "empty": "No readings in this time range"
   }
 }
