@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { listHosts, type HostSummary } from "@/api";
+import { useLive } from "@/lib/live";
 import { Meter, Online } from "@/components/Status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,7 +12,22 @@ import { series, status, usageColor } from "@/lib/palette";
 
 export function Overview() {
   const { t } = useTranslation();
-  const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts, refetchInterval: 15_000 });
+  const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts, refetchInterval: 60_000 });
+  const client = useQueryClient();
+  useLive(["hosts"], (m) => {
+    if (m.type === "host") {
+      client.setQueryData<HostSummary[]>(["hosts"], (list) =>
+        list?.map((h) => (h.host.id === m.host_id ? { ...h, latest: m.reading } : h)),
+      );
+    } else if (m.type === "host_state") {
+      client.setQueryData<HostSummary[]>(["hosts"], (list) =>
+        list?.map((h) => (h.host.id === m.host_id ? { ...h, host: { ...h.host, online: m.online! } } : h)),
+      );
+    } else {
+      // Containers and new hosts: counted by the hub.
+      client.invalidateQueries({ queryKey: ["hosts"] });
+    }
+  });
 
   if (hosts.isPending) return <Skeleton className="h-32 w-full" />;
   if (hosts.isError) return <p className="text-destructive">{t("app.unreachable")}</p>;

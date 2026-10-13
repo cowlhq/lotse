@@ -91,5 +91,6 @@
   },
   "chart": {
     "empty": "No readings in this time range"
-  }
+  },
+  "live": "live"
 }
