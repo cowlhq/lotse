@@ -157,6 +157,19 @@ func (s *Store) rebind(q string) string {
 	return b.String()
 }
 
+// tx runs f in a transaction, which it commits if f returns nil.
+func (s *Store) tx(ctx context.Context, f func(*sql.Tx) error) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if err := f(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
 func (s *Store) exec(ctx context.Context, q string, args ...any) (sql.Result, error) {
 	return s.db.ExecContext(ctx, s.rebind(q), args...)
 }
