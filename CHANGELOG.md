@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.2](https://github.com/cowlhq/lotse/compare/v0.1.1...v0.1.2) (2026-10-13)
+
+
+### Features
+
+* **agent:** update when the hub asks, and tell it about rollbacks ([962421d](https://github.com/cowlhq/lotse/commit/962421dc0fbdf5c6f3bf8e31bd171894db8fe982))
+* automatic updates in a window, one host per environment first ([4ba8eac](https://github.com/cowlhq/lotse/commit/4ba8eac743502178d7408f1b4e47909cb9004f1c))
+* **hub:** know the newest release, update agents on request, and update itself ([6104488](https://github.com/cowlhq/lotse/commit/610448809ba5d67bc6373eb3b4e563527f38e325))
+* **update:** install signed releases where the starter finds them ([2c21286](https://github.com/cowlhq/lotse/commit/2c2128647004a4b4e798cabe3e8b5eb086105d24))
+* **web:** updates for agents and the hub, and every host's events ([2a71768](https://github.com/cowlhq/lotse/commit/2a71768f44822fcb77f4abc3010d78c00c96e443))
+
+
+### Bug Fixes
+
+* **site:** install where /usr/local/bin is missing, and stop early on NixOS ([f437aa9](https://github.com/cowlhq/lotse/commit/f437aa92cd54db45a154312427ab84c003955bf8))
+* **web:** event texts with a colon in their kind ([87a85a5](https://github.com/cowlhq/lotse/commit/87a85a52eec96dfc4aa9c6b0e2fd692e55fdbbcd))
+
 ## [0.1.1](https://github.com/cowlhq/lotse/compare/v0.1.0...v0.1.1) (2026-10-13)
 
 
