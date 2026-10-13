@@ -59,6 +59,7 @@ func (h *hub) containerList(ctx context.Context, hostID int64, list protocol.Con
 	for dockerID, id := range got {
 		ids[dockerID] = id
 	}
+	h.live.publish(LiveMessage{Type: "containers", HostID: hostID})
 	return nil
 }
 
@@ -85,6 +86,7 @@ func (h *hub) containerEvent(ctx context.Context, hostID int64, e protocol.Conta
 		}
 		delete(ids, e.DockerID)
 	}
+	h.live.publish(LiveMessage{Type: "containers", HostID: hostID})
 	if id == 0 || !recordedActions[e.Action] {
 		return nil
 	}
@@ -104,17 +106,21 @@ func (h *hub) containerEvent(ctx context.Context, hostID int64, e protocol.Conta
 // containerStats records a reading of the running containers. Readings of
 // containers the hub does not know yet are dropped; the next list names
 // them.
-func (h *hub) containerStats(s protocol.ContainerStats, ids containerIDs) {
+func (h *hub) containerStats(hostID int64, s protocol.ContainerStats, ids containerIDs) {
 	samples := make([]store.ContainerSample, 0, len(s.Stats))
+	live := LiveMessage{Type: "container_stats", HostID: hostID}
+	defer func() { h.live.publish(live) }()
 	for _, st := range s.Stats {
 		id, ok := ids[st.DockerID]
 		if !ok {
 			continue
 		}
-		samples = append(samples, store.ContainerSample{
+		x := store.ContainerSample{
 			ContainerID: id, TS: s.TS, CPU: st.CPU, Mem: st.Mem, MemLimit: st.MemLimit,
 			NetRx: st.NetRx, NetTx: st.NetTx,
-		})
+		}
+		samples = append(samples, x)
+		live.Containers = append(live.Containers, LiveContainerReading{ContainerID: id, Reading: *toContainerReading(x)})
 	}
 	h.writer.add(func(b *store.Batch) {
 		b.ContainerSamples = append(b.ContainerSamples, samples...)

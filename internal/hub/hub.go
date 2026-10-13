@@ -66,6 +66,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		return err
 	}
 	h.agentKey = cfg.AgentKey
+	h.publicURL = cfg.URL
 	if h.agentKey == "" {
 		log.Warn("LOTSE_AGENT_KEY is not set, so no agent can connect")
 	}
@@ -90,6 +91,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		h.writer.run(writerCtx)
 		close(writerDone)
 	}()
+	go h.keepLive(ctx)
 	defer func() {
 		// What arrived until the very end is still written.
 		stopWriter()
@@ -122,7 +124,10 @@ type hub struct {
 	setupToken string
 	agentKey   string
 	agents     agents
+	live       live
 	writer     *writer
+	// publicURL is where people reach the hub (LOTSE_URL).
+	publicURL string
 	// How often agents read their machine and its containers.
 	hostInterval, containerInterval time.Duration
 }
@@ -148,6 +153,7 @@ func (h *hub) routes() http.Handler {
 	mux := http.NewServeMux()
 	h.apiHandler(mux)
 	mux.HandleFunc("GET "+protocol.ConnectPath, h.connectAgent)
+	mux.HandleFunc("GET /api/live", h.connectLive)
 	mux.Handle("/api/", http.NotFoundHandler())
 	mux.Handle("/", ui.Handler(ui.Files()))
 	return mux
