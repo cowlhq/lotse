@@ -83,8 +83,11 @@ type agent struct {
 
 	hostInterval      atomic.Int64 // nanoseconds
 	containerInterval atomic.Int64
-	// intervalChanged wakes the sampler when the interval changes.
-	intervalChanged chan struct{}
+	// liveUntil is when live reading ends, in Unix nanoseconds.
+	liveUntil atomic.Int64
+	// intervalChanged and containersWake wake the samplers when their
+	// interval changes.
+	intervalChanged, containersWake chan struct{}
 }
 
 // Run reads the machine and reports to the hub until ctx ends. Losing the
@@ -101,6 +104,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		host:            newHostCollector(cfg.Root),
 		out:             newOutbox(bufferAge),
 		intervalChanged: make(chan struct{}, 1),
+		containersWake:  make(chan struct{}, 1),
 	}
 	a.docker = newDocker(log, a.out.add, a.out.addLatest)
 	a.hostInterval.Store(int64(defaultHostInterval))
@@ -109,7 +113,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 
 	go a.sampleHost(ctx)
 	go a.docker.watch(ctx)
-	go a.docker.sampleStats(ctx, func() time.Duration { return time.Duration(a.containerInterval.Load()) })
+	go a.docker.sampleStats(ctx, func() time.Duration { return a.interval(&a.containerInterval) }, a.containersWake)
 
 	wait := backoff{min: time.Second, max: time.Minute}
 	for {
@@ -142,7 +146,31 @@ func (a *agent) sampleHost(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-a.intervalChanged:
-		case <-time.After(time.Duration(a.hostInterval.Load())):
+		case <-time.After(a.interval(&a.hostInterval)):
+		}
+	}
+}
+
+// interval is the configured interval, or the live one while live.
+func (a *agent) interval(configured *atomic.Int64) time.Duration {
+	d := time.Duration(configured.Load())
+	if time.Now().UnixNano() < a.liveUntil.Load() {
+		return min(d, protocol.LiveInterval*time.Second)
+	}
+	return d
+}
+
+// live reads fast for the next seconds, or stops doing so for 0.
+func (a *agent) live(seconds int) {
+	until := time.Now().Add(time.Duration(seconds) * time.Second).UnixNano()
+	if a.liveUntil.Swap(until) < time.Now().UnixNano() && seconds > 0 {
+		// It was not live: wake the samplers instead of letting them
+		// finish a long wait.
+		for _, c := range []chan struct{}{a.intervalChanged, a.containersWake} {
+			select {
+			case c <- struct{}{}:
+			default:
+			}
 		}
 	}
 }
@@ -228,6 +256,8 @@ func (a *agent) connect(ctx context.Context) error {
 			switch {
 			case m.Type == protocol.TypeConfig && m.Config != nil:
 				a.apply(*m.Config)
+			case m.Type == protocol.TypeLive && m.Live != nil:
+				a.live(m.Live.Seconds)
 			default:
 				a.log.Debug("ignoring a message of unknown type", "type", m.Type)
 			}

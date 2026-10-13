@@ -250,12 +250,14 @@ func fromInspect(in container.InspectResponse) protocol.Container {
 	return c
 }
 
-// sampleStats reads the running containers' usage every interval.
-func (d *docker) sampleStats(ctx context.Context, interval func() time.Duration) {
+// sampleStats reads the running containers' usage every interval, and
+// right away when wake fires.
+func (d *docker) sampleStats(ctx context.Context, interval func() time.Duration, wake <-chan struct{}) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-wake:
 		case <-time.After(interval()):
 		}
 		if s, ok := d.stats(ctx); ok {
