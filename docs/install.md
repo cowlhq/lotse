@@ -116,6 +116,37 @@ sudo rm /etc/systemd/system/lotse-agent.service /usr/local/bin/lotse
 sudo rm -r /var/lib/lotse && sudo userdel lotse
 ```
 
+## Probes
+
+Checks (HTTP, TLS, TCP) run on the hub's own probe. A probe in another
+place checks from outside as well, so that the hub's network or a down
+machine does not decide alone: a check is down when most of the probes that
+run it see it fail. **Settings → Probes → Add probe** shows the command:
+
+```
+docker run -d --name lotse-probe --restart unless-stopped \
+  -e LOTSE_HUB=https://lotse.example.com \
+  -e LOTSE_TOKEN=lotse_enr_… \
+  -e LOTSE_PROBE_NAME=fra -e LOTSE_PROBE_LOCATION=Frankfurt \
+  -v lotse-probe:/var/lib/lotse \
+  ghcr.io/cowlhq/lotse probe
+```
+
+A probe needs no ports and only reaches out to the hub. Which probes run a
+check is the setting `check.probes`: `all`, or a list of names.
+
+## Heartbeats
+
+For jobs such as backups: a heartbeat check has a URL the job calls when it
+ran, and with `/fail` added when it failed. If no call comes within the
+period and the grace, the check goes down.
+
+```
+backup.sh && curl -fsS https://lotse.example.com/ping/<token> || curl -fsS https://lotse.example.com/ping/<token>/fail
+```
+
+The URL is the secret; the check's page shows it to admins.
+
 ## Checking what you download
 
 Each release has `checksums.txt` with the SHA-256 of every archive, and
