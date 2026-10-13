@@ -1,15 +1,42 @@
-import { useQuery } from "@tanstack/react-query";
-import { createRootRoute, createRoute, createRouter, Link, Outlet } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createRootRoute, createRoute, createRouter, Link, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { getHealth } from "@/api";
+import { getHealth, getMe, logout, Unauthorized } from "@/api";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Container } from "@/routes/Container";
 import { Host } from "@/routes/Host";
+import { Login } from "@/routes/Login";
 import { Overview } from "@/routes/Overview";
 import { Setup } from "@/routes/Setup";
 
-function Layout() {
+// Gate shows setup while the hub is not set up, the login page without a
+// session, and the app otherwise.
+function Gate() {
   const { t } = useTranslation();
+  const path = useRouterState({ select: (s) => s.location.pathname });
   const health = useQuery({ queryKey: ["health"], queryFn: getHealth, refetchInterval: 30_000 });
+  const setUp = health.data !== undefined && !health.data.setup;
+  const me = useQuery({ queryKey: ["me"], queryFn: getMe, enabled: setUp, retry: false });
+
+  if (health.isPending) return <Skeleton className="m-6 h-32" />;
+  if (health.isError) return <p className="p-6 text-destructive">{t("app.unreachable")}</p>;
+  if (health.data.setup) {
+    return path === "/setup" ? <Outlet /> : <p className="mx-auto max-w-lg py-16">{t("setup.noToken")}</p>;
+  }
+  if (path === "/setup") return <Navigate to="/" />;
+  if (me.isPending) return <Skeleton className="m-6 h-32" />;
+  if (me.error instanceof Unauthorized) {
+    return path === "/login" ? <Outlet /> : <Navigate to="/login" search={{ next: path }} />;
+  }
+  if (path === "/login") return <Navigate to="/" />;
+  return <Layout name={me.data?.name || me.data?.email || ""} version={health.data.version} />;
+}
+
+function Layout({ name, version }: { name: string; version: string }) {
+  const { t } = useTranslation();
+  const client = useQueryClient();
+  const out = useMutation({ mutationFn: logout, onSuccess: () => client.invalidateQueries({ queryKey: ["me"] }) });
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b">
@@ -17,14 +44,15 @@ function Layout() {
           <Link to="/" className="text-lg font-semibold tracking-tight">
             {t("app.name")}
           </Link>
-          {health.data && <span className="text-xs text-muted-foreground">{health.data.version}</span>}
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-xs text-muted-foreground">{version}</span>
+            <span>{name}</span>
+            <Button variant="ghost" size="sm" onClick={() => out.mutate()}>
+              {t("login.logout")}
+            </Button>
+          </div>
         </div>
       </header>
-      {health.data?.setup && (
-        <div className="border-b bg-muted/60">
-          <p className="mx-auto max-w-6xl px-6 py-2 text-sm">{t("home.notSetUp")}</p>
-        </div>
-      )}
       <main className="mx-auto max-w-6xl px-6 py-6">
         <Outlet />
       </main>
@@ -32,7 +60,7 @@ function Layout() {
   );
 }
 
-const root = createRootRoute({ component: Layout });
+const root = createRootRoute({ component: Gate });
 
 const overview = createRoute({ getParentRoute: () => root, path: "/", component: Overview });
 
@@ -66,7 +94,19 @@ const setup = createRoute({
   },
 });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, host, container, setup]) });
+const login = createRoute({
+  getParentRoute: () => root,
+  path: "/login",
+  validateSearch: (search: Record<string, unknown>) => ({
+    next: typeof search.next === "string" ? search.next : "/",
+  }),
+  component: function LoginRoute() {
+    const { next } = login.useSearch();
+    return <Login next={next} />;
+  },
+});
+
+export const router = createRouter({ routeTree: root.addChildren([overview, host, container, setup, login]) });
 
 declare module "@tanstack/react-router" {
   interface Register {
