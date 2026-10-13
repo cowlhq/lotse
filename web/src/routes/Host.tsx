@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getHost, getSeries, listEvents, listScopes, NotFound, setHostEnvironment, type Container, type HostDetail, type Series } from "@/api";
+import { Config } from "@/components/Config";
 import { History } from "@/components/History";
 import { LiveBadge } from "@/components/LiveBadge";
 import { Chart, type Line } from "@/components/Chart";
@@ -61,6 +62,7 @@ export function Host({ id }: { id: number }) {
       </div>
       <Filesystems detail={host.data} />
       <Containers containers={host.data.containers} />
+      <Config subject={`host:${id}`} />
       <History subject={`host:${id}`} />
     </div>
   );

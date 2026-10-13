@@ -160,7 +160,28 @@
     },
     "fields": {
       "name": "name",
-      "environment": "environment"
+      "environment": "environment",
+      "agent.interval.host": "agent.interval.host"
     }
+  },
+  "config": {
+    "title": "Settings",
+    "description": "What applies here, and where it comes from. A value set here wins over those set further up.",
+    "default": "default",
+    "here": "set here",
+    "from": "from {{kind}} {{name}}",
+    "overrides": "overrides {{value}} from {{name}}",
+    "set": "Set here",
+    "reset": "Reset to inherited",
+    "kinds": {
+      "host": "host",
+      "environment": "environment",
+      "project": "project",
+      "customer": "customer",
+      "global": "global settings"
+    }
+  },
+  "settings": {
+    "title": "Settings"
   }
 }

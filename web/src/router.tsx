@@ -5,7 +5,8 @@ import { getHealth, getMe, logout, Unauthorized } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Container } from "@/routes/Container";
-import { Environment } from "@/routes/Environment";
+import { Scope } from "@/routes/Scope";
+import { Settings } from "@/routes/Settings";
 import { Host } from "@/routes/Host";
 import { Login } from "@/routes/Login";
 import { Overview } from "@/routes/Overview";
@@ -47,6 +48,9 @@ function Layout({ name, version }: { name: string; version: string }) {
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-xs text-muted-foreground">{version}</span>
+            <Link to="/settings" className="hover:underline">
+              {t("settings.title")}
+            </Link>
             <span>{name}</span>
             <Button variant="ghost" size="sm" onClick={() => out.mutate()}>
               {t("login.logout")}
@@ -83,14 +87,16 @@ const container = createRoute({
   },
 });
 
-const environment = createRoute({
+const scope = createRoute({
   getParentRoute: () => root,
-  path: "/environments/$id",
-  component: function EnvironmentRoute() {
-    const { id } = environment.useParams();
-    return <Environment id={Number(id)} />;
+  path: "/scopes/$id",
+  component: function ScopeRoute() {
+    const { id } = scope.useParams();
+    return <Scope id={Number(id)} />;
   },
 });
+
+const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: Settings });
 
 const setup = createRoute({
   getParentRoute: () => root,
@@ -116,7 +122,7 @@ const login = createRoute({
   },
 });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, host, container, environment, setup, login]) });
+export const router = createRouter({ routeTree: root.addChildren([overview, host, container, scope, settings, setup, login]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

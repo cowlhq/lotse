@@ -16,6 +16,7 @@ export type User = Schemas["User"];
 export type Scope = Schemas["Scope"];
 export type ScopeName = Schemas["ScopeName"];
 export type Change = Schemas["Change"];
+export type ConfigValue = Schemas["ConfigValue"];
 export type SetupStep = Schemas["SetupStep"];
 
 export type Range = { from: number; to: number };
@@ -39,6 +40,9 @@ export const createEnvironment = (levels: { customer: ScopeName; project: ScopeN
   post<Scope>("/api/environments", levels);
 export const setHostEnvironment = (hostID: number, environmentID: number | null) =>
   send<void>("PUT", `/api/hosts/${hostID}/environment`, { environment_id: environmentID });
+export const getConfig = (subject: string) => get<ConfigValue[]>(`/api/config?subject=${subject}`);
+export const setSetting = (subject: string, key: string, value: unknown) =>
+  send<void>("PUT", "/api/settings", { subject, key, value });
 export const listChanges = (subject: string) => get<Change[]>(`/api/changes?subject=${subject}`);
 
 export type SetupCheck = { valid: boolean; step?: SetupStep; postgres?: string };
