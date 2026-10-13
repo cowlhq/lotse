@@ -34,11 +34,23 @@ export function History({ subject }: { subject: string }) {
   );
 }
 
+const events = ["enrolled", "enrolled again", "agent revoked", "enrollment token created", "enrollment token replaced"];
+
 function What({ change: c }: { change: Change }) {
   const { t } = useTranslation();
   const show = (v: unknown) => (v == null ? t("history.nothing") : typeof v === "string" ? v : JSON.stringify(v));
   if (c.field === "created") return <>{t("history.created")}</>;
   if (c.field === "deleted") return <>{t("history.deleted")}</>;
+  // Things that happened rather than values that changed: the label, and
+  // where to if there is a where.
+  if (events.includes(c.field)) {
+    return (
+      <>
+        {t(`history.fields.${c.field}`, { defaultValue: c.field })}
+        {c.new != null && <> {t("history.into", { where: show(c.new) })}</>}
+      </>
+    );
+  }
   return (
     <>
       {t("history.changed", { field: t(`history.fields.${c.field}`, { defaultValue: c.field }) })}{" "}

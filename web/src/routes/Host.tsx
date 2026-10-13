@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getHost, getSeries, listEvents, listScopes, NotFound, setHostEnvironment, type Container, type HostDetail, type Series } from "@/api";
+import { getHost, getSeries, listEvents, listScopes, NotFound, revokeAgent, setHostEnvironment, type Container, type HostDetail, type Series } from "@/api";
 import { Config } from "@/components/Config";
 import { History } from "@/components/History";
 import { LiveBadge } from "@/components/LiveBadge";
@@ -10,6 +10,7 @@ import { Chart, type Line } from "@/components/Chart";
 import { RangePicker, type RangeSeconds } from "@/components/Range";
 import { Meter, Online } from "@/components/Status";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -64,6 +65,7 @@ export function Host({ id }: { id: number }) {
       <Containers containers={host.data.containers} />
       <Config subject={`host:${id}`} />
       <History subject={`host:${id}`} />
+      <Revoke hostID={id} />
     </div>
   );
 }
@@ -312,5 +314,29 @@ function EnvironmentPicker({ hostID, current }: { hostID: number; current: numbe
         ))}
       </select>
     </label>
+  );
+}
+
+// Revoke cuts the host's agent off: it can only come back by enrolling
+// again.
+function Revoke({ hostID }: { hostID: number }) {
+  const { t } = useTranslation();
+  const { isAdmin } = useMe();
+  const client = useQueryClient();
+  const revoke = useMutation({
+    mutationFn: () => revokeAgent(hostID),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["host", hostID] });
+      client.invalidateQueries({ queryKey: ["changes", `host:${hostID}`] });
+    },
+  });
+  if (!isAdmin) return null;
+  return (
+    <div className="space-y-1">
+      <Button variant="outline" size="sm" disabled={revoke.isPending} onClick={() => confirm(t("agent.revokeConfirm")) && revoke.mutate()}>
+        {t("agent.revoke")}
+      </Button>
+      <p className="text-xs text-muted-foreground">{t("agent.revokeHint")}</p>
+    </div>
   );
 }

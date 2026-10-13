@@ -42,7 +42,8 @@
     "title": "Overview",
     "start": "Nothing here yet. Create an environment, then add an agent to it.",
     "noHosts": "No hosts yet.",
-    "unassigned": "Not in an environment"
+    "unassigned": "Not in an environment",
+    "noHostsAdd": "No hosts yet. Add an agent to a machine, and it shows up here."
   },
   "status": {
     "online": "online",
@@ -161,8 +162,14 @@
     "fields": {
       "name": "name",
       "environment": "environment",
-      "agent.interval.host": "agent.interval.host"
-    }
+      "agent.interval.host": "agent.interval.host",
+      "enrolled": "enrolled",
+      "enrolled again": "enrolled again",
+      "agent revoked": "agent revoked",
+      "enrollment token created": "enrollment token created",
+      "enrollment token replaced": "enrollment token replaced"
+    },
+    "into": "into {{where}}"
   },
   "config": {
     "title": "Settings",
@@ -183,5 +190,22 @@
   },
   "settings": {
     "title": "Settings"
+  },
+  "agent": {
+    "add": "Add agent",
+    "addHint": "Run this on the machine. The agent connects to the hub, and the machine and its containers appear here within seconds.",
+    "systemd": "Linux (systemd)",
+    "systemdHint": "Installs lotse to /usr/local/bin and starts it as the service lotse-agent, as user lotse in group docker. Checks the download's checksum.",
+    "dockerHint": "Runs the agent as a container. It reads the machine through / mounted read-only, and Docker through its socket.",
+    "composeHint": "The same as a compose file, for a machine managed with docker compose.",
+    "local": "This compose stack",
+    "localHint": "For trying lotse with this repository's compose.yml: starts its agent, on this machine.",
+    "tokenHint": "The token is this environment's. It is needed once per machine; after that each agent has its own credential.",
+    "replace": "New token",
+    "replaceConfirm": "Make a new token? The current one stops working; agents that already enrolled stay connected.",
+    "copy": "Copy",
+    "revoke": "Revoke agent",
+    "revokeConfirm": "Revoke this host's agent? It is disconnected now and can only come back by enrolling again.",
+    "revokeHint": "Disconnects the agent and revokes its credential. History and readings stay."
   }
 }
