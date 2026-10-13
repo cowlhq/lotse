@@ -26,7 +26,9 @@ one, an unhealthy one and one that crashes every two minutes. Then:
    the agent of `compose.yml` on this machine:
    `LOTSE_TOKEN=lotse_enr_… docker compose --profile agent up -d`.
 
-`LOTSE_PORT=18080 docker compose up` uses another port; with
+Port, listen address and the hub's address come from `LOTSE_PORT`,
+`LOTSE_BIND` and `LOTSE_URL`, best kept in a `.env` file next to
+`compose.yml` (see there), so every `docker compose` command uses them. With
 `--profile postgres` and `LOTSE_DATABASE_URL` set (see `compose.yml`), the
 hub runs on Postgres.
 

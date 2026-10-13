@@ -13,10 +13,14 @@ services:
       dockerfile: deploy/Dockerfile
     image: lotse:dev
     environment:
-      LOTSE_URL: http://localhost:${LOTSE_PORT:-8080}
+      LOTSE_URL: ${LOTSE_URL:-http://localhost:${LOTSE_PORT:-8080}}
       LOTSE_DATABASE_URL: ${LOTSE_DATABASE_URL:-}
+    # LOTSE_BIND is the address the port listens on: 127.0.0.1 by default;
+    # the machine's Tailscale address, for example, to reach it from the
+    # tailnet. Put LOTSE_BIND, LOTSE_PORT and LOTSE_URL in a .env file next to
+    # this one, so every docker compose command here uses them.
     ports:
-      - "127.0.0.1:${LOTSE_PORT:-8080}:8080"
+      - "${LOTSE_BIND:-127.0.0.1}:${LOTSE_PORT:-8080}:8080"
     volumes:
       - hub:/var/lib/lotse
     depends_on:

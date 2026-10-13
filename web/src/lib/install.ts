@@ -5,7 +5,9 @@ export type Commands = { systemd: string; docker: string; compose: string; local
 
 const image = "ghcr.io/cowlhq/lotse";
 
-export function installCommands(hub: string, token: string): Commands {
+// dev says the hub is a development build, most likely this repository's
+// compose stack, whose own agent gets a command of its own.
+export function installCommands(hub: string, token: string, dev = false): Commands {
   const url = new URL(hub);
   const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
   // Plain HTTP to a hub on another machine needs saying so (decision 0006).
@@ -47,6 +49,6 @@ volumes:
     docker,
     compose,
     // The compose file of this repository runs its agent in a profile.
-    local: local ? `LOTSE_TOKEN=${token} docker compose --profile agent up -d` : undefined,
+    local: local || dev ? `LOTSE_TOKEN=${token} docker compose --profile agent up -d` : undefined,
   };
 }

@@ -5,3 +5,4 @@
 !/internal/ui/dist/.gitkeep
 /web/node_modules/
 /dist/
+/.env
