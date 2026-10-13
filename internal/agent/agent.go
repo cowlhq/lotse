@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/coder/websocket/wsjson"
 
 	"lotse.sh/internal/protocol"
+	"lotse.sh/internal/update"
 	"lotse.sh/internal/version"
 )
 
@@ -37,6 +39,10 @@ type Config struct {
 	// Root is where the machine's / is: "/" for an agent installed on the
 	// machine, or where it is mounted into the agent's container.
 	Root string
+	// BinDir is where the starter finds versions; updates go there.
+	BinDir string
+	// ReleaseURL is where updates come from; empty means GitHub.
+	ReleaseURL string
 }
 
 // Check says what is wrong with c, if anything.
@@ -91,6 +97,10 @@ type agent struct {
 	// intervalChanged and containersWake wake the samplers when their
 	// interval changes.
 	intervalChanged, containersWake chan struct{}
+	// updating is set while an update runs, so that a second one waits.
+	updating atomic.Bool
+	// restart ends Run with ErrRestart, after an update is installed.
+	restart chan struct{}
 }
 
 // Enroll only enrolls: it gets the agent's credential with the enrollment
@@ -118,6 +128,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		return err
 	}
 	cfg.Root = cmp.Or(cfg.Root, "/")
+	cfg.BinDir = cmp.Or(cfg.BinDir, filepath.Join(cfg.DataDir, "bin"))
 	a := &agent{
 		cfg:             cfg,
 		log:             log,
@@ -125,6 +136,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 		out:             newOutbox(bufferAge),
 		intervalChanged: make(chan struct{}, 1),
 		containersWake:  make(chan struct{}, 1),
+		restart:         make(chan struct{}),
 	}
 	a.docker = newDocker(log, a.out.add, a.out.addLatest)
 	a.hostInterval.Store(int64(defaultHostInterval))
@@ -139,6 +151,9 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	for {
 		started := time.Now()
 		err := a.connect(ctx)
+		if errors.Is(err, update.ErrRestart) {
+			return err
+		}
 		if ctx.Err() != nil {
 			return nil
 		}
@@ -264,6 +279,7 @@ func (a *agent) connect(ctx context.Context) error {
 	hello := a.host.hello(ctx)
 	hello.Version = version.Version
 	hello.DockerVersion = a.docker.Version()
+	hello.RolledBackFrom = update.TakeRolledBack(a.cfg.BinDir)
 	if err := a.write(bg, conn, protocol.Message{Type: protocol.TypeHello, Hello: &hello}); err != nil {
 		return err
 	}
@@ -292,6 +308,8 @@ func (a *agent) connect(ctx context.Context) error {
 				a.apply(*m.Config)
 			case m.Type == protocol.TypeLive && m.Live != nil:
 				a.live(m.Live.Seconds)
+			case m.Type == protocol.TypeUpdate && m.Update != nil:
+				go a.update(ctx, conn, m.Update.Version)
 			default:
 				a.log.Debug("ignoring a message of unknown type", "type", m.Type)
 			}
@@ -310,8 +328,44 @@ func (a *agent) connect(ctx context.Context) error {
 		case <-a.out.ready:
 		case err := <-readErr:
 			return err
+		case <-a.restart:
+			conn.Close(websocket.StatusGoingAway, "agent updating")
+			return update.ErrRestart
 		}
 	}
+}
+
+// update installs version and has the starter run it (decision 0009). The
+// hub only names the version; where it comes from and whether it is
+// genuine, the agent decides.
+func (a *agent) update(ctx context.Context, conn *websocket.Conn, v string) {
+	if !a.updating.CompareAndSwap(false, true) {
+		return
+	}
+	report := func(state string, err error) {
+		s := protocol.UpdateStatus{Version: v, State: state}
+		if err != nil {
+			s.Error = err.Error()
+		}
+		a.write(context.WithoutCancel(ctx), conn, protocol.Message{Type: protocol.TypeUpdateStatus, UpdateStatus: &s})
+	}
+	if !update.Started() {
+		a.updating.Store(false)
+		report("failed", errors.New("the agent does not run under the starter (lotse start agent), which would run the new version"))
+		return
+	}
+	a.log.Info("updating", "to", v)
+	report("started", nil)
+	in := &update.Installer{Dir: a.cfg.BinDir, ReleaseURL: a.cfg.ReleaseURL, Own: version.Version}
+	if err := in.Install(ctx, v); err != nil {
+		a.updating.Store(false)
+		a.log.Error("update failed", "to", v, "err", err)
+		report("failed", err)
+		return
+	}
+	report("installed", nil)
+	a.log.Info("update installed; restarting into it", "version", v)
+	close(a.restart)
 }
 
 func (a *agent) write(ctx context.Context, conn *websocket.Conn, m protocol.Message) error {

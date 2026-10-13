@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 
 	"lotse.sh/internal/hub"
+	"lotse.sh/internal/update"
 	"lotse.sh/internal/version"
 )
 
@@ -46,6 +48,11 @@ func main() {
 	default:
 		fmt.Fprint(os.Stderr, usage)
 		os.Exit(2)
+	}
+	if errors.Is(err, update.ErrRestart) {
+		// The starter runs the version just installed.
+		stop()
+		os.Exit(update.ExitRestart)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "lotse:", err)

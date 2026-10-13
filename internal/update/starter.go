@@ -21,6 +21,7 @@ package update
 import (
 	"cmp"
 	"context"
+	"errors"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -31,6 +32,10 @@ import (
 
 	"golang.org/x/mod/semver"
 )
+
+// ErrRestart ends a hub or agent that installed an update: its process
+// exits with ExitRestart, and the starter runs the new version.
+var ErrRestart = errors.New("restarting into an update")
 
 // ExitRestart is the exit code with which a running version asks the
 // starter to start the current version again, after it has installed a new
