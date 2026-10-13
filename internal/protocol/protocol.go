@@ -80,7 +80,11 @@ const (
 	TypeWelcome = "welcome"
 	TypeConfig  = "config"
 	TypeLive    = "live"
-	TypeHost    = "host"
+	// Update asks the agent to update itself to a version (decision 0009);
+	// UpdateStatus is how it went.
+	TypeUpdate       = "update"
+	TypeUpdateStatus = "update_status"
+	TypeHost         = "host"
 	// Containers is the full list of the machine's containers: after
 	// connecting, and every few minutes as a safety net for missed events.
 	TypeContainers     = "containers"
@@ -90,12 +94,15 @@ const (
 
 // Message is one frame. Type says which of the other fields is set.
 type Message struct {
-	Type    string      `json:"type"`
-	Hello   *Hello      `json:"hello,omitempty"`
-	Welcome *Welcome    `json:"welcome,omitempty"`
-	Config  *Config     `json:"config,omitempty"`
-	Live    *Live       `json:"live,omitempty"`
-	Host    *HostSample `json:"host,omitempty"`
+	Type    string   `json:"type"`
+	Hello   *Hello   `json:"hello,omitempty"`
+	Welcome *Welcome `json:"welcome,omitempty"`
+	Config  *Config  `json:"config,omitempty"`
+	Live    *Live    `json:"live,omitempty"`
+
+	Update       *Update       `json:"update,omitempty"`
+	UpdateStatus *UpdateStatus `json:"update_status,omitempty"`
+	Host         *HostSample   `json:"host,omitempty"`
 
 	Containers     *ContainerList  `json:"containers,omitempty"`
 	ContainerEvent *ContainerEvent `json:"container_event,omitempty"`
@@ -119,6 +126,9 @@ type Hello struct {
 	BootTime int64 `json:"boot_time,omitempty"`
 	// DockerVersion is empty when the agent cannot reach Docker.
 	DockerVersion string `json:"docker_version,omitempty"`
+	// RolledBackFrom is a version the agent's starter went back from,
+	// because it kept failing to start.
+	RolledBackFrom string `json:"rolled_back_from,omitempty"`
 }
 
 // Welcome is the hub's answer to Hello.
@@ -230,4 +240,18 @@ type ContainerStat struct {
 	MemLimit *int64   `json:"mem_limit,omitempty"`
 	NetRx    *float64 `json:"net_rx,omitempty"`
 	NetTx    *float64 `json:"net_tx,omitempty"`
+}
+
+// Update asks for a version. The agent downloads it from the release
+// location it knows, never from the hub, and checks its signature.
+type Update struct {
+	Version string `json:"version"`
+}
+
+// UpdateStatus says how an update goes: started, installed (the agent
+// restarts into it next), or failed with the reason.
+type UpdateStatus struct {
+	Version string `json:"version"`
+	State   string `json:"state"`
+	Error   string `json:"error,omitempty"`
 }
