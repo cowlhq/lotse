@@ -12,6 +12,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
+	"lotse.sh/internal/hub/api"
 	"lotse.sh/internal/protocol"
 	"lotse.sh/internal/store"
 	"lotse.sh/internal/version"
@@ -64,6 +65,19 @@ func (a *agents) count() int {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return len(a.conn)
+}
+
+// of returns the connections of a host's agents.
+func (a *agents) of(hostID int64) []*websocket.Conn {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	var conns []*websocket.Conn
+	for c, id := range a.conn {
+		if id == hostID {
+			conns = append(conns, c)
+		}
+	}
+	return conns
 }
 
 // connected says whether the host has an agent connected now.
@@ -135,10 +149,15 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	h.agents.add(conn, host.ID)
 	h.event(host.ID, "agent.connected", "")
+	h.publishState(host.ID)
 	log.Info("agent connected")
+	if slices.Contains(h.live.watchedHosts(), host.ID) {
+		h.sendLive(ctx, host.ID, liveFor)
+	}
 	defer func() {
 		h.agents.remove(conn)
 		h.event(host.ID, "agent.disconnected", "")
+		h.publishState(host.ID)
 	}()
 
 	ctx, stop := context.WithCancel(ctx)
@@ -177,7 +196,7 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 		case m.Type == protocol.TypeContainerEvent && m.ContainerEvent != nil:
 			err = h.containerEvent(ctx, host.ID, *m.ContainerEvent, ids)
 		case m.Type == protocol.TypeContainerStats && m.ContainerStats != nil:
-			h.containerStats(*m.ContainerStats, ids)
+			h.containerStats(host.ID, *m.ContainerStats, ids)
 		default:
 			log.Debug("ignoring a message of unknown type", "type", m.Type)
 		}
@@ -218,7 +237,19 @@ func (h *hub) saveHost(ctx context.Context, hello protocol.Hello) (store.Host, e
 	return host, err
 }
 
+// publishState tells the browsers whether a host's agent is connected.
+func (h *hub) publishState(hostID int64) {
+	online := h.agents.connected(hostID)
+	h.live.publish(LiveMessage{Type: "host_state", HostID: hostID, Online: &online})
+}
+
 func (h *hub) hostSample(hostID int64, s protocol.HostSample) {
+	h.live.publish(LiveMessage{Type: "host", HostID: hostID, Reading: &api.HostReading{
+		Ts: s.TS, Cpu: s.CPU, Iowait: s.IOWait, Steal: s.Steal, Load1: s.Load1, Load5: s.Load5,
+		Load15: s.Load15, MemUsed: s.MemUsed, MemAvailable: s.MemAvailable, SwapUsed: s.SwapUsed,
+		SwapTotal: s.SwapTotal, NetRx: s.NetRx, NetTx: s.NetTx, DiskRead: s.DiskRead,
+		DiskWrite: s.DiskWrite, Uptime: s.Uptime,
+	}})
 	h.writer.add(func(b *store.Batch) {
 		b.HostSamples = append(b.HostSamples, store.HostSample{
 			HostID: hostID, TS: s.TS, CPU: s.CPU, IOWait: s.IOWait, Steal: s.Steal,
