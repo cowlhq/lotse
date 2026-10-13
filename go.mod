@@ -3,6 +3,7 @@ module lotse.sh
 go 1.27
 
 require (
+	aead.dev/minisign v0.3.0
 	github.com/coder/websocket v1.8.15
 	github.com/containerd/errdefs v1.0.0
 	github.com/jackc/pgx/v5 v5.11.0

@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -152,11 +153,36 @@ func (s *Starter) isBad(v string) bool {
 	return err == nil
 }
 
+// markBad marks a version bad, and leaves word for the version that runs
+// next, to tell the hub.
 func (s *Starter) markBad(v string) {
 	if err := os.WriteFile(filepath.Join(s.Dir, v, "bad"), nil, 0o644); err != nil {
 		s.Log.Error("cannot mark a version bad", "version", v, "err", err)
 	}
+	if err := os.WriteFile(filepath.Join(s.Dir, RolledBackFile), []byte(v), 0o644); err != nil {
+		s.Log.Error("cannot note a rollback", "version", v, "err", err)
+	}
 }
+
+// RolledBackFile, in the starter's directory, names the version the starter
+// went back from, until the running version has told the hub.
+const RolledBackFile = "rolled-back"
+
+// TakeRolledBack returns the version the starter went back from, if any,
+// and forgets it.
+func TakeRolledBack(dir string) string {
+	path := filepath.Join(dir, RolledBackFile)
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	os.Remove(path)
+	return strings.TrimSpace(string(b))
+}
+
+// Started says whether this process runs under a starter, which can switch
+// it to another version.
+func Started() bool { return os.Getenv(StartedEnv) == "1" }
 
 // newer says whether version a is newer than b. Anything that is not a
 // release version, such as a development build, is never newer, and
