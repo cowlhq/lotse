@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"lotse.sh/internal/hub/api"
 	"lotse.sh/internal/store"
 )
 
@@ -32,7 +33,7 @@ func newTestHub(t *testing.T) (*hub, *httptest.Server) {
 
 func TestHealth(t *testing.T) {
 	_, server := newTestHub(t)
-	var got health
+	var got api.Health
 	getJSON(t, server.URL+"/api/health", &got)
 	if got.Status != "ok" || got.Database != "sqlite" || !got.Setup {
 		t.Errorf("got %+v, want ok on sqlite, waiting for setup", got)
