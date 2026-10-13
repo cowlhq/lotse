@@ -129,8 +129,9 @@ func (s *Store) DeleteScope(ctx context.Context, actor Actor, id int64) error {
 		}
 		var n int
 		if err := tx.QueryRowContext(ctx, s.rebind(`
-			SELECT (SELECT count(*) FROM scopes WHERE parent_id = ?) + (SELECT count(*) FROM hosts WHERE environment_id = ?)`),
-			id, id).Scan(&n); err != nil {
+			SELECT (SELECT count(*) FROM scopes WHERE parent_id = ?) + (SELECT count(*) FROM hosts WHERE environment_id = ?)
+				+ (SELECT count(*) FROM checks WHERE environment_id = ?)`),
+			id, id, id).Scan(&n); err != nil {
 			return err
 		}
 		if n > 0 {

@@ -69,12 +69,13 @@ type Batch struct {
 	FSSamples        []FSSample
 	ContainerSamples []ContainerSample
 	Events           []Event
+	CheckResults     []CheckResult
 	// Seen is when each host was last heard from, by host ID.
 	Seen map[int64]int64
 }
 
 func (b *Batch) Empty() bool {
-	return len(b.HostSamples)+len(b.FSSamples)+len(b.ContainerSamples)+len(b.Events)+len(b.Seen) == 0
+	return len(b.HostSamples)+len(b.FSSamples)+len(b.ContainerSamples)+len(b.Events)+len(b.Seen)+len(b.CheckResults) == 0
 }
 
 // Write saves a batch. A sample that is already there, sent again after a
@@ -129,6 +130,23 @@ func (s *Store) Write(ctx context.Context, b Batch) error {
 				return fmt.Errorf("event: %w", err)
 			}
 		}
+		for _, x := range b.CheckResults {
+			ok := 0
+			if x.OK {
+				ok = 1
+			}
+			var errText *string
+			if x.Error != "" {
+				errText = &x.Error
+			}
+			if _, err := tx.ExecContext(ctx, s.rebind(`
+				INSERT INTO check_results (check_id, probe_id, ts, ok, latency_ms, status_code, cert_not_after, error)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				ON CONFLICT DO NOTHING`),
+				x.CheckID, x.ProbeID, x.TS, ok, x.LatencyMS, x.StatusCode, x.CertNotAfter, errText); err != nil {
+				return fmt.Errorf("check result: %w", err)
+			}
+		}
 		for id, ts := range b.Seen {
 			if _, err := tx.ExecContext(ctx, s.rebind(`
 				UPDATE hosts SET last_seen = ? WHERE id = ? AND last_seen < ?`), ts, id, ts); err != nil {
@@ -158,6 +176,8 @@ var seriesKinds = map[string]struct {
 		"disk_read", "disk_write"}},
 	"filesystem": {"fs_samples", "filesystem_id", []string{"used", "total", "inodes_used", "inodes_total"}},
 	"container":  {"container_samples", "container_id", []string{"cpu", "mem", "mem_limit", "net_rx", "net_tx"}},
+	// ok averages to the share of runs that passed.
+	"check": {"check_results", "check_id", []string{"latency_ms", "ok"}},
 }
 
 // Series returns an object's samples from from to to (Unix seconds), as
@@ -240,6 +260,7 @@ func (s *Store) DeleteSamplesBefore(ctx context.Context, before int64) (int64, e
 		{"host_samples", "host_id", "hosts"},
 		{"fs_samples", "filesystem_id", "filesystems"},
 		{"container_samples", "container_id", "containers"},
+		{"check_results", "check_id", "checks"},
 	} {
 		ids, err := s.ids(ctx, `SELECT id FROM `+k.parent)
 		if err != nil {
