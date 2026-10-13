@@ -5,6 +5,7 @@ import { getHealth, getMe, logout, Unauthorized } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Container } from "@/routes/Container";
+import { Environment } from "@/routes/Environment";
 import { Host } from "@/routes/Host";
 import { Login } from "@/routes/Login";
 import { Overview } from "@/routes/Overview";
@@ -82,6 +83,15 @@ const container = createRoute({
   },
 });
 
+const environment = createRoute({
+  getParentRoute: () => root,
+  path: "/environments/$id",
+  component: function EnvironmentRoute() {
+    const { id } = environment.useParams();
+    return <Environment id={Number(id)} />;
+  },
+});
+
 const setup = createRoute({
   getParentRoute: () => root,
   path: "/setup",
@@ -106,7 +116,7 @@ const login = createRoute({
   },
 });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, host, container, setup, login]) });
+export const router = createRouter({ routeTree: root.addChildren([overview, host, container, environment, setup, login]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

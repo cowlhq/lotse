@@ -1,8 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getHost, getSeries, listEvents, NotFound, type Container, type HostDetail, type Series } from "@/api";
+import { getHost, getSeries, listEvents, listScopes, NotFound, setHostEnvironment, type Container, type HostDetail, type Series } from "@/api";
+import { History } from "@/components/History";
 import { LiveBadge } from "@/components/LiveBadge";
 import { Chart, type Line } from "@/components/Chart";
 import { RangePicker, type RangeSeconds } from "@/components/Range";
@@ -14,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ago, bytes, duration, number, percent, rate } from "@/lib/format";
 import { status, usageColor } from "@/lib/palette";
 import { appendReading, useLive } from "@/lib/live";
+import { useMe } from "@/lib/useMe";
 import { useRange } from "@/lib/useRange";
 
 export function Host({ id }: { id: number }) {
@@ -59,6 +61,7 @@ export function Host({ id }: { id: number }) {
       </div>
       <Filesystems detail={host.data} />
       <Containers containers={host.data.containers} />
+      <History subject={`host:${id}`} />
     </div>
   );
 }
@@ -168,6 +171,7 @@ function Header({ detail, live }: { detail: HostDetail; live: number }) {
         <Online online={host.online} />
         <LiveBadge last={live} />
       </div>
+      <EnvironmentPicker hostID={host.id} current={host.environment_id ?? null} />
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
         {facts.map(([k, v]) => (
           <div key={k} className="min-w-0">
@@ -268,5 +272,43 @@ export function ContainerState({ container: c }: { container: Container }) {
     <Badge variant="outline" style={bad ? { color: status.critical, borderColor: status.critical } : undefined}>
       {label}
     </Badge>
+  );
+}
+
+// EnvironmentPicker shows the host's environment; an admin can move it.
+function EnvironmentPicker({ hostID, current }: { hostID: number; current: number | null }) {
+  const { t } = useTranslation();
+  const { isAdmin } = useMe();
+  const client = useQueryClient();
+  const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
+  const move = useMutation({
+    mutationFn: (env: number | null) => setHostEnvironment(hostID, env),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["host", hostID] });
+      client.invalidateQueries({ queryKey: ["hosts"] });
+      client.invalidateQueries({ queryKey: ["changes", `host:${hostID}`] });
+    },
+  });
+  const envs = (scopes.data ?? []).filter((s) => s.kind === "environment");
+  const here = envs.find((e) => e.id === current);
+  if (!isAdmin) {
+    return <p className="text-sm text-muted-foreground">{here ? here.path : t("overview.unassigned")}</p>;
+  }
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <span className="text-muted-foreground">{t("tree.environment")}</span>
+      <select
+        className="h-8 rounded-md border bg-background px-2 text-sm"
+        value={current ?? ""}
+        onChange={(e) => move.mutate(e.target.value ? Number(e.target.value) : null)}
+      >
+        <option value="">{t("overview.unassigned")}</option>
+        {envs.map((e) => (
+          <option key={e.id} value={e.id}>
+            {e.path}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
