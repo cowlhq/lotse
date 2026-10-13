@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: lotse
+  version: "1"
+  description: |
+    The HTTP API of a lotse hub. The web interface uses it, and so can
+    anything else. Times are Unix seconds, sizes bytes, rates bytes per
+    second, and shares percent (0 to 100).
+
+    Live data comes over a WebSocket at /api/live, which is not described
+    here.
+  license:
+    name: AGPL-3.0-only
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+
+paths:
+  /api/health:
+    get:
+      operationId: getHealth
+      summary: Whether the hub runs, and how
+      responses:
+        "200":
+          description: The hub runs.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  /api/setup/check:
+    post:
+      operationId: checkSetup
+      summary: Whether a setup link is the current one
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: Whether the token is valid.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [valid]
+                properties:
+                  valid: { type: boolean }
+        "409":
+          description: The hub is already set up.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/hosts:
+    get:
+      operationId: listHosts
+      summary: All hosts, with their latest reading
+      responses:
+        "200":
+          description: The hosts, by name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HostSummary" }
+
+  /api/hosts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getHost
+      summary: A host, its filesystems and its containers
+      responses:
+        "200":
+          description: The host.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HostDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/hosts/{id}/series:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+      - $ref: "#/components/parameters/Points"
+    get:
+      operationId: getHostSeries
+      summary: A host's readings over time
+      description: >
+        Columns: cpu, iowait, steal, load1, load5, load15, mem_used,
+        mem_available, swap_used, swap_total, net_rx, net_tx, disk_read,
+        disk_write.
+      responses:
+        "200":
+          description: The readings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Series" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/filesystems/{id}/series:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+      - $ref: "#/components/parameters/Points"
+    get:
+      operationId: getFilesystemSeries
+      summary: A filesystem's usage over time
+      description: "Columns: used, total, inodes_used, inodes_total."
+      responses:
+        "200":
+          description: The readings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Series" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/containers/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getContainer
+      summary: A container
+      responses:
+        "200":
+          description: The container.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Container" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/containers/{id}/series:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+      - $ref: "#/components/parameters/Points"
+    get:
+      operationId: getContainerSeries
+      summary: A container's usage over time
+      description: "Columns: cpu (percent of one core), mem, mem_limit, net_rx, net_tx."
+      responses:
+        "200":
+          description: The readings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Series" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/events:
+    get:
+      operationId: listEvents
+      summary: What happened to an object
+      parameters:
+        - name: subject
+          in: query
+          required: true
+          description: The object, as kind:id, such as host:3 or container:17.
+          schema: { type: string, pattern: "^(host|container):[0-9]+$" }
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+      responses:
+        "200":
+          description: The events, oldest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Event" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+components:
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    From:
+      name: from
+      in: query
+      description: Start, in Unix seconds. Defaults to an hour before to.
+      schema: { type: integer, format: int64 }
+    To:
+      name: to
+      in: query
+      description: End, in Unix seconds. Defaults to now.
+      schema: { type: integer, format: int64 }
+    Points:
+      name: points
+      in: query
+      description: >
+        About how many points to return. Readings are averaged over steps
+        long enough to stay below it. Defaults to 600.
+      schema: { type: integer, minimum: 1, maximum: 5000 }
+
+  responses:
+    BadRequest:
+      description: The request is not valid.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: There is no such object.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+
+    Health:
+      type: object
+      required: [status, version, database, setup, agents]
+      properties:
+        status: { type: string, example: ok }
+        version: { type: string }
+        database: { type: string, enum: [sqlite, postgres] }
+        setup:
+          type: boolean
+          description: True while the hub waits to be set up.
+        agents:
+          type: integer
+          description: How many agents are connected.
+
+    Host:
+      type: object
+      required: [id, name, hostname, os, platform, kernel, arch, cpu_model, cores, mem_total,
+        boot_time, agent_version, docker_version, first_seen, last_seen, online]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        hostname: { type: string }
+        os: { type: string }
+        platform: { type: string }
+        kernel: { type: string }
+        arch: { type: string }
+        cpu_model: { type: string }
+        cores: { type: integer }
+        mem_total: { type: integer, format: int64 }
+        boot_time: { type: integer, format: int64 }
+        agent_version: { type: string }
+        docker_version:
+          type: string
+          description: Empty when the agent cannot reach Docker.
+        first_seen: { type: integer, format: int64 }
+        last_seen: { type: integer, format: int64 }
+        online:
+          type: boolean
+          description: Whether its agent is connected now.
+
+    HostReading:
+      type: object
+      required: [ts]
+      properties:
+        ts: { type: integer, format: int64 }
+        cpu: { type: number, format: double, nullable: true }
+        iowait: { type: number, format: double, nullable: true }
+        steal: { type: number, format: double, nullable: true }
+        load1: { type: number, format: double, nullable: true }
+        load5: { type: number, format: double, nullable: true }
+        load15: { type: number, format: double, nullable: true }
+        mem_used: { type: integer, format: int64, nullable: true }
+        mem_available: { type: integer, format: int64, nullable: true }
+        swap_used: { type: integer, format: int64, nullable: true }
+        swap_total: { type: integer, format: int64, nullable: true }
+        net_rx: { type: number, format: double, nullable: true }
+        net_tx: { type: number, format: double, nullable: true }
+        disk_read: { type: number, format: double, nullable: true }
+        disk_write: { type: number, format: double, nullable: true }
+        uptime: { type: integer, format: int64, nullable: true }
+
+    HostSummary:
+      type: object
+      required: [host, containers]
+      properties:
+        host: { $ref: "#/components/schemas/Host" }
+        latest: { $ref: "#/components/schemas/HostReading" }
+        disk:
+          type: number
+          format: double
+          nullable: true
+          description: Usage of its fullest filesystem, in percent.
+        containers: { $ref: "#/components/schemas/ContainerCounts" }
+
+    ContainerCounts:
+      type: object
+      required: [total, running, unhealthy]
+      properties:
+        total: { type: integer }
+        running: { type: integer }
+        unhealthy: { type: integer }
+
+    HostDetail:
+      type: object
+      required: [host, filesystems, containers]
+      properties:
+        host: { $ref: "#/components/schemas/Host" }
+        latest: { $ref: "#/components/schemas/HostReading" }
+        filesystems:
+          type: array
+          items: { $ref: "#/components/schemas/Filesystem" }
+        containers:
+          type: array
+          description: Its containers, those still there first.
+          items: { $ref: "#/components/schemas/Container" }
+
+    Filesystem:
+      type: object
+      required: [id, mount, device, fstype, last_seen]
+      properties:
+        id: { type: integer, format: int64 }
+        mount: { type: string }
+        device: { type: string }
+        fstype: { type: string }
+        last_seen: { type: integer, format: int64 }
+        used: { type: integer, format: int64, nullable: true }
+        total: { type: integer, format: int64, nullable: true }
+
+    Container:
+      type: object
+      required: [id, host_id, host_name, slug, docker_id, name, image, compose_project,
+        compose_service, state, health, exit_code, restarts, started_at, labels,
+        first_seen, last_seen]
+      properties:
+        id: { type: integer, format: int64 }
+        host_id: { type: integer, format: int64 }
+        host_name: { type: string }
+        slug: { type: string }
+        docker_id: { type: string }
+        name: { type: string }
+        image: { type: string }
+        compose_project: { type: string }
+        compose_service: { type: string }
+        state:
+          type: string
+          description: Docker's state, such as running or exited.
+        health:
+          type: string
+          description: Empty without a health check.
+        exit_code: { type: integer }
+        restarts: { type: integer }
+        started_at: { type: integer, format: int64 }
+        labels:
+          type: object
+          additionalProperties: { type: string }
+        first_seen: { type: integer, format: int64 }
+        last_seen: { type: integer, format: int64 }
+        gone_at:
+          type: integer
+          format: int64
+          nullable: true
+          description: When its host last listed it, if it no longer does.
+        latest: { $ref: "#/components/schemas/ContainerReading" }
+
+    ContainerReading:
+      type: object
+      required: [ts]
+      properties:
+        ts: { type: integer, format: int64 }
+        cpu:
+          type: number
+          format: double
+          nullable: true
+          description: Percent of one core.
+        mem: { type: integer, format: int64, nullable: true }
+        mem_limit: { type: integer, format: int64, nullable: true }
+        net_rx: { type: number, format: double, nullable: true }
+        net_tx: { type: number, format: double, nullable: true }
+
+    Series:
+      type: object
+      description: >
+        Readings in columns, as charts take them: time holds the start of
+        each step, each column one value per step (null where nothing was
+        measured).
+      required: [time, step, columns]
+      properties:
+        time:
+          type: array
+          items: { type: integer, format: int64 }
+        step:
+          type: integer
+          format: int64
+          description: Seconds per step.
+        columns:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: number, format: double, nullable: true }
+
+    Event:
+      type: object
+      required: [id, ts, subject_kind, subject_id, kind, data]
+      properties:
+        id: { type: integer, format: int64 }
+        ts: { type: integer, format: int64 }
+        subject_kind: { type: string, enum: [host, container] }
+        subject_id: { type: integer, format: int64 }
+        kind:
+          type: string
+          example: container.die
+        data:
+          type: object
+          additionalProperties: true

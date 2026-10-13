@@ -1,13 +1,8 @@
-// Calls to the hub's API. Types come from api/openapi.yaml once the API
-// grows beyond these.
+// Calls to the hub's API. The types come from api/openapi.yaml through
+// schema.gen.ts (pnpm gen).
+import type { components } from "./schema.gen";
 
-export type Health = {
-  status: string;
-  version: string;
-  database: string;
-  setup: boolean;
-  agents: number;
-};
+export type Health = components["schemas"]["Health"];
 
 export async function getHealth(): Promise<Health> {
   return get("/api/health");
