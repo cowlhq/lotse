@@ -486,6 +486,177 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/checks:
+    get:
+      operationId: listChecks
+      summary: Checks, with their state
+      parameters:
+        - name: environment
+          in: query
+          description: Only this environment's.
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: The checks, by key.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Check" }
+    post:
+      operationId: createCheck
+      summary: Add a check to an environment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckInput" }
+      responses:
+        "201":
+          description: The check.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Check" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: The environment has a check with this key.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/checks/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getCheck
+      summary: A check, with each probe's newest result
+      responses:
+        "200":
+          description: The check.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: updateCheck
+      summary: Change a check's name and what it checks; its key and type stay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, spec]
+              properties:
+                name: { type: string }
+                spec: { type: object, additionalProperties: true }
+      responses:
+        "200":
+          description: The check.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Check" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteCheck
+      summary: Delete a check and its results
+      responses:
+        "204":
+          description: Deleted.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/checks/{id}/series:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+      - $ref: "#/components/parameters/Points"
+    get:
+      operationId: getCheckSeries
+      summary: A check's response time and success over time
+      description: "Columns: latency_ms, and ok (the share of runs that passed, 0 to 1)."
+      responses:
+        "200":
+          description: The readings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Series" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/checks/{id}/results:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+    get:
+      operationId: listCheckResults
+      summary: A check's runs, newest first, at most 200
+      responses:
+        "200":
+          description: The runs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CheckResult" }
+
+  /api/probes:
+    get:
+      operationId: listProbes
+      summary: The probes, the hub's own first
+      responses:
+        "200":
+          description: The probes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Probe" }
+
+  /api/probes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    delete:
+      operationId: revokeProbe
+      summary: Revoke a probe and disconnect it
+      responses:
+        "204":
+          description: Revoked.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/probes/enrollment:
+    get:
+      operationId: getProbeEnrollment
+      summary: The token probes enroll with, for their install command
+      responses:
+        "200":
+          description: The token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: There is no probe token yet.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    post:
+      operationId: newProbeEnrollment
+      summary: Make a new probe token; the old one stops working
+      responses:
+        "200":
+          description: The token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Enrollment" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /api/hosts:
     get:
       operationId: listHosts
@@ -593,8 +764,8 @@ paths:
         - name: subject
           in: query
           required: true
-          description: The object, as kind:id, such as host:3 or container:17.
-          schema: { type: string, pattern: "^(host|container):[0-9]+$" }
+          description: The object, as kind:id, such as host:3, container:17 or check:5.
+          schema: { type: string, pattern: "^(host|container|check):[0-9]+$" }
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
       responses:
@@ -769,7 +940,7 @@ components:
       type: object
       required: [kind, id, path, name]
       properties:
-        kind: { type: string, enum: [host, environment, project, customer, global] }
+        kind: { type: string, enum: [check, host, environment, project, customer, global] }
         id: { type: integer, format: int64 }
         path: { type: string }
         name: { type: string }
@@ -779,7 +950,7 @@ components:
       required: [key, type, description, value, overrides]
       properties:
         key: { type: string, example: agent.interval.host }
-        type: { type: string, enum: [duration, bool, window] }
+        type: { type: string, enum: [duration, bool, window, probes] }
         description: { type: string }
         value:
           description: The effective value.
@@ -837,6 +1008,101 @@ components:
         notes:
           type: string
           description: The release notes, in Markdown.
+
+    CheckInput:
+      type: object
+      required: [environment_id, name, type, spec]
+      properties:
+        environment_id: { type: integer, format: int64 }
+        slug:
+          type: string
+          description: Its key in the environment; made from the name if missing.
+        name: { type: string }
+        type: { type: string, enum: [http, tls, tcp, heartbeat] }
+        spec:
+          type: object
+          additionalProperties: true
+          description: >
+            http: url, keyword, status (such as 200-299); tls: address
+            (host:port), server_name; tcp: address; heartbeat: period, grace
+            (such as 24h and 1h).
+
+    Check:
+      type: object
+      required: [id, environment_id, slug, path, name, type, spec, state]
+      properties:
+        id: { type: integer, format: int64 }
+        environment_id: { type: integer, format: int64 }
+        slug: { type: string }
+        path:
+          type: string
+          description: The stable key, such as acme/shop/prod/homepage.
+        name: { type: string }
+        type: { type: string, enum: [http, tls, tcp, heartbeat] }
+        spec:
+          type: object
+          additionalProperties: true
+        state: { type: string, enum: [up, down, unknown] }
+        state_since: { type: integer, format: int64 }
+        latency_ms:
+          type: number
+          format: double
+          description: The newest run's response time, from the hub's probe if it runs the check.
+        cert_not_after:
+          type: integer
+          format: int64
+          description: When the certificate expires, if there is one.
+        error:
+          type: string
+          description: Why the newest failing run failed.
+        last_ping:
+          type: integer
+          format: int64
+          description: A heartbeat's last ping.
+        ping_url:
+          type: string
+          description: Where a heartbeat is pinged; shown to admins only.
+
+    CheckDetail:
+      allOf:
+        - $ref: "#/components/schemas/Check"
+        - type: object
+          required: [probes]
+          properties:
+            probes:
+              type: array
+              description: Each probe's newest result.
+              items: { $ref: "#/components/schemas/CheckResult" }
+
+    CheckResult:
+      type: object
+      required: [probe, ts, ok]
+      properties:
+        probe:
+          type: string
+          description: The probe's name.
+        ts: { type: integer, format: int64 }
+        ok: { type: boolean }
+        latency_ms: { type: number, format: double }
+        status_code: { type: integer }
+        cert_not_after: { type: integer, format: int64 }
+        error: { type: string }
+
+    Probe:
+      type: object
+      required: [id, slug, name, location, builtin, online, version]
+      properties:
+        id: { type: integer, format: int64 }
+        slug: { type: string }
+        name: { type: string }
+        location: { type: string }
+        builtin:
+          type: boolean
+          description: The hub's own probe.
+        online: { type: boolean }
+        version: { type: string }
+        last_seen: { type: integer, format: int64 }
+        revoked: { type: boolean }
 
     Host:
       type: object
@@ -1018,7 +1284,7 @@ components:
       properties:
         id: { type: integer, format: int64 }
         ts: { type: integer, format: int64 }
-        subject_kind: { type: string, enum: [host, container] }
+        subject_kind: { type: string, enum: [host, container, check, hub] }
         subject_id: { type: integer, format: int64 }
         kind:
           type: string

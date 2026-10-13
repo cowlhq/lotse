@@ -195,8 +195,8 @@ func (s apiServer) GetContainerSeries(ctx context.Context, req api.GetContainerS
 func (s apiServer) ListEvents(ctx context.Context, req api.ListEventsRequestObject) (api.ListEventsResponseObject, error) {
 	kind, idText, _ := strings.Cut(req.Params.Subject, ":")
 	id, err := strconv.ParseInt(idText, 10, 64)
-	if (kind != "host" && kind != "container") || err != nil {
-		return api.ListEvents400JSONResponse{Error: "subject must be host:<id> or container:<id>"}, nil
+	if (kind != "host" && kind != "container" && kind != "check") || err != nil {
+		return api.ListEvents400JSONResponse{Error: "subject must be host:<id>, container:<id> or check:<id>"}, nil
 	}
 	from, to := timeRange(req.Params.From, req.Params.To)
 	events, err := s.db.Events(ctx, kind, id, from, to)

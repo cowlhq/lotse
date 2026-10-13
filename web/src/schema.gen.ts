@@ -381,6 +381,152 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Checks, with their state */
+        get: operations["listChecks"];
+        put?: never;
+        /** Add a check to an environment */
+        post: operations["createCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A check, with each probe's newest result */
+        get: operations["getCheck"];
+        put?: never;
+        post?: never;
+        /** Delete a check and its results */
+        delete: operations["deleteCheck"];
+        options?: never;
+        head?: never;
+        /** Change a check's name and what it checks; its key and type stay */
+        patch: operations["updateCheck"];
+        trace?: never;
+    };
+    "/api/checks/{id}/series": {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * A check's response time and success over time
+         * @description Columns: latency_ms, and ok (the share of runs that passed, 0 to 1).
+         */
+        get: operations["getCheckSeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checks/{id}/results": {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A check's runs, newest first, at most 200 */
+        get: operations["listCheckResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/probes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The probes, the hub's own first */
+        get: operations["listProbes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/probes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a probe and disconnect it */
+        delete: operations["revokeProbe"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/probes/enrollment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The token probes enroll with, for their install command */
+        get: operations["getProbeEnrollment"];
+        put?: never;
+        /** Make a new probe token; the old one stops working */
+        post: operations["newProbeEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hosts": {
         parameters: {
             query?: never;
@@ -622,7 +768,7 @@ export interface components {
         };
         ConfigLevel: {
             /** @enum {string} */
-            kind: "host" | "environment" | "project" | "customer" | "global";
+            kind: "check" | "host" | "environment" | "project" | "customer" | "global";
             /** Format: int64 */
             id: number;
             path: string;
@@ -632,7 +778,7 @@ export interface components {
             /** @example agent.interval.host */
             key: string;
             /** @enum {string} */
-            type: "duration" | "bool" | "window";
+            type: "duration" | "bool" | "window" | "probes";
             description: string;
             /** @description The effective value. */
             value: unknown;
@@ -674,6 +820,88 @@ export interface components {
             url: string;
             /** @description The release notes, in Markdown. */
             notes: string;
+        };
+        CheckInput: {
+            /** Format: int64 */
+            environment_id: number;
+            /** @description Its key in the environment; made from the name if missing. */
+            slug?: string;
+            name: string;
+            /** @enum {string} */
+            type: "http" | "tls" | "tcp" | "heartbeat";
+            /** @description http: url, keyword, status (such as 200-299); tls: address (host:port), server_name; tcp: address; heartbeat: period, grace (such as 24h and 1h). */
+            spec: {
+                [key: string]: unknown;
+            };
+        };
+        Check: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            environment_id: number;
+            slug: string;
+            /** @description The stable key, such as acme/shop/prod/homepage. */
+            path: string;
+            name: string;
+            /** @enum {string} */
+            type: "http" | "tls" | "tcp" | "heartbeat";
+            spec: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            state: "up" | "down" | "unknown";
+            /** Format: int64 */
+            state_since?: number;
+            /**
+             * Format: double
+             * @description The newest run's response time, from the hub's probe if it runs the check.
+             */
+            latency_ms?: number;
+            /**
+             * Format: int64
+             * @description When the certificate expires, if there is one.
+             */
+            cert_not_after?: number;
+            /** @description Why the newest failing run failed. */
+            error?: string;
+            /**
+             * Format: int64
+             * @description A heartbeat's last ping.
+             */
+            last_ping?: number;
+            /** @description Where a heartbeat is pinged; shown to admins only. */
+            ping_url?: string;
+        };
+        CheckDetail: components["schemas"]["Check"] & {
+            /** @description Each probe's newest result. */
+            probes: components["schemas"]["CheckResult"][];
+        };
+        CheckResult: {
+            /** @description The probe's name. */
+            probe: string;
+            /** Format: int64 */
+            ts: number;
+            ok: boolean;
+            /** Format: double */
+            latency_ms?: number;
+            status_code?: number;
+            /** Format: int64 */
+            cert_not_after?: number;
+            error?: string;
+        };
+        Probe: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            name: string;
+            location: string;
+            /** @description The hub's own probe. */
+            builtin: boolean;
+            online: boolean;
+            version: string;
+            /** Format: int64 */
+            last_seen?: number;
+            revoked?: boolean;
         };
         Host: {
             /** Format: int64 */
@@ -845,7 +1073,7 @@ export interface components {
             /** Format: int64 */
             ts: number;
             /** @enum {string} */
-            subject_kind: "host" | "container";
+            subject_kind: "host" | "container" | "check" | "hub";
             /** Format: int64 */
             subject_id: number;
             /** @example container.die */
@@ -1576,6 +1804,294 @@ export interface operations {
             };
         };
     };
+    listChecks: {
+        parameters: {
+            query?: {
+                /** @description Only this environment's. */
+                environment?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checks, by key. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Check"][];
+                };
+            };
+        };
+    };
+    createCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckInput"];
+            };
+        };
+        responses: {
+            /** @description The check. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Check"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            /** @description The environment has a check with this key. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The check. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckDetail"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    spec: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description The check. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Check"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getCheckSeries: {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The readings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Series"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    listCheckResults: {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The runs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckResult"][];
+                };
+            };
+        };
+    };
+    listProbes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The probes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Probe"][];
+                };
+            };
+        };
+    };
+    revokeProbe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getProbeEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enrollment"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            /** @description There is no probe token yet. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    newProbeEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The token. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Enrollment"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
     listHosts: {
         parameters: {
             query?: never;
@@ -1736,7 +2252,7 @@ export interface operations {
     listEvents: {
         parameters: {
             query: {
-                /** @description The object, as kind:id, such as host:3 or container:17. */
+                /** @description The object, as kind:id, such as host:3, container:17 or check:5. */
                 subject: string;
                 /** @description Start, in Unix seconds. Defaults to an hour before to. */
                 from?: components["parameters"]["From"];

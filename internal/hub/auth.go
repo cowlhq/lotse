@@ -53,7 +53,7 @@ func userOf(ctx context.Context) (store.User, bool) {
 func publicPath(path string) bool {
 	return path == "/api/health" || path == "/api/auth/login" ||
 		strings.HasPrefix(path, "/api/setup/") || path == protocol.ConnectPath || path == protocol.EnrollPath ||
-		path == protocol.CheckPath
+		path == protocol.CheckPath || path == protocol.ProbeEnrollPath || path == protocol.ProbeConnectPath
 }
 
 // guard stands before the API:

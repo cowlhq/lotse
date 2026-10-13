@@ -70,8 +70,123 @@ func (e ChangeVia) Valid() bool {
 	}
 }
 
+// Defines values for CheckState.
+const (
+	CheckStateDown    CheckState = "down"
+	CheckStateUnknown CheckState = "unknown"
+	CheckStateUp      CheckState = "up"
+)
+
+// Valid indicates whether the value is a known member of the CheckState enum.
+func (e CheckState) Valid() bool {
+	switch e {
+	case CheckStateDown:
+		return true
+	case CheckStateUnknown:
+		return true
+	case CheckStateUp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CheckType.
+const (
+	CheckTypeHeartbeat CheckType = "heartbeat"
+	CheckTypeHttp      CheckType = "http"
+	CheckTypeTcp       CheckType = "tcp"
+	CheckTypeTls       CheckType = "tls"
+)
+
+// Valid indicates whether the value is a known member of the CheckType enum.
+func (e CheckType) Valid() bool {
+	switch e {
+	case CheckTypeHeartbeat:
+		return true
+	case CheckTypeHttp:
+		return true
+	case CheckTypeTcp:
+		return true
+	case CheckTypeTls:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CheckDetailState.
+const (
+	CheckDetailStateDown    CheckDetailState = "down"
+	CheckDetailStateUnknown CheckDetailState = "unknown"
+	CheckDetailStateUp      CheckDetailState = "up"
+)
+
+// Valid indicates whether the value is a known member of the CheckDetailState enum.
+func (e CheckDetailState) Valid() bool {
+	switch e {
+	case CheckDetailStateDown:
+		return true
+	case CheckDetailStateUnknown:
+		return true
+	case CheckDetailStateUp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CheckDetailType.
+const (
+	CheckDetailTypeHeartbeat CheckDetailType = "heartbeat"
+	CheckDetailTypeHttp      CheckDetailType = "http"
+	CheckDetailTypeTcp       CheckDetailType = "tcp"
+	CheckDetailTypeTls       CheckDetailType = "tls"
+)
+
+// Valid indicates whether the value is a known member of the CheckDetailType enum.
+func (e CheckDetailType) Valid() bool {
+	switch e {
+	case CheckDetailTypeHeartbeat:
+		return true
+	case CheckDetailTypeHttp:
+		return true
+	case CheckDetailTypeTcp:
+		return true
+	case CheckDetailTypeTls:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CheckInputType.
+const (
+	CheckInputTypeHeartbeat CheckInputType = "heartbeat"
+	CheckInputTypeHttp      CheckInputType = "http"
+	CheckInputTypeTcp       CheckInputType = "tcp"
+	CheckInputTypeTls       CheckInputType = "tls"
+)
+
+// Valid indicates whether the value is a known member of the CheckInputType enum.
+func (e CheckInputType) Valid() bool {
+	switch e {
+	case CheckInputTypeHeartbeat:
+		return true
+	case CheckInputTypeHttp:
+		return true
+	case CheckInputTypeTcp:
+		return true
+	case CheckInputTypeTls:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConfigLevelKind.
 const (
+	ConfigLevelKindCheck       ConfigLevelKind = "check"
 	ConfigLevelKindCustomer    ConfigLevelKind = "customer"
 	ConfigLevelKindEnvironment ConfigLevelKind = "environment"
 	ConfigLevelKindGlobal      ConfigLevelKind = "global"
@@ -82,6 +197,8 @@ const (
 // Valid indicates whether the value is a known member of the ConfigLevelKind enum.
 func (e ConfigLevelKind) Valid() bool {
 	switch e {
+	case ConfigLevelKindCheck:
+		return true
 	case ConfigLevelKindCustomer:
 		return true
 	case ConfigLevelKindEnvironment:
@@ -101,6 +218,7 @@ func (e ConfigLevelKind) Valid() bool {
 const (
 	Bool     ConfigValueType = "bool"
 	Duration ConfigValueType = "duration"
+	Probes   ConfigValueType = "probes"
 	Window   ConfigValueType = "window"
 )
 
@@ -111,6 +229,8 @@ func (e ConfigValueType) Valid() bool {
 		return true
 	case Duration:
 		return true
+	case Probes:
+		return true
 	case Window:
 		return true
 	default:
@@ -120,16 +240,22 @@ func (e ConfigValueType) Valid() bool {
 
 // Defines values for EventSubjectKind.
 const (
+	EventSubjectKindCheck     EventSubjectKind = "check"
 	EventSubjectKindContainer EventSubjectKind = "container"
 	EventSubjectKindHost      EventSubjectKind = "host"
+	EventSubjectKindHub       EventSubjectKind = "hub"
 )
 
 // Valid indicates whether the value is a known member of the EventSubjectKind enum.
 func (e EventSubjectKind) Valid() bool {
 	switch e {
+	case EventSubjectKindCheck:
+		return true
 	case EventSubjectKindContainer:
 		return true
 	case EventSubjectKindHost:
+		return true
+	case EventSubjectKindHub:
 		return true
 	default:
 		return false
@@ -258,6 +384,108 @@ type ChangeActorKind string
 
 // ChangeVia defines model for Change.Via.
 type ChangeVia string
+
+// Check defines model for Check.
+type Check struct {
+	// CertNotAfter When the certificate expires, if there is one.
+	CertNotAfter  *int64 `json:"cert_not_after,omitempty"`
+	EnvironmentId int64  `json:"environment_id"`
+
+	// Error Why the newest failing run failed.
+	Error *string `json:"error,omitempty"`
+	Id    int64   `json:"id"`
+
+	// LastPing A heartbeat's last ping.
+	LastPing *int64 `json:"last_ping,omitempty"`
+
+	// LatencyMs The newest run's response time, from the hub's probe if it runs the check.
+	LatencyMs *float64 `json:"latency_ms,omitempty"`
+	Name      string   `json:"name"`
+
+	// Path The stable key, such as acme/shop/prod/homepage.
+	Path string `json:"path"`
+
+	// PingUrl Where a heartbeat is pinged; shown to admins only.
+	PingUrl    *string                `json:"ping_url,omitempty"`
+	Slug       string                 `json:"slug"`
+	Spec       map[string]interface{} `json:"spec"`
+	State      CheckState             `json:"state"`
+	StateSince *int64                 `json:"state_since,omitempty"`
+	Type       CheckType              `json:"type"`
+}
+
+// CheckState defines model for Check.State.
+type CheckState string
+
+// CheckType defines model for Check.Type.
+type CheckType string
+
+// CheckDetail defines model for CheckDetail.
+type CheckDetail struct {
+	// CertNotAfter When the certificate expires, if there is one.
+	CertNotAfter  *int64 `json:"cert_not_after,omitempty"`
+	EnvironmentId int64  `json:"environment_id"`
+
+	// Error Why the newest failing run failed.
+	Error *string `json:"error,omitempty"`
+	Id    int64   `json:"id"`
+
+	// LastPing A heartbeat's last ping.
+	LastPing *int64 `json:"last_ping,omitempty"`
+
+	// LatencyMs The newest run's response time, from the hub's probe if it runs the check.
+	LatencyMs *float64 `json:"latency_ms,omitempty"`
+	Name      string   `json:"name"`
+
+	// Path The stable key, such as acme/shop/prod/homepage.
+	Path string `json:"path"`
+
+	// PingUrl Where a heartbeat is pinged; shown to admins only.
+	PingUrl *string `json:"ping_url,omitempty"`
+
+	// Probes Each probe's newest result.
+	Probes     []CheckResult          `json:"probes"`
+	Slug       string                 `json:"slug"`
+	Spec       map[string]interface{} `json:"spec"`
+	State      CheckDetailState       `json:"state"`
+	StateSince *int64                 `json:"state_since,omitempty"`
+	Type       CheckDetailType        `json:"type"`
+}
+
+// CheckDetailState defines model for CheckDetail.State.
+type CheckDetailState string
+
+// CheckDetailType defines model for CheckDetail.Type.
+type CheckDetailType string
+
+// CheckInput defines model for CheckInput.
+type CheckInput struct {
+	EnvironmentId int64  `json:"environment_id"`
+	Name          string `json:"name"`
+
+	// Slug Its key in the environment; made from the name if missing.
+	Slug *string `json:"slug,omitempty"`
+
+	// Spec http: url, keyword, status (such as 200-299); tls: address (host:port), server_name; tcp: address; heartbeat: period, grace (such as 24h and 1h).
+	Spec map[string]interface{} `json:"spec"`
+	Type CheckInputType         `json:"type"`
+}
+
+// CheckInputType defines model for CheckInput.Type.
+type CheckInputType string
+
+// CheckResult defines model for CheckResult.
+type CheckResult struct {
+	CertNotAfter *int64   `json:"cert_not_after,omitempty"`
+	Error        *string  `json:"error,omitempty"`
+	LatencyMs    *float64 `json:"latency_ms,omitempty"`
+	Ok           bool     `json:"ok"`
+
+	// Probe The probe's name.
+	Probe      string `json:"probe"`
+	StatusCode *int   `json:"status_code,omitempty"`
+	Ts         int64  `json:"ts"`
+}
 
 // ConfigLevel defines model for ConfigLevel.
 type ConfigLevel struct {
@@ -472,6 +700,20 @@ type HostSummary struct {
 	Latest *HostReading `json:"latest,omitempty"`
 }
 
+// Probe defines model for Probe.
+type Probe struct {
+	// Builtin The hub's own probe.
+	Builtin  bool   `json:"builtin"`
+	Id       int64  `json:"id"`
+	LastSeen *int64 `json:"last_seen,omitempty"`
+	Location string `json:"location"`
+	Name     string `json:"name"`
+	Online   bool   `json:"online"`
+	Revoked  *bool  `json:"revoked,omitempty"`
+	Slug     string `json:"slug"`
+	Version  string `json:"version"`
+}
+
 // Release defines model for Release.
 type Release struct {
 	// Notes The release notes, in Markdown.
@@ -591,6 +833,39 @@ type ListChangesParams struct {
 	Subject string `form:"subject" json:"subject"`
 }
 
+// ListChecksParams defines parameters for ListChecks.
+type ListChecksParams struct {
+	// Environment Only this environment's.
+	Environment *int64 `form:"environment,omitempty" json:"environment,omitempty"`
+}
+
+// UpdateCheckJSONBody defines parameters for UpdateCheck.
+type UpdateCheckJSONBody struct {
+	Name string                 `json:"name"`
+	Spec map[string]interface{} `json:"spec"`
+}
+
+// ListCheckResultsParams defines parameters for ListCheckResults.
+type ListCheckResultsParams struct {
+	// From Start, in Unix seconds. Defaults to an hour before to.
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, in Unix seconds. Defaults to now.
+	To *To `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// GetCheckSeriesParams defines parameters for GetCheckSeries.
+type GetCheckSeriesParams struct {
+	// From Start, in Unix seconds. Defaults to an hour before to.
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, in Unix seconds. Defaults to now.
+	To *To `form:"to,omitempty" json:"to,omitempty"`
+
+	// Points About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600.
+	Points *Points `form:"points,omitempty" json:"points,omitempty"`
+}
+
 // GetConfigParams defines parameters for GetConfig.
 type GetConfigParams struct {
 	// Subject host:<id>, environment:<id>, project:<id>, customer:<id>, or global:1.
@@ -618,7 +893,7 @@ type CreateEnvironmentJSONBody struct {
 
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
-	// Subject The object, as kind:id, such as host:3 or container:17.
+	// Subject The object, as kind:id, such as host:3, container:17 or check:5.
 	Subject string `form:"subject" json:"subject"`
 
 	// From Start, in Unix seconds. Defaults to an hour before to.
@@ -697,6 +972,12 @@ type SetupDatabaseJSONBodyKind string
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody LoginJSONBody
 
+// CreateCheckJSONRequestBody defines body for CreateCheck for application/json ContentType.
+type CreateCheckJSONRequestBody = CheckInput
+
+// UpdateCheckJSONRequestBody defines body for UpdateCheck for application/json ContentType.
+type UpdateCheckJSONRequestBody UpdateCheckJSONBody
+
 // CreateEnvironmentJSONRequestBody defines body for CreateEnvironment for application/json ContentType.
 type CreateEnvironmentJSONRequestBody CreateEnvironmentJSONBody
 
@@ -732,6 +1013,27 @@ type ServerInterface interface {
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(w http.ResponseWriter, r *http.Request, params ListChangesParams)
+	// ListChecks Checks, with their state
+	// (GET /api/checks)
+	ListChecks(w http.ResponseWriter, r *http.Request, params ListChecksParams)
+	// CreateCheck Add a check to an environment
+	// (POST /api/checks)
+	CreateCheck(w http.ResponseWriter, r *http.Request)
+	// DeleteCheck Delete a check and its results
+	// (DELETE /api/checks/{id})
+	DeleteCheck(w http.ResponseWriter, r *http.Request, id ID)
+	// GetCheck A check, with each probe's newest result
+	// (GET /api/checks/{id})
+	GetCheck(w http.ResponseWriter, r *http.Request, id ID)
+	// UpdateCheck Change a check's name and what it checks; its key and type stay
+	// (PATCH /api/checks/{id})
+	UpdateCheck(w http.ResponseWriter, r *http.Request, id ID)
+	// ListCheckResults A check's runs, newest first, at most 200
+	// (GET /api/checks/{id}/results)
+	ListCheckResults(w http.ResponseWriter, r *http.Request, id ID, params ListCheckResultsParams)
+	// GetCheckSeries A check's response time and success over time
+	// (GET /api/checks/{id}/series)
+	GetCheckSeries(w http.ResponseWriter, r *http.Request, id ID, params GetCheckSeriesParams)
 	// GetConfig The effective settings of an object, and where each comes from
 	// (GET /api/config)
 	GetConfig(w http.ResponseWriter, r *http.Request, params GetConfigParams)
@@ -774,6 +1076,18 @@ type ServerInterface interface {
 	// UpdateHub Update the hub to the newest release
 	// (POST /api/hub/update)
 	UpdateHub(w http.ResponseWriter, r *http.Request)
+	// ListProbes The probes, the hub's own first
+	// (GET /api/probes)
+	ListProbes(w http.ResponseWriter, r *http.Request)
+	// GetProbeEnrollment The token probes enroll with, for their install command
+	// (GET /api/probes/enrollment)
+	GetProbeEnrollment(w http.ResponseWriter, r *http.Request)
+	// NewProbeEnrollment Make a new probe token; the old one stops working
+	// (POST /api/probes/enrollment)
+	NewProbeEnrollment(w http.ResponseWriter, r *http.Request)
+	// RevokeProbe Revoke a probe and disconnect it
+	// (DELETE /api/probes/{id})
+	RevokeProbe(w http.ResponseWriter, r *http.Request, id ID)
 	// ListScopes The tree of customers, projects and environments
 	// (GET /api/scopes)
 	ListScopes(w http.ResponseWriter, r *http.Request)
@@ -890,6 +1204,254 @@ func (siw *ServerInterfaceWrapper) ListChanges(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListChanges(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListChecks operation middleware
+func (siw *ServerInterfaceWrapper) ListChecks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListChecksParams
+
+	// ------------- Optional query parameter "environment" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "environment", r.URL.Query(), &params.Environment, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "environment"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "environment", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChecks(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCheck operation middleware
+func (siw *ServerInterfaceWrapper) CreateCheck(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCheck(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteCheck operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCheck(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCheck(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCheck operation middleware
+func (siw *ServerInterfaceWrapper) GetCheck(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCheck(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCheck operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCheck(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCheck(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCheckResults operation middleware
+func (siw *ServerInterfaceWrapper) ListCheckResults(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListCheckResultsParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCheckResults(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCheckSeries operation middleware
+func (siw *ServerInterfaceWrapper) GetCheckSeries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCheckSeriesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "points" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "points", r.URL.Query(), &params.Points, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "points"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "points", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCheckSeries(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1381,6 +1943,74 @@ func (siw *ServerInterfaceWrapper) UpdateHub(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ListProbes operation middleware
+func (siw *ServerInterfaceWrapper) ListProbes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListProbes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetProbeEnrollment operation middleware
+func (siw *ServerInterfaceWrapper) GetProbeEnrollment(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProbeEnrollment(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// NewProbeEnrollment operation middleware
+func (siw *ServerInterfaceWrapper) NewProbeEnrollment(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.NewProbeEnrollment(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeProbe operation middleware
+func (siw *ServerInterfaceWrapper) RevokeProbe(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeProbe(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListScopes operation middleware
 func (siw *ServerInterfaceWrapper) ListScopes(w http.ResponseWriter, r *http.Request) {
 
@@ -1779,6 +2409,17 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/hub/update", wrapper.UpdateHub)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/hosts/{id}/update", wrapper.UpdateHost)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/scopes/{id}/update", wrapper.UpdateScope)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/checks", wrapper.ListChecks)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/checks", wrapper.CreateCheck)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/checks/{id}", wrapper.DeleteCheck)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/checks/{id}", wrapper.GetCheck)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/checks/{id}", wrapper.UpdateCheck)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/checks/{id}/series", wrapper.GetCheckSeries)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/checks/{id}/results", wrapper.ListCheckResults)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/probes", wrapper.ListProbes)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/probes/{id}", wrapper.RevokeProbe)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/probes/enrollment", wrapper.GetProbeEnrollment)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/probes/enrollment", wrapper.NewProbeEnrollment)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts", wrapper.ListHosts)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}", wrapper.GetHost)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/hosts/{id}/series", wrapper.GetHostSeries)
@@ -1929,6 +2570,297 @@ func (response ListChanges200JSONResponse) VisitListChangesResponse(w http.Respo
 type ListChanges400JSONResponse struct{ BadRequestJSONResponse }
 
 func (response ListChanges400JSONResponse) VisitListChangesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChecksRequestObject struct {
+	Params ListChecksParams
+}
+
+type ListChecksResponseObject interface {
+	VisitListChecksResponse(w http.ResponseWriter) error
+}
+
+type ListChecks200JSONResponse []Check
+
+func (response ListChecks200JSONResponse) VisitListChecksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCheckRequestObject struct {
+	Body *CreateCheckJSONRequestBody
+}
+
+type CreateCheckResponseObject interface {
+	VisitCreateCheckResponse(w http.ResponseWriter) error
+}
+
+type CreateCheck201JSONResponse Check
+
+func (response CreateCheck201JSONResponse) VisitCreateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCheck400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateCheck400JSONResponse) VisitCreateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCheck403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateCheck403JSONResponse) VisitCreateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateCheck409JSONResponse Error
+
+func (response CreateCheck409JSONResponse) VisitCreateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteCheckRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type DeleteCheckResponseObject interface {
+	VisitDeleteCheckResponse(w http.ResponseWriter) error
+}
+
+type DeleteCheck204Response struct {
+}
+
+func (response DeleteCheck204Response) VisitDeleteCheckResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteCheck403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteCheck403JSONResponse) VisitDeleteCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteCheck404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteCheck404JSONResponse) VisitDeleteCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCheckRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type GetCheckResponseObject interface {
+	VisitGetCheckResponse(w http.ResponseWriter) error
+}
+
+type GetCheck200JSONResponse CheckDetail
+
+func (response GetCheck200JSONResponse) VisitGetCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCheck404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetCheck404JSONResponse) VisitGetCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCheckRequestObject struct {
+	Id   ID `json:"id"`
+	Body *UpdateCheckJSONRequestBody
+}
+
+type UpdateCheckResponseObject interface {
+	VisitUpdateCheckResponse(w http.ResponseWriter) error
+}
+
+type UpdateCheck200JSONResponse Check
+
+func (response UpdateCheck200JSONResponse) VisitUpdateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCheck400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateCheck400JSONResponse) VisitUpdateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCheck403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateCheck403JSONResponse) VisitUpdateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateCheck404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateCheck404JSONResponse) VisitUpdateCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListCheckResultsRequestObject struct {
+	Id     ID `json:"id"`
+	Params ListCheckResultsParams
+}
+
+type ListCheckResultsResponseObject interface {
+	VisitListCheckResultsResponse(w http.ResponseWriter) error
+}
+
+type ListCheckResults200JSONResponse []CheckResult
+
+func (response ListCheckResults200JSONResponse) VisitListCheckResultsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCheckSeriesRequestObject struct {
+	Id     ID `json:"id"`
+	Params GetCheckSeriesParams
+}
+
+type GetCheckSeriesResponseObject interface {
+	VisitGetCheckSeriesResponse(w http.ResponseWriter) error
+}
+
+type GetCheckSeries200JSONResponse Series
+
+func (response GetCheckSeries200JSONResponse) VisitGetCheckSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetCheckSeries400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response GetCheckSeries400JSONResponse) VisitGetCheckSeriesResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -2515,6 +3447,169 @@ func (response UpdateHub409JSONResponse) VisitUpdateHubResponse(w http.ResponseW
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListProbesRequestObject struct {
+}
+
+type ListProbesResponseObject interface {
+	VisitListProbesResponse(w http.ResponseWriter) error
+}
+
+type ListProbes200JSONResponse []Probe
+
+func (response ListProbes200JSONResponse) VisitListProbesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProbeEnrollmentRequestObject struct {
+}
+
+type GetProbeEnrollmentResponseObject interface {
+	VisitGetProbeEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type GetProbeEnrollment200JSONResponse Enrollment
+
+func (response GetProbeEnrollment200JSONResponse) VisitGetProbeEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProbeEnrollment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetProbeEnrollment403JSONResponse) VisitGetProbeEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProbeEnrollment404JSONResponse Error
+
+func (response GetProbeEnrollment404JSONResponse) VisitGetProbeEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewProbeEnrollmentRequestObject struct {
+}
+
+type NewProbeEnrollmentResponseObject interface {
+	VisitNewProbeEnrollmentResponse(w http.ResponseWriter) error
+}
+
+type NewProbeEnrollment200JSONResponse Enrollment
+
+func (response NewProbeEnrollment200JSONResponse) VisitNewProbeEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewProbeEnrollment403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response NewProbeEnrollment403JSONResponse) VisitNewProbeEnrollmentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeProbeRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type RevokeProbeResponseObject interface {
+	VisitRevokeProbeResponse(w http.ResponseWriter) error
+}
+
+type RevokeProbe204Response struct {
+}
+
+func (response RevokeProbe204Response) VisitRevokeProbeResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeProbe400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response RevokeProbe400JSONResponse) VisitRevokeProbeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeProbe403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RevokeProbe403JSONResponse) VisitRevokeProbeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeProbe404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RevokeProbe404JSONResponse) VisitRevokeProbeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -3168,6 +4263,27 @@ type StrictServerInterface interface {
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(ctx context.Context, request ListChangesRequestObject) (ListChangesResponseObject, error)
+	// ListChecks Checks, with their state
+	// (GET /api/checks)
+	ListChecks(ctx context.Context, request ListChecksRequestObject) (ListChecksResponseObject, error)
+	// CreateCheck Add a check to an environment
+	// (POST /api/checks)
+	CreateCheck(ctx context.Context, request CreateCheckRequestObject) (CreateCheckResponseObject, error)
+	// DeleteCheck Delete a check and its results
+	// (DELETE /api/checks/{id})
+	DeleteCheck(ctx context.Context, request DeleteCheckRequestObject) (DeleteCheckResponseObject, error)
+	// GetCheck A check, with each probe's newest result
+	// (GET /api/checks/{id})
+	GetCheck(ctx context.Context, request GetCheckRequestObject) (GetCheckResponseObject, error)
+	// UpdateCheck Change a check's name and what it checks; its key and type stay
+	// (PATCH /api/checks/{id})
+	UpdateCheck(ctx context.Context, request UpdateCheckRequestObject) (UpdateCheckResponseObject, error)
+	// ListCheckResults A check's runs, newest first, at most 200
+	// (GET /api/checks/{id}/results)
+	ListCheckResults(ctx context.Context, request ListCheckResultsRequestObject) (ListCheckResultsResponseObject, error)
+	// GetCheckSeries A check's response time and success over time
+	// (GET /api/checks/{id}/series)
+	GetCheckSeries(ctx context.Context, request GetCheckSeriesRequestObject) (GetCheckSeriesResponseObject, error)
 	// GetConfig The effective settings of an object, and where each comes from
 	// (GET /api/config)
 	GetConfig(ctx context.Context, request GetConfigRequestObject) (GetConfigResponseObject, error)
@@ -3210,6 +4326,18 @@ type StrictServerInterface interface {
 	// UpdateHub Update the hub to the newest release
 	// (POST /api/hub/update)
 	UpdateHub(ctx context.Context, request UpdateHubRequestObject) (UpdateHubResponseObject, error)
+	// ListProbes The probes, the hub's own first
+	// (GET /api/probes)
+	ListProbes(ctx context.Context, request ListProbesRequestObject) (ListProbesResponseObject, error)
+	// GetProbeEnrollment The token probes enroll with, for their install command
+	// (GET /api/probes/enrollment)
+	GetProbeEnrollment(ctx context.Context, request GetProbeEnrollmentRequestObject) (GetProbeEnrollmentResponseObject, error)
+	// NewProbeEnrollment Make a new probe token; the old one stops working
+	// (POST /api/probes/enrollment)
+	NewProbeEnrollment(ctx context.Context, request NewProbeEnrollmentRequestObject) (NewProbeEnrollmentResponseObject, error)
+	// RevokeProbe Revoke a probe and disconnect it
+	// (DELETE /api/probes/{id})
+	RevokeProbe(ctx context.Context, request RevokeProbeRequestObject) (RevokeProbeResponseObject, error)
 	// ListScopes The tree of customers, projects and environments
 	// (GET /api/scopes)
 	ListScopes(ctx context.Context, request ListScopesRequestObject) (ListScopesResponseObject, error)
@@ -3388,6 +4516,202 @@ func (sh *strictHandler) ListChanges(w http.ResponseWriter, r *http.Request, par
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListChangesResponseObject); ok {
 		if err := validResponse.VisitListChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListChecks operation middleware
+func (sh *strictHandler) ListChecks(w http.ResponseWriter, r *http.Request, params ListChecksParams) {
+	var request ListChecksRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListChecks(ctx, request.(ListChecksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListChecks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChecksResponseObject); ok {
+		if err := validResponse.VisitListChecksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateCheck operation middleware
+func (sh *strictHandler) CreateCheck(w http.ResponseWriter, r *http.Request) {
+	var request CreateCheckRequestObject
+
+	var body CreateCheckJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCheck(ctx, request.(CreateCheckRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCheck")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCheckResponseObject); ok {
+		if err := validResponse.VisitCreateCheckResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteCheck operation middleware
+func (sh *strictHandler) DeleteCheck(w http.ResponseWriter, r *http.Request, id ID) {
+	var request DeleteCheckRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteCheck(ctx, request.(DeleteCheckRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteCheck")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteCheckResponseObject); ok {
+		if err := validResponse.VisitDeleteCheckResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCheck operation middleware
+func (sh *strictHandler) GetCheck(w http.ResponseWriter, r *http.Request, id ID) {
+	var request GetCheckRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCheck(ctx, request.(GetCheckRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCheck")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCheckResponseObject); ok {
+		if err := validResponse.VisitGetCheckResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateCheck operation middleware
+func (sh *strictHandler) UpdateCheck(w http.ResponseWriter, r *http.Request, id ID) {
+	var request UpdateCheckRequestObject
+
+	request.Id = id
+
+	var body UpdateCheckJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateCheck(ctx, request.(UpdateCheckRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateCheck")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateCheckResponseObject); ok {
+		if err := validResponse.VisitUpdateCheckResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListCheckResults operation middleware
+func (sh *strictHandler) ListCheckResults(w http.ResponseWriter, r *http.Request, id ID, params ListCheckResultsParams) {
+	var request ListCheckResultsRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListCheckResults(ctx, request.(ListCheckResultsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListCheckResults")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListCheckResultsResponseObject); ok {
+		if err := validResponse.VisitListCheckResultsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCheckSeries operation middleware
+func (sh *strictHandler) GetCheckSeries(w http.ResponseWriter, r *http.Request, id ID, params GetCheckSeriesParams) {
+	var request GetCheckSeriesRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCheckSeries(ctx, request.(GetCheckSeriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCheckSeries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCheckSeriesResponseObject); ok {
+		if err := validResponse.VisitGetCheckSeriesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -3761,6 +5085,104 @@ func (sh *strictHandler) UpdateHub(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateHubResponseObject); ok {
 		if err := validResponse.VisitUpdateHubResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListProbes operation middleware
+func (sh *strictHandler) ListProbes(w http.ResponseWriter, r *http.Request) {
+	var request ListProbesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListProbes(ctx, request.(ListProbesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListProbes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListProbesResponseObject); ok {
+		if err := validResponse.VisitListProbesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetProbeEnrollment operation middleware
+func (sh *strictHandler) GetProbeEnrollment(w http.ResponseWriter, r *http.Request) {
+	var request GetProbeEnrollmentRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetProbeEnrollment(ctx, request.(GetProbeEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetProbeEnrollment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetProbeEnrollmentResponseObject); ok {
+		if err := validResponse.VisitGetProbeEnrollmentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// NewProbeEnrollment operation middleware
+func (sh *strictHandler) NewProbeEnrollment(w http.ResponseWriter, r *http.Request) {
+	var request NewProbeEnrollmentRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.NewProbeEnrollment(ctx, request.(NewProbeEnrollmentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "NewProbeEnrollment")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(NewProbeEnrollmentResponseObject); ok {
+		if err := validResponse.VisitNewProbeEnrollmentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeProbe operation middleware
+func (sh *strictHandler) RevokeProbe(w http.ResponseWriter, r *http.Request, id ID) {
+	var request RevokeProbeRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeProbe(ctx, request.(RevokeProbeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeProbe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeProbeResponseObject); ok {
+		if err := validResponse.VisitRevokeProbeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
