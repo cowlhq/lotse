@@ -126,6 +126,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The tree of customers, projects and environments
+         * @description Every scope but the global one, by path. parent_id links them.
+         */
+        get: operations["listScopes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scopes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A customer, project or environment */
+        get: operations["getScope"];
+        put?: never;
+        post?: never;
+        /** Delete a scope that is empty */
+        delete: operations["deleteScope"];
+        options?: never;
+        head?: never;
+        /** Rename a scope; its key stays */
+        patch: operations["renameScope"];
+        trace?: never;
+    };
+    "/api/environments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an environment, and its customer and project if needed
+         * @description Each level is matched by its slug; what exists is used as it is, what does not is created with the name given.
+         */
+        post: operations["createEnvironment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hosts/{id}/environment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Put a host into an environment, or take it out of all */
+        put: operations["setHostEnvironment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The history of an object */
+        get: operations["listChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hosts": {
         parameters: {
             query?: never;
@@ -321,6 +418,50 @@ export interface components {
             /** @enum {string} */
             role: "admin" | "viewer";
         };
+        Scope: {
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description The customer of a project, the project of an environment; null for customers.
+             */
+            parent_id?: number | null;
+            /** @enum {string} */
+            kind: "customer" | "project" | "environment";
+            /** @description The key within its parent. */
+            slug: string;
+            name: string;
+            /** @description The stable key, such as acme/shop/prod. */
+            path: string;
+        };
+        ScopeName: {
+            /** @description Lowercase letters, digits and dashes, up to 40. */
+            slug: string;
+            name: string;
+        };
+        Change: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            at: number;
+            /** @description The same for everything one save, apply or deploy changed. */
+            batch_id: string;
+            /** @enum {string} */
+            actor_kind: "user" | "token" | "label" | "system";
+            actor_name: string;
+            /** @enum {string} */
+            via: "ui" | "apply" | "label" | "api" | "setup" | "system";
+            subject_kind: string;
+            /** Format: int64 */
+            subject_id: number;
+            subject_path: string;
+            /** @description The changed field, or created or deleted. */
+            field: string;
+            /** @description The value before; missing for something created. */
+            old?: unknown;
+            /** @description The value after; missing for something deleted. */
+            new?: unknown;
+        };
         Host: {
             /** Format: int64 */
             id: number;
@@ -345,6 +486,11 @@ export interface components {
             last_seen: number;
             /** @description Whether its agent is connected now. */
             online: boolean;
+            /**
+             * Format: int64
+             * @description Its environment; null until it is put into one.
+             */
+            environment_id?: number | null;
         };
         HostReading: {
             /** Format: int64 */
@@ -495,6 +641,15 @@ export interface components {
         };
     };
     responses: {
+        /** @description Only an admin may do this. */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description The hub is already set up, or past this step. */
         AlreadySetUp: {
             headers: {
@@ -747,6 +902,195 @@ export interface operations {
                     "application/json": components["schemas"]["User"];
                 };
             };
+        };
+    };
+    listScopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The scopes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scope"][];
+                };
+            };
+        };
+    };
+    getScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The scope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scope"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description It still has scopes or hosts in it. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    renameScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The renamed scope. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scope"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createEnvironment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    customer: components["schemas"]["ScopeName"];
+                    project: components["schemas"]["ScopeName"];
+                    environment: components["schemas"]["ScopeName"];
+                };
+            };
+        };
+        responses: {
+            /** @description The environment. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scope"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    setHostEnvironment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    environment_id?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Moved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listChanges: {
+        parameters: {
+            query: {
+                /** @description The object, as kind:id, such as environment:4 or host:3. */
+                subject: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Its changes, newest first, at most 200. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Change"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
         };
     };
     listHosts: {
