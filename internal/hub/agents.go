@@ -161,17 +161,28 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+	ids := containerIDs{}
 	for {
 		var m protocol.Message
 		if err := wsjson.Read(ctx, conn, &m); err != nil {
 			log.Info("agent disconnected", "reason", disconnectReason(err))
 			return
 		}
+		var err error
 		switch {
 		case m.Type == protocol.TypeHost && m.Host != nil:
 			h.hostSample(host.ID, *m.Host)
+		case m.Type == protocol.TypeContainers && m.Containers != nil:
+			err = h.containerList(ctx, host.ID, *m.Containers, ids)
+		case m.Type == protocol.TypeContainerEvent && m.ContainerEvent != nil:
+			err = h.containerEvent(ctx, host.ID, *m.ContainerEvent, ids)
+		case m.Type == protocol.TypeContainerStats && m.ContainerStats != nil:
+			h.containerStats(*m.ContainerStats, ids)
 		default:
 			log.Debug("ignoring a message of unknown type", "type", m.Type)
+		}
+		if err != nil {
+			log.Error("cannot save what the agent sent", "type", m.Type, "err", err)
 		}
 	}
 }
@@ -179,7 +190,10 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 // agentConfig is what every agent is told. Milestone 3 makes it a setting
 // that is inherited down the tree.
 func (h *hub) agentConfig() protocol.Config {
-	return protocol.Config{HostInterval: int(h.hostInterval / time.Second)}
+	return protocol.Config{
+		HostInterval:      int(h.hostInterval / time.Second),
+		ContainerInterval: int(h.containerInterval / time.Second),
+	}
 }
 
 // saveHost records the machine an agent says it is on, and its reboot.
@@ -192,7 +206,7 @@ func (h *hub) saveHost(ctx context.Context, hello protocol.Hello) (store.Host, e
 		MachineID: machineID, Hostname: hello.Hostname, OS: hello.OS, Platform: hello.Platform,
 		Kernel: hello.Kernel, Arch: hello.Arch, CPUModel: hello.CPUModel, Cores: hello.Cores,
 		MemTotal: hello.MemTotal, BootTime: hello.BootTime, AgentVersion: hello.Version,
-		LastSeen: time.Now().Unix(),
+		DockerVersion: hello.DockerVersion, LastSeen: time.Now().Unix(),
 	})
 	if err == nil && prevBoot != 0 && hello.BootTime > prevBoot+rebootSlack {
 		h.writer.add(func(b *store.Batch) {

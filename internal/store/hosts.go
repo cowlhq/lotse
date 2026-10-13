@@ -98,3 +98,9 @@ func (s *Store) Host(ctx context.Context, id int64) (Host, error) {
 	}
 	return h, err
 }
+
+// SetDockerVersion records the version of Docker on a host.
+func (s *Store) SetDockerVersion(ctx context.Context, hostID int64, version string) error {
+	_, err := s.exec(ctx, `UPDATE hosts SET docker_version = ? WHERE id = ?`, version, hostID)
+	return err
+}
