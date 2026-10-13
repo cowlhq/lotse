@@ -80,7 +80,11 @@ install_agent() {
 	aarch64 | arm64) arch=arm64 ;;
 	*) fail "lotse is built for amd64 and arm64, not $(uname -m)" ;;
 	esac
-	have systemctl || fail "this installs a systemd service, and systemctl is missing; run the agent as a container instead"
+	have systemctl || fail "this installs a systemd service, and systemctl is missing; run the agent as a container instead (docker run, under Add agent)"
+	# NixOS describes services and users in its configuration; /etc/systemd
+	# is not for writing there.
+	[ ! -e /etc/NIXOS ] || fail "on NixOS, run the agent as a container (docker run or compose, under Add agent); a NixOS module is planned"
+	[ -w /etc/systemd/system ] || fail "/etc/systemd/system cannot be written to; run the agent as a container instead (docker run, under Add agent)"
 	[ -n "$version" ] || version=$(latest)
 	base=${LOTSE_RELEASE_URL:-https://github.com/$REPO/releases/download/v$version}
 	file=lotse_${version}_linux_$arch.tar.gz
@@ -109,7 +113,8 @@ install_agent() {
 		say "Signature checked"
 	fi
 	tar -xzf "$tmp/$file" -C "$tmp" lotse
-	install -m 0755 "$tmp/lotse" /usr/local/bin/lotse
+	# -D: some systems come without /usr/local/bin.
+	install -D -m 0755 "$tmp/lotse" /usr/local/bin/lotse
 
 	if ! id lotse >/dev/null 2>&1; then
 		if have useradd; then
