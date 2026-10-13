@@ -96,7 +96,9 @@ func (s apiServer) ListHosts(ctx context.Context, _ api.ListHostsRequestObject) 
 			if c.State == "running" {
 				sum.Containers.Running++
 			}
-			if c.Health == "unhealthy" {
+			// Docker keeps the last health of a stopped container; only a
+			// running one can be unhealthy.
+			if c.State == "running" && c.Health == "unhealthy" {
 				sum.Containers.Unhealthy++
 			}
 		}
