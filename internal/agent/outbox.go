@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"slices"
 	"sync"
 	"time"
 
@@ -28,8 +29,17 @@ func newOutbox(maxAge time.Duration) *outbox {
 	return &outbox{maxAge: maxAge, now: time.Now, ready: make(chan struct{}, 1)}
 }
 
-func (o *outbox) add(m protocol.Message) {
+func (o *outbox) add(m protocol.Message) { o.put(m, false) }
+
+// addLatest adds m and drops waiting messages of its type: for a full list
+// of containers, only the newest matters.
+func (o *outbox) addLatest(m protocol.Message) { o.put(m, true) }
+
+func (o *outbox) put(m protocol.Message, latest bool) {
 	o.mu.Lock()
+	if latest {
+		o.items = slices.DeleteFunc(o.items, func(it outItem) bool { return it.msg.Type == m.Type })
+	}
 	now := o.now()
 	o.items = append(o.items, outItem{m, now})
 	drop := 0
@@ -56,13 +66,13 @@ func (o *outbox) pending() []protocol.Message {
 }
 
 // sent removes msgs, which pending returned and which have gone out. Some
-// of them may have been dropped for age meanwhile, always the oldest.
+// of them may have been dropped meanwhile, for age or by addLatest.
 func (o *outbox) sent(msgs []protocol.Message) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	for _, m := range msgs {
-		if len(o.items) > 0 && sameMessage(o.items[0].msg, m) {
-			o.items = o.items[1:]
+		if i := slices.IndexFunc(o.items, func(it outItem) bool { return sameMessage(it.msg, m) }); i >= 0 {
+			o.items = slices.Delete(o.items, i, i+1)
 		}
 	}
 }
@@ -70,7 +80,8 @@ func (o *outbox) sent(msgs []protocol.Message) {
 // Messages are compared by identity: every message the outbox holds has a
 // payload of its own.
 func sameMessage(a, b protocol.Message) bool {
-	return a.Type == b.Type && a.Host == b.Host
+	return a.Type == b.Type && a.Host == b.Host && a.Containers == b.Containers &&
+		a.ContainerEvent == b.ContainerEvent && a.ContainerStats == b.ContainerStats
 }
 
 func (o *outbox) len() int {
