@@ -18,6 +18,7 @@ const usage = `usage: lotse <command>
 commands:
   hub       run the hub (configured by LOTSE_* variables)
   agent     run the agent: lotse agent --hub URL --token TOKEN
+  start     run hub or agent in their newest installed version: lotse start hub|agent
   version   print the version
 `
 
@@ -35,6 +36,10 @@ func main() {
 		err = hub.Run(ctx, hub.ConfigFromEnv(), log)
 	case "agent":
 		err = agentCommand(ctx, os.Args[2:], log)
+	case "start":
+		code := startCommand(ctx, os.Args[2:], log)
+		stop()
+		os.Exit(code)
 	case "version":
 		fmt.Println(version.Version)
 	default:
