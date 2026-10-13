@@ -169,3 +169,21 @@ func waitFor(t *testing.T, what string, ok func() bool) {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// Enroll alone keeps the credential and returns; Run then needs no token.
+func TestEnrollOnly(t *testing.T) {
+	h, server := newTestHub(t)
+	token := enrollmentToken(t, h)
+	dir := t.TempDir()
+	log := slog.New(slog.DiscardHandler)
+	if err := agent.Enroll(t.Context(), agent.Config{Hub: server.URL, Token: token, DataDir: dir}, log); err != nil {
+		t.Fatal(err)
+	}
+	if err := agent.Enroll(t.Context(), agent.Config{Hub: server.URL, Token: "lotse_enr_wrong", DataDir: dir}, log); err != nil {
+		t.Errorf("enrolling again, already enrolled: %v", err)
+	}
+	ctx, stop := context.WithCancel(t.Context())
+	defer stop()
+	go agent.Run(ctx, agent.Config{Hub: server.URL, DataDir: dir}, log)
+	waitFor(t, "the agent to connect", func() bool { return h.agents.count() == 1 })
+}

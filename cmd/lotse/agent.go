@@ -11,6 +11,10 @@ import (
 )
 
 func agentCommand(ctx context.Context, args []string, log *slog.Logger) error {
+	enroll := len(args) > 0 && args[0] == "enroll"
+	if enroll {
+		args = args[1:]
+	}
 	flags := flag.NewFlagSet("lotse agent", flag.ExitOnError)
 	var cfg agent.Config
 	flags.StringVar(&cfg.Hub, "hub", os.Getenv("LOTSE_HUB"), "the hub's address (or LOTSE_HUB)")
@@ -19,5 +23,8 @@ func agentCommand(ctx context.Context, args []string, log *slog.Logger) error {
 	flags.StringVar(&cfg.Root, "root", cmp.Or(os.Getenv("LOTSE_HOST_ROOT"), "/"), "where the machine's / is mounted, when the agent runs in a container (or LOTSE_HOST_ROOT)")
 	flags.BoolVar(&cfg.Insecure, "insecure", os.Getenv("LOTSE_INSECURE") == "true", "allow plain HTTP to a hub on another machine")
 	flags.Parse(args)
+	if enroll {
+		return agent.Enroll(ctx, cfg, log)
+	}
 	return agent.Run(ctx, cfg, log)
 }
