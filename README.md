@@ -9,6 +9,21 @@ have to.
 
 Work in progress. See [docs/design.md](docs/design.md).
 
+## Try it
+
+```
+docker compose up --build
+```
+
+starts a hub on http://localhost:8080 and an agent connected to it. The setup
+link is in `docker compose logs hub`. `LOTSE_PORT=18080 docker compose up`
+uses another port; `docker compose --profile postgres up` with
+`LOTSE_DATABASE_URL` set (see `compose.yml`) runs on Postgres instead of
+SQLite.
+
+For development, `mise run dev` runs the hub and the web interface with live
+reload, and `mise run check` runs what CI runs.
+
 ## License
 
 lotse is licensed under the [GNU AGPL-3.0](LICENSE). The Go client in
