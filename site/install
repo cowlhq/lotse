@@ -20,6 +20,9 @@
 set -eu
 
 REPO=cowlhq/lotse
+# The key releases are signed with (decision 0010); also at
+# https://lotse.sh/minisign.pub.
+PUBKEY=RWQGkOnHGbqiZ+oFSmuH/4VRHQB0FRdFZ3SzMcDyNqYc5apeh5h4SfQ6
 
 say() { printf '%s\n' "$*"; }
 fail() { printf 'lotse install: %s\n' "$*" >&2; exit 1; }
@@ -97,6 +100,14 @@ install_agent() {
 		got=$(shasum -a 256 "$tmp/$file" | cut -d' ' -f1)
 	fi
 	[ "$got" = "$want" ] || fail "the checksum of $file does not match; not installing it"
+	# With minisign at hand, the checksums themselves are checked too: then
+	# not even a changed release on GitHub gets through.
+	if have minisign; then
+		download "$base/checksums.txt.minisig" "$tmp/checksums.txt.minisig"
+		minisign -Vqm "$tmp/checksums.txt" -x "$tmp/checksums.txt.minisig" -P "$PUBKEY" ||
+			fail "the signature of checksums.txt does not match lotse's key; not installing it"
+		say "Signature checked"
+	fi
 	tar -xzf "$tmp/$file" -C "$tmp" lotse
 	install -m 0755 "$tmp/lotse" /usr/local/bin/lotse
 

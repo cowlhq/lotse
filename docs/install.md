@@ -122,11 +122,12 @@ always compares the checksum. To check a download by hand:
 
 ```
 sha256sum -c checksums.txt --ignore-missing
-minisign -Vm checksums.txt -P <lotse's public key>
+minisign -Vm checksums.txt -P RWQGkOnHGbqiZ+oFSmuH/4VRHQB0FRdFZ3SzMcDyNqYc5apeh5h4SfQ6
 ```
 
-The public key will be published here, on lotse.sh, and in the binary,
-which checks every update with it, with the first release.
+The key is also at https://lotse.sh/minisign.pub, in the install script,
+which checks the signature whenever `minisign` is installed, and (from the
+update milestone on) in the binary, which checks every update with it.
 
 Images are signed with cosign, keyless, by the release workflow:
 
