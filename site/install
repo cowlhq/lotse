@@ -12,7 +12,8 @@
 #        link.
 #
 # Running it again updates what it installed; the agent's credential and the
-# hub's data stay.
+# hub's data stay. An agent whose credential the hub revoked enrolls again,
+# if the token is given.
 #
 # Options: --version X.Y.Z (default: the latest release), --insecure (agent:
 # allow a plain http hub on another machine), --port N (hub, default 8080).
@@ -135,8 +136,10 @@ install_agent() {
 
 	flags=
 	[ -z "$insecure" ] || flags=--insecure
-	if [ ! -f /var/lib/lotse/agent.json ]; then
-		[ -n "$token" ] || fail "--token is needed to enroll: the environment's enrollment token"
+	# With a token, the agent enrolls if it has no credential, or if the hub
+	# revoked it; a credential that still works stays. Without one, an
+	# enrolled agent is only updated.
+	if [ -n "$token" ]; then
 		say "Enrolling with the hub"
 		# The token goes in through the environment, not the command line,
 		# where other users could see it. The credential then belongs to
@@ -144,6 +147,8 @@ install_agent() {
 		LOTSE_TOKEN=$token /usr/local/bin/lotse agent enroll --hub "$hub" --data-dir /var/lib/lotse $flags ||
 			fail "enrolling failed"
 		chown -R lotse:lotse /var/lib/lotse
+	elif [ ! -f /var/lib/lotse/agent.json ]; then
+		fail "--token is needed to enroll: the environment's enrollment token"
 	fi
 	cat >/etc/systemd/system/lotse-agent.service <<EOF
 [Unit]
