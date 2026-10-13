@@ -1,0 +1,45 @@
+# Binaries, checksums and their signature for a release. release-please has
+# already made the GitHub release and its notes; this adds the files to it.
+# The image is built by release.yml from deploy/Dockerfile, the same file
+# that `docker compose up` builds.
+version: 2
+project_name: lotse
+
+before:
+  hooks:
+    - pnpm --dir web install --frozen-lockfile
+    - pnpm --dir web build
+
+builds:
+  - main: ./cmd/lotse
+    binary: lotse
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X lotse.sh/internal/version.Version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [LICENSE, README.md]
+
+checksum:
+  name_template: checksums.txt
+
+# decision 0010: checksums.txt is signed with minisign. The secret key and
+# its password come from repository secrets (see release.yml).
+signs:
+  - artifacts: checksum
+    cmd: sh
+    args:
+      - -c
+      - 'printf "%s\n" "$MINISIGN_PASSWORD" | minisign -S -s "$MINISIGN_KEY_FILE" -m "${artifact}" -x "${signature}"'
+    signature: "${artifact}.minisig"
+
+release:
+  mode: keep-existing
+
+changelog:
+  disable: true
