@@ -24,16 +24,18 @@ type Host struct {
 	DockerVersion string `json:"docker_version"`
 	FirstSeen     int64  `json:"first_seen"`
 	LastSeen      int64  `json:"last_seen"`
+	// EnvironmentID is nil until the host is put into an environment.
+	EnvironmentID *int64 `json:"environment_id"`
 }
 
 const hostColumns = `id, machine_id, name, hostname, os, platform, kernel, arch, cpu_model,
-	cores, mem_total, boot_time, agent_version, docker_version, first_seen, last_seen`
+	cores, mem_total, boot_time, agent_version, docker_version, first_seen, last_seen, environment_id`
 
 func scanHost(row interface{ Scan(...any) error }) (Host, error) {
 	var h Host
 	err := row.Scan(&h.ID, &h.MachineID, &h.Name, &h.Hostname, &h.OS, &h.Platform, &h.Kernel,
 		&h.Arch, &h.CPUModel, &h.Cores, &h.MemTotal, &h.BootTime, &h.AgentVersion,
-		&h.DockerVersion, &h.FirstSeen, &h.LastSeen)
+		&h.DockerVersion, &h.FirstSeen, &h.LastSeen, &h.EnvironmentID)
 	return h, err
 }
 
