@@ -19,6 +19,7 @@ export function Home() {
         {t("home.version", { version: health.data.version })} ·{" "}
         {t("home.database", { database: health.data.database })}
       </p>
+      <p className="text-sm text-slate-500">{t("home.agents", { count: health.data.agents })}</p>
       {health.data.setup && <p className="text-amber-700">{t("home.notSetUp")}</p>}
     </div>
   );
