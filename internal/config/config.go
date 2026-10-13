@@ -60,6 +60,40 @@ var Keys = []Key{
 		},
 	},
 	{
+		Name:        "check.interval",
+		Type:        "duration",
+		Description: "How often a check runs, on each probe.",
+		Default:     json.RawMessage(`"1m"`),
+		On:          []string{"check"},
+		Check:       durationBetween(10*time.Second, 24*time.Hour),
+	},
+	{
+		Name:        "check.timeout",
+		Type:        "duration",
+		Description: "How long a check waits for an answer.",
+		Default:     json.RawMessage(`"10s"`),
+		On:          []string{"check"},
+		Check:       durationBetween(time.Second, time.Minute),
+	},
+	{
+		Name:        "check.probes",
+		Type:        "probes",
+		Description: "Which probes run a check: all, or a list of their names.",
+		Default:     json.RawMessage(`"all"`),
+		On:          []string{"check"},
+		Check: func(v json.RawMessage) error {
+			var all string
+			if json.Unmarshal(v, &all) == nil && all == "all" {
+				return nil
+			}
+			var list []string
+			if json.Unmarshal(v, &list) != nil || len(list) == 0 {
+				return fmt.Errorf("\"all\", or a list of probe names such as [\"hub\", \"fra\"]")
+			}
+			return nil
+		},
+	},
+	{
 		Name:        "agent.interval.containers",
 		Type:        "duration",
 		Description: "How often the agent reads its containers' usage.",
