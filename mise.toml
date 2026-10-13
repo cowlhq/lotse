@@ -2,6 +2,7 @@
 go = "1.27"
 node = "24"
 pnpm = "10"
+shellcheck = "0.11"
 
 # Development defaults only.
 [env]
@@ -47,6 +48,7 @@ run = [
   "go vet ./...",
   "go test -race ./...",
   "pnpm --dir web lint",
+  "shellcheck -s sh site/install",
   "pnpm --dir web exec tsc --noEmit",
   # What is generated from api/openapi.yaml is up to date.
   "mise run gen && git diff --exit-code -- internal/hub/api web/src/schema.gen.ts",

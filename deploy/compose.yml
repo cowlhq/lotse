@@ -1,0 +1,20 @@
+# The hub, as the install script sets it up in /opt/lotse (decision 0011).
+# The image runs the starter, which updates the hub in its data volume;
+# pulling a newer image updates the starter itself.
+#
+# LOTSE_URL is where people and agents reach the hub, if setup should not
+# take it from the browser. Behind a reverse proxy (decision 0006), bind
+# the port to 127.0.0.1 and let the proxy forward to it.
+services:
+  hub:
+    image: ghcr.io/cowlhq/lotse:${LOTSE_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "${LOTSE_PORT:-8080}:8080"
+    environment:
+      LOTSE_URL: ${LOTSE_URL:-}
+    volumes:
+      - data:/var/lib/lotse
+
+volumes:
+  data:
