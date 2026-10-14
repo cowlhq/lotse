@@ -1,0 +1,9 @@
+# oapi-codegen settings for the client: the read API only, the part of
+# api/openapi.yaml tagged read.
+package: client
+output: client.gen.go
+generate:
+  client: true
+  models: true
+output-options:
+  include-tags: [read]
