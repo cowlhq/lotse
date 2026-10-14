@@ -61,6 +61,11 @@ services:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/"]
       interval: 10s
     restart: unless-stopped
+    labels:
+      # A check of its own, from its labels (design 9.3); the hub reaches
+      # it on the compose network.
+      lotse.check.home.http.url: http://demo-web/
+      lotse.check.home.http.keyword: nginx
 
   demo-sick:
     image: alpine

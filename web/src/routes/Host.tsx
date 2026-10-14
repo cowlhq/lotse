@@ -369,7 +369,10 @@ function Containers({ containers }: { containers: Container[] }) {
                 onClick={() => navigate({ to: "/containers/$id", params: { id: String(c.id) } })}
                 className={`cursor-pointer border-b transition-colors last:border-b-0 hover:bg-accent/60 ${c.gone_at != null ? "opacity-50" : ""}`}
               >
-                <td className="py-3 pl-4 font-medium">{c.slug}</td>
+                <td className="py-3 pl-4 font-medium">
+                  {c.slug}
+                  {c.ignored && <span className="ml-2 text-mini font-normal text-muted-foreground">{t("container.ignored")}</span>}
+                </td>
                 <td className="px-3">
                   <ContainerState container={c} />
                 </td>
