@@ -4,7 +4,8 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { Event, Series } from "@/api";
 import { digitsFor } from "@/lib/format";
-import { chrome, series as palette, status } from "@/lib/palette";
+import { useTheme } from "next-themes";
+import { chrome, css, series as palette, status } from "@/lib/palette";
 
 export type Line = {
   // column of the series
@@ -51,6 +52,8 @@ function xRange(data: Series | undefined, range: { from: number; to: number }) {
 // of lines; new readings only replace its data.
 export function Chart({ data, lines, format, range, events = [], max, binary, height = 180 }: Props) {
   const { t } = useTranslation();
+  // The plot is drawn again in the colors of a new theme.
+  const { resolvedTheme } = useTheme();
   const box = useRef<HTMLDivElement>(null);
   const plot = useRef<uPlot | null>(null);
   const eventsRef = useRef(events);
@@ -74,17 +77,18 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
         y: { range: (_u, _min, dataMax) => [0, max ?? (dataMax > 0 ? dataMax * 1.1 : 1)] },
       },
       axes: [
-        { stroke: chrome.muted, grid: { stroke: chrome.grid, width: 1 }, ticks: { stroke: chrome.axis, width: 1 } },
+        { font: "12px 'Fira Sans', system-ui, sans-serif", stroke: css(chrome.muted), grid: { stroke: css(chrome.grid), width: 1 }, ticks: { stroke: css(chrome.axis), width: 1 } },
         {
-          stroke: chrome.muted,
-          grid: { stroke: chrome.grid, width: 1 },
+          font: "12px 'Fira Sans', system-ui, sans-serif",
+          stroke: css(chrome.muted),
+          grid: { stroke: css(chrome.grid), width: 1 },
           ticks: { show: false },
           values: (_u, vals, _axis, _space, incr) => vals.map((v) => format(v, digitsFor(incr))),
           incrs: binary ? binaryIncrs : undefined,
           // as wide as the widest label, so none is cut off
           size: (u, values) => {
             if (!values) return 50;
-            u.ctx.font = "12px system-ui, sans-serif";
+            u.ctx.font = "12px 'Fira Sans', system-ui, sans-serif";
             const widest = Math.max(...values.map((v) => u.ctx.measureText(v).width));
             return Math.ceil(widest / devicePixelRatio) + 24;
           },
@@ -94,7 +98,7 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
         {},
         ...lines.map((l, i) => ({
           label: l.label,
-          stroke: palette[i],
+          stroke: css(palette[i]),
           width: 2,
           // Dots while there are only a few readings, which lines alone
           // would not show.
@@ -113,7 +117,7 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
             for (const e of eventsRef.current) {
               if (e.ts < min || e.ts > max) continue;
               const x = Math.round(u.valToPos(e.ts, "x", true));
-              ctx.strokeStyle = badEvents.includes(e.kind) ? status.critical : chrome.muted;
+              ctx.strokeStyle = css(badEvents.includes(e.kind) ? status.critical : chrome.muted);
               ctx.beginPath();
               ctx.moveTo(x, u.bbox.top);
               ctx.lineTo(x, u.bbox.top + u.bbox.height);
@@ -134,7 +138,7 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
       p.destroy();
       plot.current = null;
     };
-  }, [lines, format, max, binary, height]);
+  }, [lines, format, max, binary, height, resolvedTheme]);
 
   useEffect(() => {
     const p = plot.current;

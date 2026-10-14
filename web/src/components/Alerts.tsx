@@ -9,6 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ago, dateTime } from "@/lib/format";
+import { alertTitle, subjectName } from "@/lib/alerts";
+import { levelColor } from "@/lib/status";
+import { StatusIcon } from "@/components/shell/Dot";
+import { Panel } from "@/components/shell/Panel";
 import { useLive } from "@/lib/live";
 import { chrome, status } from "@/lib/palette";
 import { useMe } from "@/lib/useMe";
@@ -177,7 +181,7 @@ function Row({ alert: a }: { alert: AlertState }) {
 
 // AlertHistory lists the transitions of alerts, newest first, over the last
 // days: alerts are kept longer than readings.
-export function AlertHistory({ subject }: { subject?: string }) {
+export function AlertHistory({ subject, always = false }: { subject?: string; always?: boolean }) {
   const { t } = useTranslation();
   const [days, setDays] = useState(7);
   const history = useQuery({
@@ -188,11 +192,12 @@ export function AlertHistory({ subject }: { subject?: string }) {
     },
   });
   const list = history.data ?? [];
-  if (subject && list.length === 0) return null;
+  if (subject && !always && list.length === 0) return null;
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <CardTitle className="text-sm font-medium">{t("alert.history")}</CardTitle>
+    <Panel
+      title={t("alert.history")}
+      flush
+      right={
         <ToggleGroup value={[String(days)]} onValueChange={(v: string[]) => v[0] && setDays(Number(v[0]))} variant="outline" size="sm">
           {[1, 7, 30].map((d) => (
             <ToggleGroupItem key={d} value={String(d)}>
@@ -200,43 +205,43 @@ export function AlertHistory({ subject }: { subject?: string }) {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-      </CardHeader>
-      <CardContent>
-        {list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("alert.noHistory")}</p>
-        ) : (
-          <ul className="space-y-1.5 text-sm">
-            {list.map((a) => (
-              <Transition key={a.id} alert={a} showSubject={!subject || !subject.startsWith(a.subject_kind)} />
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+      }
+    >
+      {list.length === 0 ? (
+        <p className="px-4 py-10 text-center text-muted-foreground">{t("alert.noHistory")}</p>
+      ) : (
+        <ul>
+          {list.map((a) => (
+            <Transition key={a.id} alert={a} showSubject={!subject || !subject.startsWith(a.subject_kind)} />
+          ))}
+        </ul>
+      )}
+    </Panel>
   );
 }
 
 function Transition({ alert: a, showSubject }: { alert: Alert; showSubject: boolean }) {
   const { t } = useTranslation();
+  const { name } = subjectName(a);
   return (
-    <li className="grid grid-cols-[12rem_6rem_1fr] items-baseline gap-4">
-      <span className="tabular-nums whitespace-nowrap text-muted-foreground">{dateTime(a.at)}</span>
-      <AlertBadge state={a.to} />
-      <span className="min-w-0">
-        <Link to="/alerts/$id" params={{ id: String(a.id) }} className="font-mono text-xs hover:underline">
-          {a.rule}
-        </Link>
-        {showSubject && (
-          <>
-            {" "}
-            <SubjectLink kind={a.subject_kind} id={a.subject_id} path={a.subject_path} />
-          </>
-        )}
-        {a.instance && <span className="ml-1 font-mono text-xs text-muted-foreground">{a.instance}</span>}
-        {a.value != null && a.unit && <span className="ml-2 tabular-nums text-muted-foreground">{value(a.value, a.unit)}</span>}
-        {a.reason && <span className="ml-2 text-muted-foreground">{a.reason}</span>}
-        {a.in_maintenance && <span className="ml-2 text-xs text-muted-foreground">({t("alert.maintenance")})</span>}
-      </span>
+    <li>
+      <Link to="/alerts/$id" params={{ id: String(a.id) }} className="flex items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent/60">
+        <StatusIcon level={a.to === "ok" ? "ok" : a.to} />
+        <span className="w-20 shrink-0 font-medium" style={{ color: a.to === "ok" ? "var(--ok)" : a.to === "unknown" ? undefined : levelColor[a.to] }}>
+          {t(`alert.state.${a.to}`)}
+        </span>
+        <span className="min-w-0 flex-1 truncate">
+          <span className="font-medium">{alertTitle(t, a)}</span>
+          {showSubject && <span> {name}</span>}
+          {a.instance && <span className="font-mono text-mini"> {a.instance}</span>}
+          <span className="text-muted-foreground">
+            {a.value != null && a.unit && <> · {value(a.value, a.unit)}</>}
+            {a.reason && <> · {a.reason}</>}
+            {a.in_maintenance && <> · {t("alert.maintenance")}</>}
+          </span>
+        </span>
+        <span className="shrink-0 text-mini whitespace-nowrap tabular-nums text-muted-foreground">{dateTime(a.at)}</span>
+      </Link>
     </li>
   );
 }
