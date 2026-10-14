@@ -816,6 +816,27 @@ func (e SetupStep) Valid() bool {
 	}
 }
 
+// Defines values for StatusLevel.
+const (
+	StatusLevelCrit StatusLevel = "crit"
+	StatusLevelOk   StatusLevel = "ok"
+	StatusLevelWarn StatusLevel = "warn"
+)
+
+// Valid indicates whether the value is a known member of the StatusLevel enum.
+func (e StatusLevel) Valid() bool {
+	switch e {
+	case StatusLevelCrit:
+		return true
+	case StatusLevelOk:
+		return true
+	case StatusLevelWarn:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for TokenKind.
 const (
 	TokenKindApply TokenKind = "apply"
@@ -1619,6 +1640,26 @@ type SetupToken struct {
 	Token string `json:"token"`
 }
 
+// Status How everything stands, in figures.
+type Status struct {
+	Checks   int `json:"checks"`
+	ChecksUp int `json:"checks_up"`
+
+	// Critical Alerts firing at CRIT.
+	Critical    int `json:"critical"`
+	Hosts       int `json:"hosts"`
+	HostsOnline int `json:"hosts_online"`
+
+	// Level The worst firing alert, or ok.
+	Level StatusLevel `json:"level"`
+
+	// Warnings Alerts firing at WARN.
+	Warnings int `json:"warnings"`
+}
+
+// StatusLevel The worst firing alert, or ok.
+type StatusLevel string
+
 // TestResult defines model for TestResult.
 type TestResult struct {
 	Error *string `json:"error,omitempty"`
@@ -1890,6 +1931,15 @@ type CreateTokenJSONBody struct {
 // CreateTokenJSONBodyKind defines parameters for CreateToken.
 type CreateTokenJSONBodyKind string
 
+// ReadAlertHistoryParams defines parameters for ReadAlertHistory.
+type ReadAlertHistoryParams struct {
+	// From Start, in Unix seconds. Defaults to an hour before to.
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, in Unix seconds. Defaults to now.
+	To *To `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // ApplyDocumentJSONBody defines parameters for ApplyDocument.
 type ApplyDocumentJSONBody map[string]interface{}
 
@@ -1904,10 +1954,46 @@ type ApplyDocumentParams struct {
 	Scope *string `form:"scope,omitempty" json:"scope,omitempty"`
 }
 
+// ReadCheckSeriesParams defines parameters for ReadCheckSeries.
+type ReadCheckSeriesParams struct {
+	// From Start, in Unix seconds. Defaults to an hour before to.
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, in Unix seconds. Defaults to now.
+	To *To `form:"to,omitempty" json:"to,omitempty"`
+
+	// Points About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600.
+	Points *Points `form:"points,omitempty" json:"points,omitempty"`
+}
+
+// ReadContainerSeriesParams defines parameters for ReadContainerSeries.
+type ReadContainerSeriesParams struct {
+	// From Start, in Unix seconds. Defaults to an hour before to.
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, in Unix seconds. Defaults to now.
+	To *To `form:"to,omitempty" json:"to,omitempty"`
+
+	// Points About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600.
+	Points *Points `form:"points,omitempty" json:"points,omitempty"`
+}
+
 // ExportScopeParams defines parameters for ExportScope.
 type ExportScopeParams struct {
 	// Scope The path of the scope, such as acme/shop; everything if not given.
 	Scope *string `form:"scope,omitempty" json:"scope,omitempty"`
+}
+
+// ReadHostSeriesParams defines parameters for ReadHostSeries.
+type ReadHostSeriesParams struct {
+	// From Start, in Unix seconds. Defaults to an hour before to.
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, in Unix seconds. Defaults to now.
+	To *To `form:"to,omitempty" json:"to,omitempty"`
+
+	// Points About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600.
+	Points *Points `form:"points,omitempty" json:"points,omitempty"`
 }
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
@@ -2146,12 +2232,42 @@ type ServerInterface interface {
 	// CheckUpdates Look for a newer release now, instead of at the next check
 	// (POST /api/updates)
 	CheckUpdates(w http.ResponseWriter, r *http.Request)
+	// ReadAlerts The alerts that are not OK now, the worst first
+	// (GET /api/v1/alerts)
+	ReadAlerts(w http.ResponseWriter, r *http.Request)
+	// ReadAlertHistory Transitions of alerts, newest first, at most 500
+	// (GET /api/v1/alerts/history)
+	ReadAlertHistory(w http.ResponseWriter, r *http.Request, params ReadAlertHistoryParams)
 	// ApplyDocument Apply a lotse.yaml, or show what it would change
 	// (POST /api/v1/apply)
 	ApplyDocument(w http.ResponseWriter, r *http.Request, params ApplyDocumentParams)
+	// ReadChecks Checks, with their state
+	// (GET /api/v1/checks)
+	ReadChecks(w http.ResponseWriter, r *http.Request)
+	// ReadCheckSeries A check's response time and success over time
+	// (GET /api/v1/checks/{id}/series)
+	ReadCheckSeries(w http.ResponseWriter, r *http.Request, id ID, params ReadCheckSeriesParams)
+	// ReadContainerSeries A container's readings over time
+	// (GET /api/v1/containers/{id}/series)
+	ReadContainerSeries(w http.ResponseWriter, r *http.Request, id ID, params ReadContainerSeriesParams)
 	// ExportScope A scope as lotse.yaml
 	// (GET /api/v1/export)
 	ExportScope(w http.ResponseWriter, r *http.Request, params ExportScopeParams)
+	// ReadHosts Hosts, with their newest reading
+	// (GET /api/v1/hosts)
+	ReadHosts(w http.ResponseWriter, r *http.Request)
+	// ReadHost A host, with its filesystems and containers
+	// (GET /api/v1/hosts/{id})
+	ReadHost(w http.ResponseWriter, r *http.Request, id ID)
+	// ReadHostSeries A host's readings over time
+	// (GET /api/v1/hosts/{id}/series)
+	ReadHostSeries(w http.ResponseWriter, r *http.Request, id ID, params ReadHostSeriesParams)
+	// ReadScopes The customers, projects and environments a token sees
+	// (GET /api/v1/scopes)
+	ReadScopes(w http.ResponseWriter, r *http.Request)
+	// ReadStatus How everything a token sees stands, in figures
+	// (GET /api/v1/status)
+	ReadStatus(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -3742,6 +3858,66 @@ func (siw *ServerInterfaceWrapper) CheckUpdates(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ReadAlerts operation middleware
+func (siw *ServerInterfaceWrapper) ReadAlerts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadAlerts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadAlertHistory operation middleware
+func (siw *ServerInterfaceWrapper) ReadAlertHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ReadAlertHistoryParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadAlertHistory(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ApplyDocument operation middleware
 func (siw *ServerInterfaceWrapper) ApplyDocument(w http.ResponseWriter, r *http.Request) {
 
@@ -3801,6 +3977,156 @@ func (siw *ServerInterfaceWrapper) ApplyDocument(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// ReadChecks operation middleware
+func (siw *ServerInterfaceWrapper) ReadChecks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadChecks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadCheckSeries operation middleware
+func (siw *ServerInterfaceWrapper) ReadCheckSeries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ReadCheckSeriesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "points" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "points", r.URL.Query(), &params.Points, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "points"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "points", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadCheckSeries(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadContainerSeries operation middleware
+func (siw *ServerInterfaceWrapper) ReadContainerSeries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ReadContainerSeriesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "points" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "points", r.URL.Query(), &params.Points, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "points"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "points", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadContainerSeries(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ExportScope operation middleware
 func (siw *ServerInterfaceWrapper) ExportScope(w http.ResponseWriter, r *http.Request) {
 
@@ -3825,6 +4151,142 @@ func (siw *ServerInterfaceWrapper) ExportScope(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ExportScope(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadHosts operation middleware
+func (siw *ServerInterfaceWrapper) ReadHosts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadHosts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadHost operation middleware
+func (siw *ServerInterfaceWrapper) ReadHost(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadHost(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadHostSeries operation middleware
+func (siw *ServerInterfaceWrapper) ReadHostSeries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ReadHostSeriesParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "points" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "points", r.URL.Query(), &params.Points, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "points"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "points", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadHostSeries(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadScopes operation middleware
+func (siw *ServerInterfaceWrapper) ReadScopes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadScopes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReadStatus operation middleware
+func (siw *ServerInterfaceWrapper) ReadStatus(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReadStatus(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4017,6 +4479,16 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/tokens", wrapper.ListTokens)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/tokens", wrapper.CreateToken)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/tokens/{id}", wrapper.RevokeToken)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/status", wrapper.ReadStatus)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/scopes", wrapper.ReadScopes)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts", wrapper.ReadHosts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts/{id}", wrapper.ReadHost)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts/{id}/series", wrapper.ReadHostSeries)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/containers/{id}/series", wrapper.ReadContainerSeries)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/checks", wrapper.ReadChecks)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/checks/{id}/series", wrapper.ReadCheckSeries)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/alerts", wrapper.ReadAlerts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/alerts/history", wrapper.ReadAlertHistory)
 
 	return m
 }
@@ -6687,6 +7159,105 @@ func (response CheckUpdates403JSONResponse) VisitCheckUpdatesResponse(w http.Res
 	return err
 }
 
+type ReadAlertsRequestObject struct {
+}
+
+type ReadAlertsResponseObject interface {
+	VisitReadAlertsResponse(w http.ResponseWriter) error
+}
+
+type ReadAlerts200JSONResponse []AlertState
+
+func (response ReadAlerts200JSONResponse) VisitReadAlertsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadAlerts401JSONResponse Error
+
+func (response ReadAlerts401JSONResponse) VisitReadAlertsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadAlerts404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadAlerts404JSONResponse) VisitReadAlertsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadAlertHistoryRequestObject struct {
+	Params ReadAlertHistoryParams
+}
+
+type ReadAlertHistoryResponseObject interface {
+	VisitReadAlertHistoryResponse(w http.ResponseWriter) error
+}
+
+type ReadAlertHistory200JSONResponse []Alert
+
+func (response ReadAlertHistory200JSONResponse) VisitReadAlertHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadAlertHistory401JSONResponse Error
+
+func (response ReadAlertHistory401JSONResponse) VisitReadAlertHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadAlertHistory404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadAlertHistory404JSONResponse) VisitReadAlertHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ApplyDocumentRequestObject struct {
 	Params ApplyDocumentParams
 	Body   *ApplyDocumentJSONRequestBody
@@ -6738,6 +7309,185 @@ func (response ApplyDocument403JSONResponse) VisitApplyDocumentResponse(w http.R
 	return err
 }
 
+type ReadChecksRequestObject struct {
+}
+
+type ReadChecksResponseObject interface {
+	VisitReadChecksResponse(w http.ResponseWriter) error
+}
+
+type ReadChecks200JSONResponse []Check
+
+func (response ReadChecks200JSONResponse) VisitReadChecksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadChecks401JSONResponse Error
+
+func (response ReadChecks401JSONResponse) VisitReadChecksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadChecks404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadChecks404JSONResponse) VisitReadChecksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadCheckSeriesRequestObject struct {
+	Id     ID `json:"id"`
+	Params ReadCheckSeriesParams
+}
+
+type ReadCheckSeriesResponseObject interface {
+	VisitReadCheckSeriesResponse(w http.ResponseWriter) error
+}
+
+type ReadCheckSeries200JSONResponse Series
+
+func (response ReadCheckSeries200JSONResponse) VisitReadCheckSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadCheckSeries400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadCheckSeries400JSONResponse) VisitReadCheckSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadCheckSeries401JSONResponse Error
+
+func (response ReadCheckSeries401JSONResponse) VisitReadCheckSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadCheckSeries404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadCheckSeries404JSONResponse) VisitReadCheckSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadContainerSeriesRequestObject struct {
+	Id     ID `json:"id"`
+	Params ReadContainerSeriesParams
+}
+
+type ReadContainerSeriesResponseObject interface {
+	VisitReadContainerSeriesResponse(w http.ResponseWriter) error
+}
+
+type ReadContainerSeries200JSONResponse Series
+
+func (response ReadContainerSeries200JSONResponse) VisitReadContainerSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadContainerSeries400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadContainerSeries400JSONResponse) VisitReadContainerSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadContainerSeries401JSONResponse Error
+
+func (response ReadContainerSeries401JSONResponse) VisitReadContainerSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadContainerSeries404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadContainerSeries404JSONResponse) VisitReadContainerSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ExportScopeRequestObject struct {
 	Params ExportScopeParams
 }
@@ -6783,6 +7533,268 @@ func (response ExportScope403JSONResponse) VisitExportScopeResponse(w http.Respo
 type ExportScope404JSONResponse struct{ NotFoundJSONResponse }
 
 func (response ExportScope404JSONResponse) VisitExportScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHostsRequestObject struct {
+}
+
+type ReadHostsResponseObject interface {
+	VisitReadHostsResponse(w http.ResponseWriter) error
+}
+
+type ReadHosts200JSONResponse []HostSummary
+
+func (response ReadHosts200JSONResponse) VisitReadHostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHosts401JSONResponse Error
+
+func (response ReadHosts401JSONResponse) VisitReadHostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHosts404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadHosts404JSONResponse) VisitReadHostsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHostRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type ReadHostResponseObject interface {
+	VisitReadHostResponse(w http.ResponseWriter) error
+}
+
+type ReadHost200JSONResponse HostDetail
+
+func (response ReadHost200JSONResponse) VisitReadHostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHost401JSONResponse Error
+
+func (response ReadHost401JSONResponse) VisitReadHostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHost404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadHost404JSONResponse) VisitReadHostResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHostSeriesRequestObject struct {
+	Id     ID `json:"id"`
+	Params ReadHostSeriesParams
+}
+
+type ReadHostSeriesResponseObject interface {
+	VisitReadHostSeriesResponse(w http.ResponseWriter) error
+}
+
+type ReadHostSeries200JSONResponse Series
+
+func (response ReadHostSeries200JSONResponse) VisitReadHostSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHostSeries400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ReadHostSeries400JSONResponse) VisitReadHostSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHostSeries401JSONResponse Error
+
+func (response ReadHostSeries401JSONResponse) VisitReadHostSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadHostSeries404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadHostSeries404JSONResponse) VisitReadHostSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadScopesRequestObject struct {
+}
+
+type ReadScopesResponseObject interface {
+	VisitReadScopesResponse(w http.ResponseWriter) error
+}
+
+type ReadScopes200JSONResponse []Scope
+
+func (response ReadScopes200JSONResponse) VisitReadScopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadScopes401JSONResponse Error
+
+func (response ReadScopes401JSONResponse) VisitReadScopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadScopes404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadScopes404JSONResponse) VisitReadScopesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadStatusRequestObject struct {
+}
+
+type ReadStatusResponseObject interface {
+	VisitReadStatusResponse(w http.ResponseWriter) error
+}
+
+type ReadStatus200JSONResponse Status
+
+func (response ReadStatus200JSONResponse) VisitReadStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadStatus401JSONResponse Error
+
+func (response ReadStatus401JSONResponse) VisitReadStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReadStatus404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ReadStatus404JSONResponse) VisitReadStatusResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -6979,12 +7991,42 @@ type StrictServerInterface interface {
 	// CheckUpdates Look for a newer release now, instead of at the next check
 	// (POST /api/updates)
 	CheckUpdates(ctx context.Context, request CheckUpdatesRequestObject) (CheckUpdatesResponseObject, error)
+	// ReadAlerts The alerts that are not OK now, the worst first
+	// (GET /api/v1/alerts)
+	ReadAlerts(ctx context.Context, request ReadAlertsRequestObject) (ReadAlertsResponseObject, error)
+	// ReadAlertHistory Transitions of alerts, newest first, at most 500
+	// (GET /api/v1/alerts/history)
+	ReadAlertHistory(ctx context.Context, request ReadAlertHistoryRequestObject) (ReadAlertHistoryResponseObject, error)
 	// ApplyDocument Apply a lotse.yaml, or show what it would change
 	// (POST /api/v1/apply)
 	ApplyDocument(ctx context.Context, request ApplyDocumentRequestObject) (ApplyDocumentResponseObject, error)
+	// ReadChecks Checks, with their state
+	// (GET /api/v1/checks)
+	ReadChecks(ctx context.Context, request ReadChecksRequestObject) (ReadChecksResponseObject, error)
+	// ReadCheckSeries A check's response time and success over time
+	// (GET /api/v1/checks/{id}/series)
+	ReadCheckSeries(ctx context.Context, request ReadCheckSeriesRequestObject) (ReadCheckSeriesResponseObject, error)
+	// ReadContainerSeries A container's readings over time
+	// (GET /api/v1/containers/{id}/series)
+	ReadContainerSeries(ctx context.Context, request ReadContainerSeriesRequestObject) (ReadContainerSeriesResponseObject, error)
 	// ExportScope A scope as lotse.yaml
 	// (GET /api/v1/export)
 	ExportScope(ctx context.Context, request ExportScopeRequestObject) (ExportScopeResponseObject, error)
+	// ReadHosts Hosts, with their newest reading
+	// (GET /api/v1/hosts)
+	ReadHosts(ctx context.Context, request ReadHostsRequestObject) (ReadHostsResponseObject, error)
+	// ReadHost A host, with its filesystems and containers
+	// (GET /api/v1/hosts/{id})
+	ReadHost(ctx context.Context, request ReadHostRequestObject) (ReadHostResponseObject, error)
+	// ReadHostSeries A host's readings over time
+	// (GET /api/v1/hosts/{id}/series)
+	ReadHostSeries(ctx context.Context, request ReadHostSeriesRequestObject) (ReadHostSeriesResponseObject, error)
+	// ReadScopes The customers, projects and environments a token sees
+	// (GET /api/v1/scopes)
+	ReadScopes(ctx context.Context, request ReadScopesRequestObject) (ReadScopesResponseObject, error)
+	// ReadStatus How everything a token sees stands, in figures
+	// (GET /api/v1/status)
+	ReadStatus(ctx context.Context, request ReadStatusRequestObject) (ReadStatusResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -8677,6 +9719,56 @@ func (sh *strictHandler) CheckUpdates(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ReadAlerts operation middleware
+func (sh *strictHandler) ReadAlerts(w http.ResponseWriter, r *http.Request) {
+	var request ReadAlertsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadAlerts(ctx, request.(ReadAlertsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadAlerts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadAlertsResponseObject); ok {
+		if err := validResponse.VisitReadAlertsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadAlertHistory operation middleware
+func (sh *strictHandler) ReadAlertHistory(w http.ResponseWriter, r *http.Request, params ReadAlertHistoryParams) {
+	var request ReadAlertHistoryRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadAlertHistory(ctx, request.(ReadAlertHistoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadAlertHistory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadAlertHistoryResponseObject); ok {
+		if err := validResponse.VisitReadAlertHistoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ApplyDocument operation middleware
 func (sh *strictHandler) ApplyDocument(w http.ResponseWriter, r *http.Request, params ApplyDocumentParams) {
 	var request ApplyDocumentRequestObject
@@ -8710,6 +9802,84 @@ func (sh *strictHandler) ApplyDocument(w http.ResponseWriter, r *http.Request, p
 	}
 }
 
+// ReadChecks operation middleware
+func (sh *strictHandler) ReadChecks(w http.ResponseWriter, r *http.Request) {
+	var request ReadChecksRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadChecks(ctx, request.(ReadChecksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadChecks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadChecksResponseObject); ok {
+		if err := validResponse.VisitReadChecksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadCheckSeries operation middleware
+func (sh *strictHandler) ReadCheckSeries(w http.ResponseWriter, r *http.Request, id ID, params ReadCheckSeriesParams) {
+	var request ReadCheckSeriesRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadCheckSeries(ctx, request.(ReadCheckSeriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadCheckSeries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadCheckSeriesResponseObject); ok {
+		if err := validResponse.VisitReadCheckSeriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadContainerSeries operation middleware
+func (sh *strictHandler) ReadContainerSeries(w http.ResponseWriter, r *http.Request, id ID, params ReadContainerSeriesParams) {
+	var request ReadContainerSeriesRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadContainerSeries(ctx, request.(ReadContainerSeriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadContainerSeries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadContainerSeriesResponseObject); ok {
+		if err := validResponse.VisitReadContainerSeriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ExportScope operation middleware
 func (sh *strictHandler) ExportScope(w http.ResponseWriter, r *http.Request, params ExportScopeParams) {
 	var request ExportScopeRequestObject
@@ -8729,6 +9899,131 @@ func (sh *strictHandler) ExportScope(w http.ResponseWriter, r *http.Request, par
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ExportScopeResponseObject); ok {
 		if err := validResponse.VisitExportScopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadHosts operation middleware
+func (sh *strictHandler) ReadHosts(w http.ResponseWriter, r *http.Request) {
+	var request ReadHostsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadHosts(ctx, request.(ReadHostsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadHosts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadHostsResponseObject); ok {
+		if err := validResponse.VisitReadHostsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadHost operation middleware
+func (sh *strictHandler) ReadHost(w http.ResponseWriter, r *http.Request, id ID) {
+	var request ReadHostRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadHost(ctx, request.(ReadHostRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadHost")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadHostResponseObject); ok {
+		if err := validResponse.VisitReadHostResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadHostSeries operation middleware
+func (sh *strictHandler) ReadHostSeries(w http.ResponseWriter, r *http.Request, id ID, params ReadHostSeriesParams) {
+	var request ReadHostSeriesRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadHostSeries(ctx, request.(ReadHostSeriesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadHostSeries")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadHostSeriesResponseObject); ok {
+		if err := validResponse.VisitReadHostSeriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadScopes operation middleware
+func (sh *strictHandler) ReadScopes(w http.ResponseWriter, r *http.Request) {
+	var request ReadScopesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadScopes(ctx, request.(ReadScopesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadScopes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadScopesResponseObject); ok {
+		if err := validResponse.VisitReadScopesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReadStatus operation middleware
+func (sh *strictHandler) ReadStatus(w http.ResponseWriter, r *http.Request) {
+	var request ReadStatusRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReadStatus(ctx, request.(ReadStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReadStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReadStatusResponseObject); ok {
+		if err := validResponse.VisitReadStatusResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

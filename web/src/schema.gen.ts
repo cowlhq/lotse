@@ -965,6 +965,210 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How everything a token sees stands, in figures */
+        get: operations["readStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The customers, projects and environments a token sees */
+        get: operations["readScopes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hosts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hosts, with their newest reading */
+        get: operations["readHosts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hosts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A host, with its filesystems and containers */
+        get: operations["readHost"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hosts/{id}/series": {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A host's readings over time */
+        get: operations["readHostSeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/containers/{id}/series": {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A container's readings over time */
+        get: operations["readContainerSeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Checks, with their state */
+        get: operations["readChecks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/checks/{id}/series": {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A check's response time and success over time */
+        get: operations["readCheckSeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The alerts that are not OK now, the worst first */
+        get: operations["readAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/history": {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transitions of alerts, newest first, at most 500 */
+        get: operations["readAlertHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1629,6 +1833,22 @@ export interface components {
             token: components["schemas"]["Token"];
             /** @description The token itself, lotse_tok_…; it is not shown again. */
             secret: string;
+        };
+        /** @description How everything stands, in figures. */
+        Status: {
+            /**
+             * @description The worst firing alert, or ok.
+             * @enum {string}
+             */
+            level: "ok" | "warn" | "crit";
+            hosts: number;
+            hosts_online: number;
+            checks: number;
+            checks_up: number;
+            /** @description Alerts firing at CRIT. */
+            critical: number;
+            /** @description Alerts firing at WARN. */
+            warnings: number;
         };
     };
     responses: {
@@ -3382,6 +3602,343 @@ export interface operations {
                 content?: never;
             };
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Status"];
+                };
+            };
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readScopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scope"][];
+                };
+            };
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readHosts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostSummary"][];
+                };
+            };
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostDetail"];
+                };
+            };
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readHostSeries: {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Series"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readContainerSeries: {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Series"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readChecks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Check"][];
+                };
+            };
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readCheckSeries: {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+                /** @description About how many points to return. Readings are averaged over steps long enough to stay below it. Defaults to 600. */
+                points?: components["parameters"]["Points"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Series"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readAlerts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertState"][];
+                };
+            };
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    readAlertHistory: {
+        parameters: {
+            query?: {
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The answer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"][];
+                };
+            };
+            /** @description No token, or one that does not work. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             404: components["responses"]["NotFound"];
         };
     };

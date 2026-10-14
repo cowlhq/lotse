@@ -3,6 +3,7 @@
 !go.sum
 !cmd
 !internal
+!api
 !client
 !web
 web/node_modules

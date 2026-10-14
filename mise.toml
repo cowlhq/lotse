@@ -51,5 +51,5 @@ run = [
   "shellcheck -s sh site/install",
   "pnpm --dir web exec tsc --noEmit",
   # What is generated from api/openapi.yaml is up to date.
-  "mise run gen && git diff --exit-code -- internal/hub/api web/src/schema.gen.ts",
+  "mise run gen && git diff --exit-code -- internal/hub/api client web/src/schema.gen.ts",
 ]

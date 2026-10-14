@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	spec "lotse.sh/api"
 	"lotse.sh/internal/auth"
 	"lotse.sh/internal/probe"
 	"lotse.sh/internal/protocol"
@@ -278,6 +279,10 @@ func (h *hub) routes() http.Handler {
 	mux.HandleFunc("/ping/{token}", h.ping)
 	mux.HandleFunc("/ping/{token}/{rest}", h.ping)
 	mux.HandleFunc("GET /api/live", h.connectLive)
+	mux.HandleFunc("GET /api/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/yaml")
+		w.Write(spec.OpenAPI)
+	})
 	mux.Handle("/api/", http.NotFoundHandler())
 	mux.Handle("/", ui.Handler(ui.Files()))
 	return h.guard(mux)
