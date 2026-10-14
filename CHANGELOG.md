@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.10](https://github.com/cowlhq/lotse/compare/v0.1.9...v0.1.10) (2026-10-14)
+
+
+### Features
+
+* **client:** lotse.sh/client reads a hub ([3961a82](https://github.com/cowlhq/lotse/commit/3961a827cbc49ec2c0698fcf45bab4c6722b8f2e))
+* **hub:** the read API under /api/v1, for a token's scope ([ff157e2](https://github.com/cowlhq/lotse/commit/ff157e2ffb9648385731de90815bd70876beee80))
+
 ## [0.1.9](https://github.com/cowlhq/lotse/compare/v0.1.8...v0.1.9) (2026-10-14)
 
 
