@@ -130,6 +130,10 @@ func open(url string) (*Store, error) {
 	return newStore(SQLite, db, read), nil
 }
 
+// OpenAsIs connects to the database at url without changing its schema,
+// for tools that work beside a running hub.
+func OpenAsIs(url string) (*Store, error) { return open(url) }
+
 // Ping says whether the database at url answers, without changing it.
 func Ping(ctx context.Context, url string) error {
 	s, err := open(url)
@@ -144,7 +148,7 @@ func Ping(ctx context.Context, url string) error {
 // is in use.
 func (s *Store) Backup(ctx context.Context, path string) error {
 	if s.dialect != SQLite {
-		return errors.New("only a SQLite database is backed up by lotse")
+		return errors.New("lotse backs up SQLite only: back Postgres up as you back up Postgres")
 	}
 	os.Remove(path)
 	_, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, path)

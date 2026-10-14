@@ -25,6 +25,7 @@ commands:
   start     run hub or agent in their newest installed version: lotse start hub|agent
   apply     send a lotse.yaml to the hub: lotse apply -f lotse.yaml [--dry-run] [--prune --scope acme]
   export    write a scope as lotse.yaml: lotse export [acme/shop]
+  backup    copy a SQLite hub's database while it runs: lotse backup FILE
   version   print the version
 `
 
@@ -52,6 +53,8 @@ func main() {
 		err = applyCommand(ctx, os.Args[2:])
 	case "export":
 		err = exportCommand(ctx, os.Args[2:])
+	case "backup":
+		err = backupCommand(ctx, os.Args[2:])
 	case "version":
 		fmt.Println(version.Version)
 	default:
