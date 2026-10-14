@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.9](https://github.com/cowlhq/lotse/compare/v0.1.8...v0.1.9) (2026-10-14)
+
+
+### Features
+
+* **apply:** the lotse.yaml format ([3ecb0b0](https://github.com/cowlhq/lotse/commit/3ecb0b05ad8df17814489ef163d978584cffd31b))
+* **cli:** lotse apply and lotse export ([917caf2](https://github.com/cowlhq/lotse/commit/917caf23c13ce4c2903f59ea483b963c2eee5378))
+* **hub:** containers configure themselves with lotse.* labels ([7417343](https://github.com/cowlhq/lotse/commit/741734334a624ce49c69dd8b48d456341a31d1f6))
+* **hub:** lotse apply and export, with API tokens per scope ([ef7d222](https://github.com/cowlhq/lotse/commit/ef7d2226da0c4b4e56b655a0c7c703f5e8aa8039))
+* **hub:** lotse apply names hosts before their agents come ([6b144e0](https://github.com/cowlhq/lotse/commit/6b144e0ef234259bd9ad94cc60713cce4be8f2d1))
+* **store:** containers remember their labels and environment ([b7ccfa2](https://github.com/cowlhq/lotse/commit/b7ccfa204d01920546b7f4545bc186bcf827db3b))
+* **store:** hosts that wait for their agent ([e9d1e96](https://github.com/cowlhq/lotse/commit/e9d1e963996f65879a6672f5cd8a74ac8a2a54ae))
+* **store:** one transaction for many changes, and API tokens ([5c0d7e5](https://github.com/cowlhq/lotse/commit/5c0d7e5fb195f42fbef6462d6e3eb085d866a230))
+* **web:** API tokens, and lotse.yaml to download ([774831a](https://github.com/cowlhq/lotse/commit/774831a3293a697903cfe2ef67b6bf43a49de00d))
+* **web:** hosts that wait for their agent ([9eab51c](https://github.com/cowlhq/lotse/commit/9eab51c10652c8d677de4554846e19b91e19fb7e))
+* **web:** ignored containers, and labels that cannot be applied ([7401b65](https://github.com/cowlhq/lotse/commit/7401b652fa00fb7b79a82a798b54095e8f903c43))
+
 ## [0.1.8](https://github.com/cowlhq/lotse/compare/v0.1.7...v0.1.8) (2026-10-14)
 
 
