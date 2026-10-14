@@ -28,20 +28,28 @@ type Container struct {
 	LastSeen       int64             `json:"last_seen"`
 	// GoneAt is when the host last listed it, if it no longer does.
 	GoneAt *int64 `json:"gone_at"`
+	// EnvironmentID is the environment its lotse.env label put it in; nil
+	// for its host's.
+	EnvironmentID *int64 `json:"environment_id"`
+	// LabelsApplied are the lotse.* labels last applied.
+	LabelsApplied map[string]string `json:"-"`
 }
 
 const containerColumns = `id, host_id, slug, docker_id, name, image, compose_project,
 	compose_service, state, health, exit_code, restarts, started_at, labels_json,
-	first_seen, last_seen, gone_at`
+	first_seen, last_seen, gone_at, environment_id, labels_applied`
 
 func scanContainer(row interface{ Scan(...any) error }) (Container, error) {
 	var c Container
-	var labels string
+	var labels, applied string
 	err := row.Scan(&c.ID, &c.HostID, &c.Slug, &c.DockerID, &c.Name, &c.Image, &c.ComposeProject,
 		&c.ComposeService, &c.State, &c.Health, &c.ExitCode, &c.Restarts, &c.StartedAt, &labels,
-		&c.FirstSeen, &c.LastSeen, &c.GoneAt)
+		&c.FirstSeen, &c.LastSeen, &c.GoneAt, &c.EnvironmentID, &applied)
 	if err == nil {
 		err = json.Unmarshal([]byte(labels), &c.Labels)
+	}
+	if err == nil {
+		err = json.Unmarshal([]byte(applied), &c.LabelsApplied)
 	}
 	return c, err
 }
@@ -165,4 +173,26 @@ func (s *Store) AllContainers(ctx context.Context) ([]Container, error) {
 		list = append(list, c)
 	}
 	return list, rows.Err()
+}
+
+// SetLabelsApplied notes which lotse.* labels of a container were applied,
+// and the environment its lotse.env label put it in (nil for its host's).
+func (s *Store) SetLabelsApplied(ctx context.Context, actor Actor, id int64, labels map[string]string, envID *int64, path string) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		c, err := scanContainer(tx.QueryRowContext(ctx, s.rebind(`SELECT `+containerColumns+` FROM containers WHERE id = ?`), id))
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		b, _ := json.Marshal(labels)
+		if _, err := tx.ExecContext(ctx, s.rebind(`UPDATE containers SET labels_applied = ?, environment_id = ? WHERE id = ?`), string(b), envID, id); err != nil {
+			return err
+		}
+		if !ptrEqual(c.EnvironmentID, envID) {
+			return s.recorder(tx, actor).record(ctx, "container", id, path, "environment", value(c.EnvironmentID), value(envID))
+		}
+		return nil
+	})
 }
