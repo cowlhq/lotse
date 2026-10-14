@@ -7,8 +7,9 @@ checks from the outside, alerting, and one place to look at it all.
 lotse runs on its own. [cowl](https://cowl.sh) can read from it, but does not
 have to.
 
-Work in progress. See [docs/design.md](docs/design.md), and
-[docs/install.md](docs/install.md) for installing the hub and agents.
+Work in progress. See [docs/design.md](docs/design.md),
+[docs/install.md](docs/install.md) for installing the hub and agents, and
+[docs/api.md](docs/api.md) for reading from it.
 
 ## Try it
 
@@ -21,10 +22,11 @@ one, an unhealthy one and one that crashes every two minutes. Then:
 
 1. Open the setup link from `docker compose logs hub`, choose SQLite, and
    create the admin.
-2. Create an environment ("New environment": customer, project, environment).
-3. "Add agent" on it shows, under "This compose stack", the line that starts
-   the agent of `compose.yml` on this machine:
-   `LOTSE_TOKEN=lotse_enr_… docker compose --profile agent up -d`.
+2. "Get started" on the home page leads through the rest: an environment
+   (customer, project, environment), then "Add host", which shows, under
+   "This compose stack", the line that starts the agent of `compose.yml` on
+   this machine: `LOTSE_TOKEN=lotse_enr_… docker compose --profile agent up -d`.
+   The demo web container brings a check of its own, from its labels.
 
 Port, listen address and the hub's address come from `LOTSE_PORT`,
 `LOTSE_BIND` and `LOTSE_URL`, best kept in a `.env` file next to
