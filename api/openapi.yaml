@@ -1496,7 +1496,7 @@ components:
     Host:
       type: object
       required: [id, name, hostname, os, platform, kernel, arch, cpu_model, cores, mem_total,
-        boot_time, agent_version, docker_version, first_seen, last_seen, online, agent_revoked]
+        boot_time, agent_version, docker_version, first_seen, last_seen, online, agent_revoked, waiting]
       properties:
         id: { type: integer, format: int64 }
         name: { type: string }
@@ -1521,6 +1521,9 @@ components:
         agent_revoked:
           type: boolean
           description: Whether its agent's credential is revoked; it comes back only by enrolling again.
+        waiting:
+          type: boolean
+          description: Named in lotse.yaml, it waits for its agent to enroll.
         environment_id:
           type: integer
           format: int64

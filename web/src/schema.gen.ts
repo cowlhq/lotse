@@ -1208,6 +1208,8 @@ export interface components {
             online: boolean;
             /** @description Whether its agent's credential is revoked; it comes back only by enrolling again. */
             agent_revoked: boolean;
+            /** @description Named in lotse.yaml, it waits for its agent to enroll. */
+            waiting: boolean;
             /**
              * Format: int64
              * @description Its environment; null until it is put into one.
