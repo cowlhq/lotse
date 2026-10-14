@@ -83,6 +83,30 @@ func (s *Store) Enroll(ctx context.Context, tokenHash, machineID, hostname, cred
 		r := s.recorder(tx, Actor{Kind: "system", Name: "enrollment", Via: "system"})
 
 		h, err := scanHost(tx.QueryRowContext(ctx, s.rebind(`SELECT `+hostColumns+` FROM hosts WHERE machine_id = ?`), machineID))
+		if errors.Is(err, sql.ErrNoRows) {
+			// A host named in lotse.yaml before its agent came: it is this
+			// machine, if the names match, with its settings in place.
+			h, err = scanHost(tx.QueryRowContext(ctx, s.rebind(`SELECT `+hostColumns+` FROM hosts
+				WHERE environment_id = ? AND name = ? AND machine_id LIKE 'waiting:%'`), envID, hostname))
+			if err == nil {
+				if err := tx.QueryRowContext(ctx, s.rebind(`UPDATE hosts SET machine_id = ?, hostname = ?, first_seen = ?, last_seen = ?
+					WHERE id = ? RETURNING `+hostColumns), machineID, hostname, now, now, h.ID).Scan(hostDest(&h)...); err != nil {
+					return err
+				}
+				if err := r.record(ctx, "host", h.ID, h.Name, "enrolled", nil, env.Path); err != nil {
+					return err
+				}
+				if _, err := tx.ExecContext(ctx, s.rebind(`INSERT INTO agents (host_id, token_hash, created_at)
+					VALUES (?, ?, ?)`), h.ID, credHash, now); err != nil {
+					return err
+				}
+				out.Host = h
+				return nil
+			}
+			if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+		}
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			err = tx.QueryRowContext(ctx, s.rebind(`
