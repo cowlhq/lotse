@@ -224,7 +224,8 @@
       "label": "by label",
       "api": "through the API",
       "setup": "in setup",
-      "system": "by lotse"
+      "system": "by lotse",
+      "token": "with a token"
     },
     "fields": {
       "name": "name",
@@ -243,7 +244,9 @@
     "into": "into {{where}}",
     "acknowledged": "{{alert}} acknowledged",
     "maintenanceAdded": "maintenance window added: {{what}}",
-    "maintenanceRemoved": "maintenance window removed: {{what}}"
+    "maintenanceRemoved": "maintenance window removed: {{what}}",
+    "tokenCreated": "API token {{name}} created",
+    "tokenRevoked": "API token {{name}} revoked"
   },
   "config": {
     "title": "Settings",
@@ -690,5 +693,37 @@
       "hint": "An email address, a Google Chat space or a webhook, so that you hear about problems.",
       "action": "Set up notifications"
     }
+  },
+  "token": {
+    "title": "API tokens",
+    "description": "For lotse apply and export, from a pipeline or a terminal, and for reading through the API. A token works on everything, or on one customer, project or environment and what is in it.",
+    "none": "No tokens yet.",
+    "new": "New token",
+    "newHint": "Give it a name that says where it is used, such as \"GitHub Actions\".",
+    "name": "Name",
+    "namePlaceholder": "GitHub Actions",
+    "what": "What it may do",
+    "where": "Where",
+    "kind": {
+      "apply": "Apply and export",
+      "read": "Read"
+    },
+    "kindHint": {
+      "apply": "lotse apply changes what is in its scope; lotse export reads it.",
+      "read": "Reads through the API and lotse export; changes nothing."
+    },
+    "everything": "Everything",
+    "create": "Create token",
+    "by": "by {{who}}, {{time}}",
+    "used": "used {{time}} ago",
+    "unused": "never used",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke the token {{name}}? Whatever uses it stops working.",
+    "revoked": "Token revoked.",
+    "madeTitle": "{{name}} is ready",
+    "madeHint": "Copy it now: the hub keeps only a hash and cannot show it again.",
+    "exportTitle": "Configuration as a file",
+    "exportHint": "Everything as lotse.yaml, to keep in Git and change with lotse apply. Secrets are never in it.",
+    "download": "Download lotse.yaml"
   }
 }

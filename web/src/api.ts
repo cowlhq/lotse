@@ -37,6 +37,8 @@ export type MailServerInput = Schemas["MailServerInput"];
 export type Maintenance = Schemas["Maintenance"];
 export type MaintenanceInput = Schemas["MaintenanceInput"];
 export type TestResult = Schemas["TestResult"];
+export type Token = Schemas["Token"];
+export type NewToken = Schemas["NewToken"];
 
 export type Range = { from: number; to: number };
 
@@ -100,6 +102,11 @@ export const testMailServer = (to: string) => post<TestResult>("/api/mail-server
 export const listMaintenance = (subject: string) => get<Maintenance[]>(`/api/maintenance?subject=${subject}`);
 export const createMaintenance = (input: MaintenanceInput) => post<Maintenance>("/api/maintenance", input);
 export const deleteMaintenance = (id: number) => send<void>("DELETE", `/api/maintenance/${id}`);
+export const listTokens = () => get<Token[]>("/api/tokens");
+export const createToken = (name: string, kind: Token["kind"], scopeID: number) => post<NewToken>("/api/tokens", { name, kind, scope_id: scopeID });
+export const revokeToken = (id: number) => send<void>("DELETE", `/api/tokens/${id}`);
+// exportURL is where a scope's lotse.yaml downloads from.
+export const exportURL = (path: string) => `/api/v1/export${path ? `?scope=${encodeURIComponent(path)}` : ""}`;
 
 export type SetupCheck = { valid: boolean; step?: SetupStep; postgres?: string };
 

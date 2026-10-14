@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Pencil, Trash2 } from "lucide-react";
+import { Download, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteScope, getScope, listChecks, listHosts, listScopes, NotFound, renameScope, updateScope, type HostSummary } from "@/api";
+import { deleteScope, exportURL, getScope, listChecks, listHosts, listScopes, NotFound, renameScope, updateScope, type HostSummary } from "@/api";
 import { AlertHistory, useAlerts } from "@/components/Alerts";
 import { Incidents } from "@/components/Incidents";
 import { CheckTable, HostTable } from "@/components/Tables";
@@ -167,6 +167,12 @@ export function Scope({ id }: { id: number }) {
             </p>
           </div>
           <Config subject={subject} />
+          {isAdmin && (
+            <Button variant="outline" size="sm" render={<a href={exportURL(scope.data.path)} download={`${scope.data.slug}.lotse.yaml`} />}>
+              <Download />
+              {t("token.download")}
+            </Button>
+          )}
           {isAdmin && mine.length === 0 && children.length === 0 && myChecks.length === 0 && <Delete id={id} />}
       </TabsContent>
       <TabsContent value="activity">
