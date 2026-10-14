@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLive } from "@/lib/live";
 import { firing } from "@/lib/status";
-import { AddMenu } from "@/components/shell/AddMenu";
+import { GettingStarted } from "@/components/GettingStarted";
 import { useMe } from "@/lib/useMe";
 
 // Home is everything at once: whether all is well, what needs attention,
@@ -55,14 +55,19 @@ export function Overview() {
   const fire = firing(problems);
   const crit = fire.filter((a) => a.state === "crit").length;
 
-  if (scopes.data.length === 0 && hosts.data.length === 0) return <Welcome isAdmin={isAdmin} />;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
           <StatusIcon level={crit ? "crit" : fire.length ? "warn" : "ok"} size={20} />
-          {crit ? t("overview.critical", { count: crit }) : fire.length ? t("overview.warnings", { count: fire.length }) : t("overview.allGood")}
+          {hosts.data.length === 0 && (checks.data?.length ?? 0) === 0
+            ? t("overview.welcome")
+            : crit
+              ? t("overview.critical", { count: crit })
+              : fire.length
+                ? t("overview.warnings", { count: fire.length })
+                : t("overview.allGood")}
         </h1>
         <div className="flex-1" />
         <div className="relative">
@@ -70,6 +75,8 @@ export function Overview() {
           <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t("rows.filter")} className="w-56 pl-8" />
         </div>
       </div>
+
+      {isAdmin && <GettingStarted scopes={scopes.data} hosts={hosts.data} checks={checks.data ?? []} />}
 
       {problems.length > 0 && (
         <section className="overflow-hidden rounded-lg border bg-card">
@@ -100,21 +107,6 @@ export function Overview() {
           <CheckTable checks={shownChecks} where={(c) => where(c.environment_id)} />
         )}
       </section>
-    </div>
-  );
-}
-
-function Welcome({ isAdmin }: { isAdmin: boolean }) {
-  const { t } = useTranslation();
-  return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-6 py-24 text-center">
-      <p className="text-lg font-semibold">{t("overview.welcome")}</p>
-      <p className="text-muted-foreground">{t("overview.welcomeHint")}</p>
-      {isAdmin && (
-        <div className="pt-2">
-          <AddMenu />
-        </div>
-      )}
     </div>
   );
 }

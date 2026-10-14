@@ -95,8 +95,8 @@ export function HostTable({ hosts, alerts, where, group }: { hosts: HostSummary[
           <tr>
             <Head k="name" {...p}>{t("table.host")}</Head>
             <Head k="cpu" {...p} className="w-[13%]">{t("metric.cpu")}</Head>
-            <Head k="mem" {...p} className="w-[13%]">{t("metric.memory")}</Head>
-            <Head k="disk" {...p} className="w-[13%]">{t("metric.disk")}</Head>
+            <Head k="mem" {...p} className="hidden w-[13%] sm:table-cell">{t("metric.memory")}</Head>
+            <Head k="disk" {...p} className="hidden w-[13%] sm:table-cell">{t("metric.disk")}</Head>
             <Head k="net" {...p} className="hidden w-[11%] lg:table-cell">{t("table.network")}</Head>
             <Head k="containers" {...p} className="hidden w-[9%] md:table-cell">{t("table.containers")}</Head>
             <th className="w-12" />
@@ -122,8 +122,8 @@ export function HostTable({ hosts, alerts, where, group }: { hosts: HostSummary[
                   </div>
                 </td>
                 <td className="px-3">{h.host.online ? <Bar pct={h.latest?.cpu} /> : null}</td>
-                <td className="px-3">{h.host.online ? <Bar pct={mem(h)} /> : null}</td>
-                <td className="px-3">{h.host.online ? <Bar pct={h.disk} /> : null}</td>
+                <td className="hidden px-3 sm:table-cell">{h.host.online ? <Bar pct={mem(h)} /> : null}</td>
+                <td className="hidden px-3 sm:table-cell">{h.host.online ? <Bar pct={h.disk} /> : null}</td>
                 <td className="hidden px-3 tabular-nums whitespace-nowrap lg:table-cell">{h.host.online ? rate(net(h)) : null}</td>
                 <td className="hidden px-3 tabular-nums md:table-cell">
                   {h.containers.total > 0 && (

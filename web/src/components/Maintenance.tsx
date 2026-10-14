@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Wrench } from "lucide-react";
 import { useState } from "react";
@@ -112,6 +113,7 @@ function Add({ subject, onDone }: { subject: string; onDone: () => void }) {
       client.invalidateQueries({ queryKey: ["maintenance"] });
       client.invalidateQueries({ queryKey: ["alerts"] });
       client.invalidateQueries({ queryKey: ["changes"] });
+      toast.success(t("maintenance.added"));
       onDone();
     },
   });

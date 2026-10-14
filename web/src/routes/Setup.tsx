@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { checkSetup, getHealth, setupAdmin, setupDatabase } from "@/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Centered } from "@/components/shell/Centered";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -26,17 +26,9 @@ export function Setup({ token }: { token: string }) {
   else body = <AdminStep token={token} />;
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 py-10">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("setup.title")}</h1>
-        {check.data?.valid && (
-          <p className="text-sm text-muted-foreground">
-            {t("setup.step", { n: check.data.step === "database" ? 1 : 2, of: 2 })}
-          </p>
-        )}
-      </div>
+    <Centered wide title={t("setup.title")} subtitle={check.data?.valid ? t("setup.step", { n: check.data.step === "database" ? 1 : 2, of: 2 }) : undefined}>
       {body}
-    </div>
+    </Centered>
   );
 }
 
@@ -63,26 +55,26 @@ function DatabaseStep({ token, postgres }: { token: string; postgres?: string })
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("setup.database.title")}</CardTitle>
-        <CardDescription>{t("setup.database.description")}</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h2 className="font-semibold">{t("setup.database.title")}</h2>
+        <p className="text-muted-foreground">{t("setup.database.description")}</p>
+      </div>
+      <div>
         <form onSubmit={submit} className="space-y-5">
           <RadioGroup value={kind} onValueChange={(v) => setKind(v as "sqlite" | "postgres")}>
             <Label className="flex items-start gap-3 font-normal">
               <RadioGroupItem value="sqlite" className="mt-0.5" />
               <span className="space-y-0.5">
                 <span className="block font-medium">{t("setup.database.sqlite")}</span>
-                <span className="block text-sm text-muted-foreground">{t("setup.database.sqliteHint")}</span>
+                <span className="block text-muted-foreground">{t("setup.database.sqliteHint")}</span>
               </span>
             </Label>
             <Label className="flex items-start gap-3 font-normal">
               <RadioGroupItem value="postgres" className="mt-0.5" />
               <span className="space-y-0.5">
                 <span className="block font-medium">{t("setup.database.postgres")}</span>
-                <span className="block text-sm text-muted-foreground">
+                <span className="block text-muted-foreground">
                   {postgres ? t("setup.database.postgresFound") : t("setup.database.postgresHint")}
                 </span>
               </span>
@@ -109,8 +101,8 @@ function DatabaseStep({ token, postgres }: { token: string; postgres?: string })
             {save.isPending ? t("setup.database.testing") : t("setup.continue")}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -141,12 +133,12 @@ function AdminStep({ token }: { token: string }) {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("setup.admin.title")}</CardTitle>
-        <CardDescription>{t("setup.admin.description")}</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h2 className="font-semibold">{t("setup.admin.title")}</h2>
+        <p className="text-muted-foreground">{t("setup.admin.description")}</p>
+      </div>
+      <div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -169,7 +161,7 @@ function AdminStep({ token }: { token: string }) {
             {t("setup.admin.finish")}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

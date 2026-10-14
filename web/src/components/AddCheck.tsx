@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { createCheck, type Check } from "@/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -25,12 +26,12 @@ export function AddCheck({ envID }: { envID: number }) {
         <Plus className="size-4" />
         {t("check.add")}
       </DialogTrigger>
-      <DialogContent>{open && <CheckForm envID={envID} />}</DialogContent>
+      <DialogContent>{open && <CheckForm envID={envID} onDone={() => setOpen(false)} />}</DialogContent>
     </Dialog>
   );
 }
 
-export function CheckForm({ envID }: { envID: number }) {
+export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -59,6 +60,8 @@ export function CheckForm({ envID }: { envID: number }) {
     mutationFn: () => createCheck({ environment_id: envID, name: name.trim() || suggested, type: kind, spec: spec() }),
     onSuccess: async (c) => {
       await client.invalidateQueries({ queryKey: ["checks"] });
+      onDone?.();
+      toast.success(t("check.created", { name: c.name }));
       navigate({ to: "/checks/$id", params: { id: String(c.id) } });
     },
   });

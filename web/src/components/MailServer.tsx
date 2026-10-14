@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -78,6 +79,7 @@ function Form({ server: m, onDone }: { server: MailServerData | null; onDone: ()
   });
   const [password, setPassword] = useState<SecretDraft>(emptySecret);
   const done = async () => {
+    toast.success(t("mail.saved"));
     await client.invalidateQueries({ queryKey: ["mail-server"] });
     client.invalidateQueries({ queryKey: ["changes"] });
     onDone();

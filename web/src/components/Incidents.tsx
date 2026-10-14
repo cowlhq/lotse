@@ -37,7 +37,7 @@ function Incident({ alert: a }: { alert: AlertState }) {
     <li className="group flex h-13 items-center gap-3 border-b px-4 transition-colors duration-100 last:border-b-0 hover:bg-accent/60">
       <StatusIcon level={levelOf(a)} />
       <Link to="/alerts/$id" params={{ id: String(a.alert_id) }} className="flex min-w-0 flex-1 items-baseline gap-2">
-        <span className="shrink-0 font-medium">{alertTitle(t, a)}</span>
+        <span className="truncate font-medium sm:shrink-0">{alertTitle(t, a)}</span>
         <span className="truncate">
           {name}
           {a.instance && <span className="font-mono text-mini"> {a.instance}</span>}
@@ -49,7 +49,7 @@ function Incident({ alert: a }: { alert: AlertState }) {
       </Link>
       <div className="flex shrink-0 items-center gap-4 text-mini text-muted-foreground">
         {a.value != null && a.unit && (
-          <span className="tabular-nums">
+          <span className="hidden tabular-nums sm:inline">
             <span className="text-foreground">{value(a.value, a.unit)}</span>
             {a.threshold != null && <> / {value(a.threshold, a.unit)}</>}
           </span>
@@ -60,14 +60,14 @@ function Incident({ alert: a }: { alert: AlertState }) {
           </span>
         )}
         {a.acked_by ? (
-          <span className="inline-flex items-center gap-1" title={t("alert.ackedBy", { who: a.acked_by })}>
+          <span className="hidden items-center gap-1 sm:inline-flex" title={t("alert.ackedBy", { who: a.acked_by })}>
             <Check className="size-3.5" />
             {a.acked_by.split("@")[0]}
           </span>
         ) : (
           isAdmin &&
           firing && (
-            <Button size="xs" variant="outline" className="transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100" disabled={ack.isPending} onClick={() => ack.mutate()}>
+            <Button size="xs" variant="outline" className="hidden transition-opacity md:inline-flex md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100" disabled={ack.isPending} onClick={() => ack.mutate()}>
               {t("alert.acknowledge")}
             </Button>
           )

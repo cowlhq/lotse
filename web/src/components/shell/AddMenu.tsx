@@ -11,13 +11,29 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 
-type What = "host" | "check" | "environment";
+export type What = "host" | "check" | "environment";
 
 // AddMenu is the one place to add something: a host, a check, or an
 // environment for them. Hosts and checks ask first where they belong.
-export function AddMenu({ compact = false }: { compact?: boolean }) {
+export function AddMenu({ compact = false, direct }: { compact?: boolean; direct?: What }) {
   const { t } = useTranslation();
   const [what, setWhat] = useState<What | null>(null);
+  const dialog = (
+    <Dialog open={what !== null} onOpenChange={(open) => !open && setWhat(null)}>
+      <DialogContent className={what === "host" ? "sm:max-w-2xl" : undefined}>{what && <Body what={what} done={() => setWhat(null)} />}</DialogContent>
+    </Dialog>
+  );
+  if (direct) {
+    return (
+      <>
+        <Button size="sm" onClick={() => setWhat(direct)}>
+          <Plus />
+          {t(`add.${direct}`)}
+        </Button>
+        {dialog}
+      </>
+    );
+  }
   return (
     <>
       <DropdownMenu>
@@ -46,9 +62,7 @@ export function AddMenu({ compact = false }: { compact?: boolean }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Dialog open={what !== null} onOpenChange={(open) => !open && setWhat(null)}>
-        <DialogContent className={what === "host" ? "sm:max-w-2xl" : undefined}>{what && <Body what={what} done={() => setWhat(null)} />}</DialogContent>
-      </Dialog>
+      {dialog}
     </>
   );
 }
@@ -95,5 +109,5 @@ function Body({ what, done }: { what: What; done: () => void }) {
       </div>
     );
   }
-  return what === "host" ? <AgentBody envID={chosen} /> : <CheckForm envID={chosen} />;
+  return what === "host" ? <AgentBody envID={chosen} onDone={done} /> : <CheckForm envID={chosen} onDone={done} />;
 }

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { login } from "@/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Centered } from "@/components/shell/Centered";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -25,38 +25,31 @@ export function Login({ next }: { next: string }) {
   });
 
   return (
-    <div className="mx-auto max-w-sm py-16">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("login.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit.mutate();
-            }}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="email">{t("login.email")}</Label>
-              <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("login.password")}</Label>
-              <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
-            {submit.isError && (
-              <Alert variant="destructive">
-                <AlertDescription>{submit.error.message}</AlertDescription>
-              </Alert>
-            )}
-            <Button type="submit" className="w-full" disabled={submit.isPending}>
-              {t("login.submit")}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <Centered title={t("login.title")} subtitle={t("login.subtitle")}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit.mutate();
+        }}
+        className="space-y-4"
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="email">{t("login.email")}</Label>
+          <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password">{t("login.password")}</Label>
+          <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+        {submit.isError && (
+          <Alert variant="destructive">
+            <AlertDescription>{submit.error.message}</AlertDescription>
+          </Alert>
+        )}
+        <Button type="submit" className="w-full" disabled={submit.isPending}>
+          {t("login.submit")}
+        </Button>
+      </form>
+    </Centered>
   );
 }

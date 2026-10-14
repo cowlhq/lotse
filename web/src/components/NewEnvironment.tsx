@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
@@ -35,7 +36,8 @@ export function EnvironmentForm({ customer: c0, project: p0, done }: { customer:
   const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
   const [customer, setCustomer] = useState(c0);
   const [project, setProject] = useState(p0);
-  const [environment, setEnvironment] = useState("");
+  // Most start with production; it is only a suggestion.
+  const [environment, setEnvironment] = useState("Production");
 
   const all = scopes.data ?? [];
   // A name the hub already knows keeps its key; a new one gets one.
@@ -58,6 +60,7 @@ export function EnvironmentForm({ customer: c0, project: p0, done }: { customer:
     onSuccess: async (env) => {
       await client.invalidateQueries({ queryKey: ["scopes"] });
       done();
+      toast.success(t("tree.created", { name: env.name }));
       navigate({ to: "/scopes/$id", params: { id: String(env.id) } });
     },
   });
