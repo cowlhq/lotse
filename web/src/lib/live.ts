@@ -80,7 +80,9 @@ export function useLive(topicList: string[], onMessage: (m: LiveMessage) => void
 // appendReading adds a reading to a series, if it is newer than its last
 // point.
 export function appendReading(s: Series | undefined, ts: number, values: Record<string, number | null | undefined>) {
-  if (!s || (s.time.length > 0 && ts <= s.time[s.time.length - 1])) return s;
+  // Over a long range a step spans many readings: one that falls in the
+  // last step waits for the next fetch, which averages it in.
+  if (!s || (s.time.length > 0 && ts < s.time[s.time.length - 1] + Math.max(s.step, 1))) return s;
   const columns: Series["columns"] = {};
   for (const [k, col] of Object.entries(s.columns)) columns[k] = [...col, values[k] ?? null];
   return { ...s, time: [...s.time, ts], columns };

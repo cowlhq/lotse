@@ -80,7 +80,14 @@
     "hours_one": "{{count}} hour",
     "hours_other": "{{count}} hours",
     "days_one": "{{count}} day",
-    "days_other": "{{count}} days"
+    "days_other": "{{count}} days",
+    "years_one": "{{count}} year",
+    "years_other": "{{count}} years",
+    "short": {
+      "hours": "{{count}}h",
+      "days": "{{count}}d",
+      "years": "{{count}}y"
+    }
   },
   "ago": "{{time}} ago",
   "metric": {
