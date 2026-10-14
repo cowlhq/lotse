@@ -59,7 +59,7 @@ func TestCheck(t *testing.T) {
 }
 
 func TestShort(t *testing.T) {
-	for d, want := range map[string]string{"5s": "5s", "1h": "1h", "90m": "1h30m", "2m": "2m", "1h0m30s": "1h0m30s"} {
+	for d, want := range map[string]string{"5s": "5s", "1h": "1h", "90m": "1h30m", "2m": "2m", "1h0m30s": "1h0m30s", "24h": "24h", "48h": "2d", "720h": "30d", "50h": "50h"} {
 		x, _ := time.ParseDuration(d)
 		if got := short(x); got != want {
 			t.Errorf("short(%s) = %s, want %s", d, got, want)
@@ -175,5 +175,20 @@ func TestSchedule(t *testing.T) {
 		if got := sc.Contains(c.t); got != c.want {
 			t.Errorf("%s contains %s: %v", c.schedule, c.t.Format("Mon 15:04"), got)
 		}
+	}
+}
+
+func TestDays(t *testing.T) {
+	for v, want := range map[string]time.Duration{`"30d"`: 30 * 24 * time.Hour, `"2h"`: 2 * time.Hour} {
+		if d, err := Duration(json.RawMessage(v)); err != nil || d != want {
+			t.Errorf("%s: %v, %v", v, d, err)
+		}
+	}
+	if _, err := Duration(json.RawMessage(`"xd"`)); err == nil {
+		t.Error("xd is a duration")
+	}
+	k, _ := Lookup("retention.raw")
+	if k.Check(json.RawMessage(`"1h"`)) == nil || k.Check(json.RawMessage(`"3d"`)) != nil || k.SettableOn("customer") {
+		t.Error("retention.raw")
 	}
 }
