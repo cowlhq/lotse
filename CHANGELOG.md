@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.5](https://github.com/cowlhq/lotse/compare/v0.1.4...v0.1.5) (2026-10-14)
+
+
+### Features
+
+* **alert:** rules hold for a while before they fire and clear ([fe30aa8](https://github.com/cowlhq/lotse/commit/fe30aa80b826cb5ff8209455c16c385888b0a204))
+* **config:** alert rules and notification settings, and schedules ([3183e7e](https://github.com/cowlhq/lotse/commit/3183e7e116a2d033296449c267c2a924d3f45a5c))
+* **hub:** alerts, sent to channels, held back in maintenance, acknowledged ([9cbc77c](https://github.com/cowlhq/lotse/commit/9cbc77c5701a52c4d548022a1c980b19ce341212))
+* **notify:** alerts by email, to Google Chat and to webhooks ([cfc8c8d](https://github.com/cowlhq/lotse/commit/cfc8c8d3c729c95f78904a4e9240fb31ba45270e))
+* **store:** channels, the mail server, maintenance windows, and alerts ([dedc980](https://github.com/cowlhq/lotse/commit/dedc980f4eae9620984cc3a189ce231dfd364071))
+* **web:** alerts, channels, the mail server, maintenance, and rules as a table ([f6c58e2](https://github.com/cowlhq/lotse/commit/f6c58e2b187ee9d59b0706c616f26e475541df05))
+
 ## [0.1.4](https://github.com/cowlhq/lotse/compare/v0.1.3...v0.1.4) (2026-10-14)
 
 
