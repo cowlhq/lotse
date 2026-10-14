@@ -23,6 +23,8 @@ commands:
             or only enroll it: lotse agent enroll --hub URL --token TOKEN
   probe     check from another place: lotse probe --hub URL --token TOKEN --name fra
   start     run hub or agent in their newest installed version: lotse start hub|agent
+  apply     send a lotse.yaml to the hub: lotse apply -f lotse.yaml [--dry-run] [--prune --scope acme]
+  export    write a scope as lotse.yaml: lotse export [acme/shop]
   version   print the version
 `
 
@@ -46,6 +48,10 @@ func main() {
 		code := startCommand(ctx, os.Args[2:], log)
 		stop()
 		os.Exit(code)
+	case "apply":
+		err = applyCommand(ctx, os.Args[2:])
+	case "export":
+		err = exportCommand(ctx, os.Args[2:])
 	case "version":
 		fmt.Println(version.Version)
 	default:
