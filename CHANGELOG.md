@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/cowlhq/lotse/compare/v0.1.5...v0.1.6) (2026-10-14)
+
+
+### Bug Fixes
+
+* **hub:** a check's failures in a row survive a restart ([89711aa](https://github.com/cowlhq/lotse/commit/89711aa38c2d7c440f48356f1bb6c780c3f1ff92))
+
 ## [0.1.5](https://github.com/cowlhq/lotse/compare/v0.1.4...v0.1.5) (2026-10-14)
 
 
