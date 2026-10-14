@@ -549,8 +549,11 @@ customers:
 ```
 
 - `lotse apply -f lotse.yaml` sends the file to the hub (`POST /api/v1/apply`),
-  authenticated with an API token of kind `apply`. The hub matches objects by
-  key, computes the change and applies it in one transaction.
+  authenticated with an API token of kind `apply`, for everything or for one
+  scope (decision 0019). The hub matches objects by key, computes the
+  change and applies it in one transaction. Secrets are references
+  (`{env: …}`, `{file: …}`), read by `lotse apply` from its own environment
+  (`{from_env: …}`), or kept as they are (`{secret: …}`).
 - `--dry-run` prints the diff instead, and for each object who last changed it
   and how ("changed 2026-10-12 by andreas via ui").
 - `--prune --scope acme/shop` also deletes what the file does not mention, but

@@ -24,3 +24,4 @@ old one.
 | [0016](0016-versions.md) | Until 1.0, releases count up the patch version | 2026-10-13 |
 | [0017](0017-alerting.md) | Alerts: a mail server per hub or channel, gathered, acknowledged | 2026-10-14 |
 | [0018](0018-interface.md) | The interface is as simple as Beszel's | 2026-10-14 |
+| [0019](0019-configuration-as-code.md) | Configuration as code: tokens per scope, secrets never in files | 2026-10-14 |
