@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -149,6 +150,30 @@ var keys = []Key{
 		},
 	},
 	{
+		Name:        "retention.raw",
+		Type:        "duration",
+		Description: "How long readings are kept as they came. After that, their 5-minute averages are.",
+		Default:     json.RawMessage(`"2d"`),
+		GlobalOnly:  true,
+		Check:       durationBetween(6*time.Hour, 30*24*time.Hour),
+	},
+	{
+		Name:        "retention.5m",
+		Type:        "duration",
+		Description: "How long 5-minute averages are kept. After that, hourly ones are.",
+		Default:     json.RawMessage(`"30d"`),
+		GlobalOnly:  true,
+		Check:       durationBetween(24*time.Hour, 366*24*time.Hour),
+	},
+	{
+		Name:        "retention.1h",
+		Type:        "duration",
+		Description: "How long hourly averages are kept, and events and alerts.",
+		Default:     json.RawMessage(`"365d"`),
+		GlobalOnly:  true,
+		Check:       durationBetween(7*24*time.Hour, 10*366*24*time.Hour),
+	},
+	{
 		Name:        "deadman.url",
 		Type:        "url",
 		Description: "An address the hub calls while its alerting works, such as a healthchecks.io check, which raises the alarm when the calls stop.",
@@ -213,11 +238,19 @@ func (k Key) SettableOn(kind string) bool {
 	return false
 }
 
-// Duration reads a duration value.
+// Duration reads a duration value: Go's, such as 15s or 2h30m, or a whole
+// number of days, such as 30d.
 func Duration(v json.RawMessage) (time.Duration, error) {
 	var s string
 	if err := json.Unmarshal(v, &s); err != nil {
 		return 0, fmt.Errorf("a duration is a string such as \"15s\"")
+	}
+	if days, ok := strings.CutSuffix(s, "d"); ok {
+		n, err := strconv.Atoi(days)
+		if err != nil || n < 0 {
+			return 0, fmt.Errorf("%q is not a number of days", s)
+		}
+		return time.Duration(n) * 24 * time.Hour, nil
 	}
 	return time.ParseDuration(s)
 }
@@ -292,8 +325,12 @@ func Resolve(kind string, levels []Level, set []map[string]json.RawMessage, defa
 	return out
 }
 
-// short writes a duration without zero parts: 1h, not 1h0m0s.
+// short writes a duration without zero parts: 1h, not 1h0m0s; whole days
+// from two on as days: 30d.
 func short(d time.Duration) string {
+	if d >= 48*time.Hour && d%(24*time.Hour) == 0 {
+		return strconv.Itoa(int(d/(24*time.Hour))) + "d"
+	}
 	s := d.String()
 	for _, zero := range []string{"m0s", "h0m"} {
 		if strings.HasSuffix(s, zero) {
