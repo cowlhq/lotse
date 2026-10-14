@@ -8,7 +8,7 @@ import type { components } from "@/schema.gen";
 // seconds.
 
 export type LiveMessage = {
-  type: "host" | "host_state" | "container_stats" | "containers" | "update";
+  type: "host" | "host_state" | "container_stats" | "containers" | "update" | "alerts";
   host_id: number;
   reading?: HostReading;
   online?: boolean;

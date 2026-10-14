@@ -18,7 +18,7 @@ export function History({ subject }: { subject: string }) {
           <ul className="space-y-2 text-sm">
             {changes.data.map((c) => (
               <li key={c.id} className="grid grid-cols-[11rem_1fr] gap-4">
-                <span className="tabular-nums text-muted-foreground">{dateTime(c.at)}</span>
+                <span className="tabular-nums whitespace-nowrap text-muted-foreground">{dateTime(c.at)}</span>
                 <span>
                   <What change={c} />
                   <span className="text-muted-foreground"> · {t("history.by", { who: c.actor_name, via: t(`history.via.${c.via}`) })}</span>
@@ -40,6 +40,12 @@ function What({ change: c }: { change: Change }) {
   const { t } = useTranslation();
   const show = (v: unknown) => (v == null ? t("history.nothing") : typeof v === "string" ? v : JSON.stringify(v));
   if (c.field === "created") return <>{t("history.created")}</>;
+  if (c.field.startsWith("alert ") && c.new === "acknowledged") return <>{t("history.acknowledged", { alert: c.field.slice(6) })}</>;
+  if (c.field === "maintenance") {
+    const w = (c.new ?? c.old) as { schedule?: string; starts_at?: number; ends_at?: number; reason?: string };
+    const what = (w.schedule ?? `${dateTime(w.starts_at ?? 0)} – ${dateTime(w.ends_at ?? 0)}`) + (w.reason ? `, ${w.reason}` : "");
+    return <>{t(c.new ? "history.maintenanceAdded" : "history.maintenanceRemoved", { what })}</>;
+  }
   if (c.field === "deleted") return <>{t("history.deleted")}</>;
   // Things that happened rather than values that changed: the label, and
   // where to if there is a where.

@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { checkUpdates, getHealth, listHosts, updateHub } from "@/api";
+import { Channels } from "@/components/Channels";
+import { MailServer } from "@/components/MailServer";
+import { Maintenance } from "@/components/Maintenance";
 import { Config } from "@/components/Config";
 import { History } from "@/components/History";
 import { Probes } from "@/components/Probes";
@@ -26,6 +29,9 @@ export function Settings() {
       <HubVersion />
       {isAdmin && <UpdateAgents scopeID={1} hosts={hosts.data ?? []} />}
       <Probes />
+      <MailServer />
+      <Channels scopeID={1} />
+      <Maintenance subject="global:1" />
       <Config subject="global:1" />
       <History subject="global:1" />
     </div>

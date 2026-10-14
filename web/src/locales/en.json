@@ -52,7 +52,9 @@
   },
   "range": {
     "hours_one": "{{count}} hour",
-    "hours_other": "{{count}} hours"
+    "hours_other": "{{count}} hours",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
   },
   "ago": "{{time}} ago",
   "metric": {
@@ -186,9 +188,16 @@
       "enrolled again": "enrolled again",
       "agent revoked": "agent revoked",
       "enrollment token created": "enrollment token created",
-      "enrollment token replaced": "enrollment token replaced"
+      "enrollment token replaced": "enrollment token replaced",
+      "maintenance": "maintenance",
+      "mail_server": "mail server",
+      "secrets": "secrets",
+      "spec": "spec"
     },
-    "into": "into {{where}}"
+    "into": "into {{where}}",
+    "acknowledged": "{{alert}} acknowledged",
+    "maintenanceAdded": "maintenance window added: {{what}}",
+    "maintenanceRemoved": "maintenance window removed: {{what}}"
   },
   "config": {
     "title": "Settings",
@@ -205,12 +214,19 @@
       "project": "project",
       "customer": "customer",
       "global": "global settings",
-      "check": "check"
+      "check": "check",
+      "container": "container"
     },
     "on": "on",
     "off": "off",
     "turnOn": "Turn on here",
-    "turnOff": "Turn off here"
+    "turnOff": "Turn off here",
+    "rules": "Alert rules",
+    "rulesDescription": "When something fires, and how bad it is. Values in bold are set here; the others are inherited, and say from where on hover. Click one to change it here.",
+    "rule": "Rule",
+    "enabled": "On",
+    "for": "For",
+    "recover": "Recover"
   },
   "settings": {
     "title": "Settings"
@@ -325,5 +341,162 @@
     "name": "Name",
     "location": "Location",
     "tokenHint": "The token is the hub's probe token; it is needed once per probe. A check runs on all probes unless its setting check.probes says otherwise."
+  },
+  "rules": {
+    "host.silent": "The agent sends nothing.",
+    "host.disk": "A filesystem is full.",
+    "host.cpu": "The CPUs are busy.",
+    "host.memory": "Memory is used up.",
+    "host.swap": "Swap is used up.",
+    "host.load": "The load over 5 minutes, per core, is high.",
+    "host.iowait": "The CPUs wait for disks.",
+    "container.unhealthy": "A running container's health check fails.",
+    "container.restarting": "A container stopped this many times in 10 minutes.",
+    "check.down": "A check failed this many runs in a row, on most of its probes.",
+    "check.cert": "A certificate expires in fewer days than this.",
+    "check.heartbeat": "A heartbeat did not come in time, or said its job failed.",
+    "probe.silent": "An external probe is gone.",
+    "channel.failing": "A channel cannot send notifications."
+  },
+  "alert": {
+    "title": "Alerts",
+    "state": {
+      "ok": "OK",
+      "warn": "WARN",
+      "crit": "CRIT",
+      "unknown": "UNKNOWN"
+    },
+    "firing": "Firing now",
+    "allGood": "Nothing fires.",
+    "stateTitle": "State",
+    "rule": "Rule",
+    "subject": "Where",
+    "value": "Value / threshold",
+    "since": "Since",
+    "pending": "{{state}} soon",
+    "maintenance": "maintenance",
+    "inMaintenance": "During maintenance: recorded, but not sent. It is sent when the window ends, if it still fires.",
+    "ackedBy": "acknowledged by {{who}}",
+    "acknowledge": "Acknowledge",
+    "history": "Alert history",
+    "noHistory": "Nothing happened in this time.",
+    "notFound": "There is no such alert.",
+    "what": "What happened",
+    "went": "{{from}} → {{to}}, {{time}}",
+    "measured": "Measured {{value}}",
+    "threshold": "threshold {{value}}",
+    "now": "Now",
+    "why": "The rule as it applied",
+    "setting": "Setting",
+    "settingValue": "Value",
+    "settingFrom": "From",
+    "notifications": "Notifications",
+    "noNotifications": "Nothing was sent: notify.channels names no channel here.",
+    "status": {
+      "pending": "waiting to be sent",
+      "sent": "sent",
+      "failed": "failed",
+      "suppressed": "held back for maintenance"
+    },
+    "repeat": "repeat",
+    "attempts_one": "{{count}} attempt",
+    "attempts_other": "{{count}} attempts"
+  },
+  "channel": {
+    "title": "Channels",
+    "description": "Where alerts go. Channels defined here can be used here and below, by their key, in notify.channels.",
+    "none": "No channels yet.",
+    "above": "From above, usable here:",
+    "type": {
+      "email": "Email",
+      "googlechat": "Google Chat",
+      "webhook": "Webhook"
+    },
+    "typeHint": {
+      "email": "Sends alerts by email, through the mail server in the settings, or one of its own.",
+      "googlechat": "Posts alerts to a Google Chat space, through the space's webhook.",
+      "webhook": "Posts alerts as JSON to an address, for anything else: a ticket system, a pager, a script."
+    },
+    "test": "Test",
+    "testSent": "Sent. Check that it arrived.",
+    "testFailed": "Not sent: {{error}}",
+    "delete": "Delete",
+    "deleteConfirm": "Delete the channel {{key}}? Alerts that name it go nowhere until another channel has its key.",
+    "edit": "Edit channel",
+    "add": "Add channel",
+    "name": "Name",
+    "namePlaceholder": "Ops mail",
+    "key": "Key",
+    "to": "Recipients",
+    "ownServer": "Send through a mail server of its own",
+    "url": "Address",
+    "urlHint": {
+      "googlechat": "In the space: Apps & integrations, Webhooks.",
+      "webhook": "Receives a POST with the alerts as JSON."
+    },
+    "signingKey": "Signing key",
+    "signingHint": "If set, X-Lotse-Signature carries the HMAC-SHA256 of the timestamp and the body, so the receiver can tell the message comes from the hub."
+  },
+  "secret": {
+    "mode": {
+      "value": "Value",
+      "env": "Variable",
+      "file": "File"
+    },
+    "fromEnv": "from ${{name}}",
+    "fromFile": "from {{name}}",
+    "sealed": "kept sealed",
+    "keep": "Leave empty to keep it",
+    "isSet": "Set, {{how}}.",
+    "hint": {
+      "value": "The hub keeps it sealed and never shows it again.",
+      "env": "The hub reads the environment variable when it sends; set it in the compose file.",
+      "file": "The hub reads the file when it sends, from /run/secrets, as Docker secrets are."
+    }
+  },
+  "mail": {
+    "title": "Mail server",
+    "description": "The SMTP server email channels send through, unless one has its own.",
+    "none": "No mail server yet: email channels cannot send.",
+    "set": "Set mail server",
+    "edit": "Change",
+    "host": "Host",
+    "port": "Port",
+    "from": "Sender",
+    "username": "Username",
+    "password": "Password",
+    "tls": "Encryption",
+    "tlsMode": {
+      "starttls": "STARTTLS",
+      "tls": "TLS",
+      "none": "None"
+    },
+    "tlsHint": {
+      "starttls": "Usual on port 587. The hub refuses to send if the server does not offer it.",
+      "tls": "TLS from the start, usual on port 465.",
+      "none": "Unencrypted. Only for a mail server on the same machine or network; a password is then only sent to this machine."
+    },
+    "test": "Send test email",
+    "testSent": "Sent. Check your inbox.",
+    "remove": "Remove",
+    "removeConfirm": "Remove the mail server? Email channels without one of their own stop sending."
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "description": "While a window is on, alerts here are recorded but not sent. What still fires when it ends is sent then.",
+    "none": "No maintenance windows.",
+    "now": "now",
+    "on": "on {{path}}",
+    "end": "End now",
+    "remove": "Remove",
+    "add": "Add window",
+    "once": "Once",
+    "schedule": "Again and again",
+    "from": "From",
+    "until": "Until",
+    "scheduleHint": "Days and a time, in the hub's time zone: daily 04:00-06:00, sun 02:00-04:00, mon-fri 22:00-23:00, mon,thu 01:00-02:00.",
+    "reason": "Reason",
+    "reasonPlaceholder": "Moving to the new server",
+    "save": "Add"
   }
 }

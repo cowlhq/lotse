@@ -4,6 +4,8 @@ import { Check as CheckIcon, Copy, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteCheck, getCheck, getSeries, listEvents, listScopes, NotFound, type CheckDetail } from "@/api";
+import { AlertHistory, AlertList } from "@/components/Alerts";
+import { Maintenance } from "@/components/Maintenance";
 import { Chart, type Line } from "@/components/Chart";
 import { certDays, CheckState, target } from "@/components/CheckState";
 import { Config } from "@/components/Config";
@@ -70,6 +72,7 @@ export function Check({ id }: { id: number }) {
         <p className="text-sm text-muted-foreground">{target(c)}</p>
         {c.state === "down" && c.error && <p className="text-sm" style={{ color: status.critical }}>{c.error}</p>}
       </div>
+      <AlertList subject={`check:${id}`} />
 
       {c.type === "heartbeat" ? (
         <Heartbeat check={c} />
@@ -100,6 +103,8 @@ export function Check({ id }: { id: number }) {
         </>
       )}
       <Events events={events.data ?? []} />
+      <AlertHistory subject={`check:${id}`} />
+      <Maintenance subject={`check:${id}`} />
       <Config subject={`check:${id}`} />
       <History subject={`check:${id}`} />
       {isAdmin && <Delete id={id} envID={c.environment_id} />}

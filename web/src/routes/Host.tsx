@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getHost, getSeries, listEvents, listScopes, NotFound, revokeAgent, setHostEnvironment, updateHost, type Container, type Host as HostData, type HostDetail, type Series } from "@/api";
+import { AlertHistory, AlertList } from "@/components/Alerts";
+import { Maintenance } from "@/components/Maintenance";
 import { Config } from "@/components/Config";
 import { Events } from "@/components/Events";
 import { UpdateBadge } from "@/components/UpdateBadge";
@@ -50,6 +52,7 @@ export function Host({ id }: { id: number }) {
     <div className="space-y-6">
       <Header detail={host.data} live={lastLive} />
       <AgentUpdate host={host.data.host} status={update} />
+      <AlertList subject={`host:${id}`} />
       <div className="flex justify-end">
         <RangePicker value={seconds} onChange={setSeconds} />
       </div>
@@ -68,6 +71,8 @@ export function Host({ id }: { id: number }) {
       <Filesystems detail={host.data} />
       <Containers containers={host.data.containers} />
       <Events events={events.data ?? []} />
+      <AlertHistory subject={`host:${id}`} />
+      <Maintenance subject={`host:${id}`} />
       <Config subject={`host:${id}`} />
       <History subject={`host:${id}`} />
       {!host.data.host.agent_revoked && <Revoke hostID={id} />}

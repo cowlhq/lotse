@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { listChecks, listHosts, listScopes, type Check, type HostSummary } from "@/api";
+import { AlertList } from "@/components/Alerts";
 import { CheckState } from "@/components/CheckState";
 import { NewEnvironment } from "@/components/NewEnvironment";
 import { useMe } from "@/lib/useMe";
@@ -51,6 +52,7 @@ export function Overview() {
         <h1 className="text-xl font-semibold">{t("overview.title")}</h1>
         {isAdmin && <NewEnvironment />}
       </div>
+      <AlertList />
       {scopes.data.length === 0 && <p className="text-muted-foreground">{t("overview.start")}</p>}
       {children(null).map((customer) => (
         <section key={customer.id} className="space-y-4">

@@ -4,6 +4,9 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { deleteScope, getScope, listChecks, listHosts, listScopes, NotFound, renameScope, updateScope, type HostSummary } from "@/api";
+import { AlertHistory, AlertList } from "@/components/Alerts";
+import { Channels } from "@/components/Channels";
+import { Maintenance } from "@/components/Maintenance";
 import { AddAgent } from "@/components/AddAgent";
 import { AddCheck } from "@/components/AddCheck";
 import { CheckList } from "@/components/CheckList";
@@ -66,6 +69,7 @@ export function Scope({ id }: { id: number }) {
           {t("tree.key")} <code>{scope.data.path}</code>
         </p>
       </div>
+      <AlertList subject={subject} />
       {scope.data.kind === "environment" ? (
         <div className="space-y-6">
           <div className="space-y-3">
@@ -93,7 +97,10 @@ export function Scope({ id }: { id: number }) {
         </ul>
       )}
       {isAdmin && <UpdateAgents scopeID={id} hosts={(hosts.data ?? []).filter((h) => below(h.host.environment_id))} />}
+      <Channels scopeID={id} />
+      <Maintenance subject={subject} />
       <Config subject={subject} />
+      <AlertHistory subject={subject} />
       <History subject={subject} />
       {isAdmin && mine.length === 0 && children.length === 0 && !(checks.data?.length) && <Delete id={id} />}
     </div>
