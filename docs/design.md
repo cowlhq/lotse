@@ -193,7 +193,8 @@ environment and still contains the host's slug.
 Everything that can be inherited is a **setting**: a key from a schema defined
 in `internal/config`, with a value set on any scope or object. The effective
 value for an object is the one set closest to it. If nothing is set, the
-built-in default applies.
+built-in default applies. A container's settings come from its host first,
+then the host's environment and up (decision 0017).
 
 ```
 settings(subject_kind, subject_id, key, value_json, updated_at)
@@ -253,10 +254,11 @@ checks        id, environment_id, container_id (null unless from a container),
               spec_json, ping_token_hash (heartbeats), created_at
 probes        id, slug, name, location, builtin, token_hash, version,
               last_seen, revoked_at
-channels      id, scope_id, slug, type (email|googlechat|webhook),
-              spec_json, secret_sealed, secret_ref, created_at
-maintenance   id, subject_kind, subject_id, starts_at, ends_at, reason,
-              created_by
+channels      id, scope_id, slug, name, type (email|googlechat|webhook),
+              spec_json, secret_sealed, secret_refs_json, created_at
+mail_server   spec_json, secret_sealed, secret_refs_json (one row)
+maintenance   id, subject_kind, subject_id, starts_at, ends_at, schedule,
+              reason, created_by
 ```
 
 **Measurements**, one row per sample. They are wide, not one row per metric,
@@ -284,14 +286,16 @@ maximum latency).
 
 ```
 alert_states   rule, subject_kind, subject_id, instance, state, since,
-               pending_since, recovering_since, value, notified_state
+               pending, pending_since, recovering_since, previous, value,
+               alert_id, notified_state, notified_at, acked_by, acked_at
                unique (rule, subject_kind, subject_id, instance)
 alerts         id, rule, subject_kind, subject_id, subject_path, instance,
                from_state, to_state, at, value, threshold,
                rule_json (the effective rule with where each value came from),
                in_maintenance
-notifications  id, alert_id, channel_id, status (sent|failed|suppressed),
-               attempts, error, at
+notifications  id, alert_id, channel_id, channel, kind (change|repeat),
+               status (pending|sent|failed|suppressed), attempts, error,
+               created_at, next_at, sent_at
 ```
 
 `instance` separates several alerts of one rule on one object, such as two
@@ -450,7 +454,7 @@ overridable like any setting:
 | `host.disk` | filesystem usage | WARN 85 %, CRIT 95 %, for 5 min |
 | `container.unhealthy` | health check `unhealthy` | CRIT after 2 min |
 | `container.restarting` | restarts | CRIT at ≥ 3 in 10 min |
-| `check.down` | check fails on the quorum of probes | CRIT after 2 failed runs |
+| `check.down` | runs in a row that failed on most of the check's probes | CRIT at 2 |
 | `check.cert` | certificate expires (any https check, any tls check) | WARN < 14 d, CRIT < 7 d |
 | `check.heartbeat` | no ping within period + grace | CRIT |
 | `probe.silent` | an external probe is gone | WARN after 2 min, routed via global |
@@ -475,14 +479,17 @@ UNKNOWN and `probe.silent` fires.
 ### 8.4 Notifications
 
 - Notified on WARN, CRIT, escalation from WARN to CRIT, and recovery. With
-  `notify.repeat`, a still-firing alert is sent again at that interval.
+  `notify.repeat`, a still-firing alert is sent again at that interval,
+  until someone acknowledges it (decision 0017).
+- What comes for one channel within 30 seconds goes out as one message.
 - The channels are `notify.channels`, effective on the alert's object. This is
   how alerts are routed: for example, set it on customer X and X's alerts go to
   X's Google Chat space. Channels are defined on a scope and are usable below
   it.
 - During maintenance on an object or any scope above it, transitions are
   recorded and marked, but not sent. Alerts still firing when the window ends
-  are sent then.
+  are sent then. Windows are once, or by schedule (`sun 02:00-04:00`); a
+  window on a host covers its containers.
 - Sending is retried with backoff. Failures are recorded and shown, and a
   channel that keeps failing raises an alert to the global channels.
 - **Dead man's switch:** the alert loop requests `deadman.url` every
@@ -493,7 +500,9 @@ UNKNOWN and `probe.silent` fires.
 
 The webhook URL of a channel or an SMTP password either comes in through the
 UI and is stored sealed (AES-256-GCM, key from 3.3), or is a reference that
-the hub resolves when sending: `{env: NAME}` or `{file: /run/secrets/name}`.
+the hub resolves when sending: `{env: NAME}` or `{file: /run/secrets/name}`,
+but neither a `LOTSE_` variable nor a file outside `/run/secrets`. Email
+channels send through the hub's mail server (Settings), or one of their own.
 Export writes references, never values. A secret entered in the UI is
 exported as a placeholder, `{secret: <channel>}`, and `apply` leaves an
 existing secret untouched when it sees that placeholder. Labels cannot set
