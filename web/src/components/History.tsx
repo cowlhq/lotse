@@ -41,6 +41,10 @@ function What({ change: c }: { change: Change }) {
   const show = (v: unknown) => (v == null ? t("history.nothing") : typeof v === "string" ? v : JSON.stringify(v));
   if (c.field === "created") return <>{t("history.created")}</>;
   if (c.field.startsWith("alert ") && c.new === "acknowledged") return <>{t("history.acknowledged", { alert: c.field.slice(6) })}</>;
+  if (c.field === "api token created" || c.field === "api token revoked") {
+    const x = (c.new ?? c.old) as { name?: string };
+    return <>{t(c.new ? "history.tokenCreated" : "history.tokenRevoked", { name: x.name })}</>;
+  }
   if (c.field === "maintenance") {
     const w = (c.new ?? c.old) as { schedule?: string; starts_at?: number; ends_at?: number; reason?: string };
     const what = (w.schedule ?? `${dateTime(w.starts_at ?? 0)} – ${dateTime(w.ends_at ?? 0)}`) + (w.reason ? `, ${w.reason}` : "");
