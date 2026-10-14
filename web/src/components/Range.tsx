@@ -1,8 +1,13 @@
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-// Time ranges, in seconds. Raw readings are kept for 48 hours.
-export const ranges = [3600, 6 * 3600, 24 * 3600, 48 * 3600] as const;
+const hour = 3600;
+const day = 24 * hour;
+
+// Time ranges, in seconds. Beyond two days the hub answers from averages
+// of 5 minutes, beyond 30 days from hourly ones.
+export const ranges = [hour, 6 * hour, day, 7 * day, 30 * day, 365 * day] as const;
 export type RangeSeconds = (typeof ranges)[number];
 
 export function RangePicker({ value, onChange }: { value: RangeSeconds; onChange: (v: RangeSeconds) => void }) {
@@ -15,10 +20,16 @@ export function RangePicker({ value, onChange }: { value: RangeSeconds; onChange
       size="sm"
     >
       {ranges.map((r) => (
-        <ToggleGroupItem key={r} value={String(r)}>
-          {t("range.hours", { count: r / 3600 })}
+        <ToggleGroupItem key={r} value={String(r)} aria-label={label(t, r, "")} title={label(t, r, "")}>
+          {label(t, r, "short.")}
         </ToggleGroupItem>
       ))}
     </ToggleGroup>
   );
+}
+
+function label(t: TFunction, r: number, kind: "" | "short.") {
+  if (r < 2 * day) return t(`range.${kind}hours`, { count: r / hour });
+  if (r < 365 * day) return t(`range.${kind}days`, { count: r / day });
+  return t(`range.${kind}years`, { count: r / (365 * day) });
 }
