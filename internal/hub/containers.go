@@ -59,8 +59,26 @@ func (h *hub) containerList(ctx context.Context, hostID int64, list protocol.Con
 	for dockerID, id := range got {
 		ids[dockerID] = id
 	}
+	h.labels(ctx, hostID)
 	h.live.publish(LiveMessage{Type: "containers", HostID: hostID})
 	return nil
+}
+
+// labels applies the labels of a host's containers that changed.
+func (h *hub) labels(ctx context.Context, hostID int64) {
+	list, err := h.db.Containers(ctx, hostID)
+	if err != nil {
+		h.log.Error("cannot read containers for their labels", "host_id", hostID, "err", err)
+		return
+	}
+	for _, c := range list {
+		if c.GoneAt != nil {
+			continue
+		}
+		if err := h.applyLabels(ctx, c); err != nil {
+			h.log.Error("cannot apply a container's labels", "container", c.Slug, "err", err)
+		}
+	}
 }
 
 // Container events worth keeping in a container's history.
@@ -79,6 +97,11 @@ func (h *hub) containerEvent(ctx context.Context, hostID int64, e protocol.Conta
 			return err
 		}
 		ids[e.DockerID] = id
+		if c, err := h.db.Container(ctx, id); err == nil {
+			if err := h.applyLabels(ctx, c); err != nil {
+				h.log.Error("cannot apply a container's labels", "container", c.Slug, "err", err)
+			}
+		}
 	} else {
 		id = ids[e.DockerID]
 		if err := h.db.ContainerGone(ctx, hostID, e.DockerID, e.TS); err != nil {

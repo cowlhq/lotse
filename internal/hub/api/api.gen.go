@@ -1258,10 +1258,13 @@ type Container struct {
 	GoneAt *int64 `json:"gone_at,omitempty"`
 
 	// Health Empty without a health check.
-	Health    string            `json:"health"`
-	HostId    int64             `json:"host_id"`
-	HostName  string            `json:"host_name"`
-	Id        int64             `json:"id"`
+	Health   string `json:"health"`
+	HostId   int64  `json:"host_id"`
+	HostName string `json:"host_name"`
+	Id       int64  `json:"id"`
+
+	// Ignored Whether lotse leaves it alone (the ignore setting, as lotse.ignore sets it).
+	Ignored   *bool             `json:"ignored,omitempty"`
 	Image     string            `json:"image"`
 	Labels    map[string]string `json:"labels"`
 	LastSeen  int64             `json:"last_seen"`

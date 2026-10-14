@@ -751,9 +751,16 @@ func (a *applier) prune() error {
 		if !ok || !under(path) {
 			continue
 		}
+		// What a container's labels set is the labels' to undo.
+		var fromLabels map[string]json.RawMessage
+		if sub.Kind == "container" {
+			fromLabels, _ = labelSettings(lotseLabels(t.containers[sub.ID].LabelsApplied))
+		}
 		keys := make([]string, 0, len(settings[sub]))
 		for k := range settings[sub] {
-			keys = append(keys, k)
+			if _, ok := fromLabels[k]; !ok {
+				keys = append(keys, k)
+			}
 		}
 		sort.Strings(keys)
 		for _, key := range keys {

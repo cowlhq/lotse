@@ -1286,6 +1286,8 @@ export interface components {
             total?: number | null;
         };
         Container: {
+            /** @description Whether lotse leaves it alone (the ignore setting, as lotse.ignore sets it). */
+            ignored?: boolean;
             /** Format: int64 */
             id: number;
             /** Format: int64 */

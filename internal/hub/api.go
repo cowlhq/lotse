@@ -132,8 +132,13 @@ func (s apiServer) GetHost(ctx context.Context, req api.GetHostRequestObject) (a
 	if err != nil {
 		return nil, err
 	}
+	t, err := s.loadTree(ctx)
+	if err != nil {
+		return nil, err
+	}
 	for _, c := range cs {
 		ac := toContainer(c, h.Name)
+		ac.Ignored = ptr(ignored(t, c.ID))
 		if x, ok := readings[c.ID]; ok {
 			ac.Latest = toContainerReading(x)
 		}
@@ -174,6 +179,11 @@ func (s apiServer) GetContainer(ctx context.Context, req api.GetContainerRequest
 		return nil, err
 	}
 	out := toContainer(c, h.Name)
+	t, err := s.loadTree(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out.Ignored = ptr(ignored(t, c.ID))
 	readings, err := s.db.LatestContainerSamples(ctx, h.ID)
 	if err != nil {
 		return nil, err
@@ -313,4 +323,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+// ignored says whether lotse leaves a container alone.
+func ignored(t *tree, id int64) bool {
+	v, _ := t.value(t.chain("container", id), "ignore")
+	return string(v) == "true"
 }
