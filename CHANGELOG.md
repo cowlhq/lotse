@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/cowlhq/lotse/compare/v0.1.6...v0.1.7) (2026-10-14)
+
+
+### Features
+
+* **web:** home as tables, a short sidebar, alerts by bell, both themes ([1d12241](https://github.com/cowlhq/lotse/commit/1d12241b71ba8053579fca1a2d9e7ca09cb6e8fd))
+
 ## [0.1.6](https://github.com/cowlhq/lotse/compare/v0.1.5...v0.1.6) (2026-10-14)
 
 
