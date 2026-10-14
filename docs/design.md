@@ -95,7 +95,8 @@ No ORM. SQL is written by hand in `internal/store`.
 The API is written spec-first in `api/openapi.yaml`. oapi-codegen generates
 the Go server interfaces and the public client from it, and
 openapi-typescript generates the UI's types. The read API is the part of the
-spec tagged `read`; the UI uses the same API with its session.
+spec under `/api/v1` tagged `read`, kept stable for other programs; the
+rest is the UI's own (decision 0020, docs/api.md).
 
 ### 3.2 Web
 

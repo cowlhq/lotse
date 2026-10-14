@@ -25,3 +25,4 @@ old one.
 | [0017](0017-alerting.md) | Alerts: a mail server per hub or channel, gathered, acknowledged | 2026-10-14 |
 | [0018](0018-interface.md) | The interface is as simple as Beszel's | 2026-10-14 |
 | [0019](0019-configuration-as-code.md) | Configuration as code: tokens per scope, secrets never in files | 2026-10-14 |
+| [0020](0020-read-api.md) | The read API is its own, stable part of the API | 2026-10-14 |
