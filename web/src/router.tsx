@@ -3,6 +3,7 @@ import { createRootRoute, createRoute, createRouter, Navigate, Outlet, useRouter
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { getHealth, getMe, Unauthorized } from "@/api";
+import { Centered } from "@/components/shell/Centered";
 import { CommandMenu } from "@/components/shell/CommandMenu";
 import { Sidebar, Wordmark } from "@/components/shell/Sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -30,9 +31,21 @@ function Gate() {
   const me = useQuery({ queryKey: ["me"], queryFn: getMe, enabled: setUp, retry: false });
 
   if (health.isPending) return <Skeleton className="m-6 h-32" />;
-  if (health.isError) return <p className="p-6 text-destructive">{t("app.unreachable")}</p>;
+  if (health.isError) {
+    return (
+      <Centered title={t("app.unreachableTitle")}>
+        <p className="text-muted-foreground">{t("app.unreachable")}</p>
+      </Centered>
+    );
+  }
   if (health.data.setup) {
-    return path === "/setup" ? <Outlet /> : <p className="mx-auto max-w-lg py-16">{t("setup.noToken")}</p>;
+    return path === "/setup" ? (
+      <Outlet />
+    ) : (
+      <Centered title={t("setup.title")}>
+        <p>{t("setup.noToken")}</p>
+      </Centered>
+    );
   }
   if (path === "/setup") return <Navigate to="/" />;
   if (me.isPending) return <Skeleton className="m-6 h-32" />;
@@ -130,7 +143,15 @@ const hostList = createRoute({ getParentRoute: () => root, path: "/hosts", compo
 
 const checkList = createRoute({ getParentRoute: () => root, path: "/checks", component: () => <Navigate to="/" /> });
 
-const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: Settings });
+const settings = createRoute({
+  getParentRoute: () => root,
+  path: "/settings",
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => (typeof search.tab === "string" ? { tab: search.tab } : {}),
+  component: function SettingsRoute() {
+    const { tab } = settings.useSearch();
+    return <Settings tab={tab} />;
+  },
+});
 
 const setup = createRoute({
   getParentRoute: () => root,

@@ -23,7 +23,7 @@ import { UpdateAgents } from "./Scope";
 
 // Settings are the global ones: what applies everywhere unless a customer,
 // project, environment or host says otherwise; and the hub's version.
-export function Settings() {
+export function Settings({ tab }: { tab?: string }) {
   const { t } = useTranslation();
   const { isAdmin } = useMe();
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts });
@@ -40,7 +40,7 @@ export function Settings() {
     <>
       <ObjectHeader icon={null} title={t("settings.title")} />
       <Page>
-        <Tabs defaultValue="general" orientation="vertical" className="flex-col gap-6 md:flex-row">
+        <Tabs defaultValue={tab ?? "general"} orientation="vertical" className="flex-col gap-6 md:flex-row">
           <TabsList variant="line" className="h-auto w-full shrink-0 flex-row flex-wrap items-stretch gap-0.5 p-0 md:w-52 md:flex-col">
             {sections.map((x) => (
               <TabsTrigger

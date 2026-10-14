@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "lotse",
-    "unreachable": "The hub does not answer."
+    "unreachable": "The hub does not answer.",
+    "unreachableTitle": "The hub does not answer"
   },
   "setup": {
     "title": "Set up lotse",
@@ -177,7 +178,8 @@
     "email": "Email",
     "password": "Password",
     "submit": "Log in",
-    "logout": "Log out"
+    "logout": "Log out",
+    "subtitle": "Watch over your servers, containers and checks."
   },
   "tree": {
     "newEnvironment": "New environment",
@@ -205,7 +207,8 @@
       "customer_other": "{{count}} projects",
       "project_one": "{{count}} environment",
       "project_other": "{{count}} environments"
-    }
+    },
+    "created": "{{name}} created."
   },
   "history": {
     "title": "History",
@@ -296,7 +299,10 @@
     "revoke": "Revoke agent",
     "revokeConfirm": "Revoke this host's agent? It is disconnected now and can only come back by enrolling again.",
     "revokeHint": "Disconnects the agent and revokes its credential. History and readings stay. Running the install command again, with a current token, brings it back.",
-    "revoked": "Agent revoked."
+    "revoked": "Agent revoked.",
+    "waiting": "Waiting for the machine to connect…",
+    "arrived": "{{name}} is connected.",
+    "open": "Open {{name}}"
   },
   "events": {
     "title": "Events"
@@ -380,7 +386,8 @@
     "deleteConfirm": "Delete this check and its results? Its history stays.",
     "daysShort_one": "{{count}} d",
     "daysShort_other": "{{count}} d",
-    "deleted": "Check deleted."
+    "deleted": "Check deleted.",
+    "created": "{{name}} added. Its first run comes in a moment."
   },
   "probe": {
     "title": "Probes",
@@ -505,7 +512,9 @@
       "webhook": "Receives a POST with the alerts as JSON."
     },
     "signingKey": "Signing key",
-    "signingHint": "If set, X-Lotse-Signature carries the HMAC-SHA256 of the timestamp and the body, so the receiver can tell the message comes from the hub."
+    "signingHint": "If set, X-Lotse-Signature carries the HMAC-SHA256 of the timestamp and the body, so the receiver can tell the message comes from the hub.",
+    "saved": "Channel saved.",
+    "deleted": "Channel deleted."
   },
   "secret": {
     "mode": {
@@ -549,7 +558,8 @@
     "test": "Send test email",
     "testSent": "Sent. Check your inbox.",
     "remove": "Remove",
-    "removeConfirm": "Remove the mail server? Email channels without one of their own stop sending."
+    "removeConfirm": "Remove the mail server? Email channels without one of their own stop sending.",
+    "saved": "Mail server saved."
   },
   "maintenance": {
     "title": "Maintenance",
@@ -567,7 +577,8 @@
     "scheduleHint": "Days and a time, in the hub's time zone: daily 04:00-06:00, sun 02:00-04:00, mon-fri 22:00-23:00, mon,thu 01:00-02:00.",
     "reason": "Reason",
     "reasonPlaceholder": "Moving to the new server",
-    "save": "Add"
+    "save": "Add",
+    "added": "Maintenance window added."
   },
   "nav": {
     "search": "Search",
@@ -657,5 +668,27 @@
     "recover": "Clears after",
     "channels": "Sent to",
     "repeat": "Repeated every"
+  },
+  "start": {
+    "title": "Get started",
+    "progress": "{{done}} of {{of}} done",
+    "hide": "Hide",
+    "environment": {
+      "title": "Create an environment",
+      "hint": "Hosts and checks belong to one, such as a shop's production: customer, project, environment."
+    },
+    "host": {
+      "title": "Add a host",
+      "hint": "One line on the machine; it appears here within seconds, with its containers."
+    },
+    "check": {
+      "title": "Add a check",
+      "hint": "A website, a port, or a heartbeat from a backup job."
+    },
+    "notify": {
+      "title": "Decide where alerts go",
+      "hint": "An email address, a Google Chat space or a webhook, so that you hear about problems.",
+      "action": "Set up notifications"
+    }
   }
 }

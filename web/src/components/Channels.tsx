@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -67,7 +68,7 @@ function ChannelRow({ channel: c }: { channel: Channel }) {
   const test = useMutation({ mutationFn: () => testChannel(c.id), onSuccess: setResult });
   const remove = useMutation({
     mutationFn: () => deleteChannel(c.id),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["channels"] }),
+    onSuccess: () => (client.invalidateQueries({ queryKey: ["channels"] }), toast.success(t("channel.deleted"))),
   });
   const spec = c.spec as { to?: string[]; smtp?: { host: string } };
   return (
@@ -166,6 +167,7 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ["channels"] });
       client.invalidateQueries({ queryKey: ["changes"] });
+      toast.success(t("channel.saved"));
       onDone();
     },
   });
