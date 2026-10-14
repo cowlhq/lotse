@@ -14,6 +14,7 @@ import (
 
 	"lotse.sh/internal/hub/api"
 	"lotse.sh/internal/notify"
+	"lotse.sh/internal/probe"
 	"lotse.sh/internal/store"
 )
 
@@ -471,4 +472,24 @@ func TestCheckDown(t *testing.T) {
 	}
 	failing.Store(false)
 	waitFor(t, "check.down to clear", func() bool { return state() == "ok" })
+}
+
+// After a restart, failures go on counting from the results kept.
+func TestFailuresAfterRestart(t *testing.T) {
+	h, _ := newTestHub(t)
+	env := testEnvironment(t, h)
+	c, err := h.db.CreateCheck(t.Context(), ada(), store.Check{EnvironmentID: env.ID, Slug: "x", Name: "X", Type: "tcp", Spec: json.RawMessage(`{"address":"127.0.0.1:1"}`), CreatedAt: 1}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	h.db.Write(t.Context(), store.Batch{CheckResults: []store.CheckResult{
+		{CheckID: c.ID, ProbeID: store.BuiltinProbe, TS: now.Unix() - 120, OK: true},
+		{CheckID: c.ID, ProbeID: store.BuiltinProbe, TS: now.Unix() - 60, OK: false},
+	}})
+	h.checks.assigned = map[int64]assignment{c.ID: {Assignment: probe.Assignment{CheckID: c.ID, Interval: time.Minute, Timeout: time.Second}, probes: []int64{store.BuiltinProbe}}}
+	h.checkResult(t.Context(), store.BuiltinProbe, c.ID, now, probe.Result{OK: false, Error: "refused"})
+	if st := h.checkStanding(c.ID, now); st.failed != 2 {
+		t.Errorf("failed in a row: %d, want 2", st.failed)
+	}
 }

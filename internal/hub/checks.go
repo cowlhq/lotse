@@ -145,6 +145,15 @@ func (h *hub) checkResult(ctx context.Context, probeID, checkID int64, at time.T
 	if h.checks.fails[checkID] == nil {
 		h.checks.fails[checkID] = map[int64]int{}
 	}
+	if _, known := h.checks.fails[checkID][probeID]; !known {
+		// The first result since the hub started: the count goes on from
+		// the results it kept, so a restart does not clear a failing check.
+		n, err := h.db.FailedInARow(ctx, checkID, probeID)
+		if err != nil {
+			h.log.Warn("cannot count a check's failures", "check_id", checkID, "err", err)
+		}
+		h.checks.fails[checkID][probeID] = n
+	}
 	if r.OK {
 		h.checks.fails[checkID][probeID] = 0
 	} else {

@@ -239,3 +239,26 @@ func (s *Store) Results(ctx context.Context, checkID, from, to int64, limit int)
 	}
 	return list, rows.Err()
 }
+
+// FailedInARow counts how many of a probe's newest results for a check
+// failed, up to the newest that passed, and at most 50.
+func (s *Store) FailedInARow(ctx context.Context, checkID, probeID int64) (int, error) {
+	rows, err := s.read.QueryContext(ctx, s.rebind(`SELECT ok FROM check_results
+		WHERE check_id = ? AND probe_id = ? ORDER BY ts DESC LIMIT 50`), checkID, probeID)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	n := 0
+	for rows.Next() {
+		var ok int
+		if err := rows.Scan(&ok); err != nil {
+			return 0, err
+		}
+		if ok != 0 {
+			break
+		}
+		n++
+	}
+	return n, rows.Err()
+}
