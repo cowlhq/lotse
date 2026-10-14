@@ -147,3 +147,22 @@ func (s *Store) ContainerGone(ctx context.Context, hostID int64, dockerID string
 		WHERE host_id = ? AND docker_id = ? AND gone_at IS NULL`, ts, hostID, dockerID)
 	return err
 }
+
+// AllContainers returns the containers every host still has.
+func (s *Store) AllContainers(ctx context.Context) ([]Container, error) {
+	rows, err := s.read.QueryContext(ctx, `SELECT `+containerColumns+`
+		FROM containers WHERE gone_at IS NULL ORDER BY host_id, slug`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := []Container{}
+	for rows.Next() {
+		c, err := scanContainer(rows)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, c)
+	}
+	return list, rows.Err()
+}

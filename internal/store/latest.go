@@ -79,3 +79,78 @@ func (s *Store) LatestContainerSamples(ctx context.Context, hostID int64) (map[i
 	}
 	return latest, rows.Err()
 }
+
+// LatestHostSamples returns every host's newest reading, by host ID.
+func (s *Store) LatestHostSamples(ctx context.Context) (map[int64]HostSample, error) {
+	rows, err := s.read.QueryContext(ctx, `
+		SELECT x.host_id, x.ts, x.cpu, x.iowait, x.steal, x.load1, x.load5, x.load15, x.mem_used, x.mem_available,
+			x.swap_used, x.swap_total, x.net_rx, x.net_tx, x.disk_read, x.disk_write, x.uptime
+		FROM hosts h
+		JOIN host_samples x ON x.host_id = h.id AND x.ts = (SELECT max(ts) FROM host_samples WHERE host_id = h.id)`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	latest := map[int64]HostSample{}
+	for rows.Next() {
+		var x HostSample
+		if err := rows.Scan(&x.HostID, &x.TS, &x.CPU, &x.IOWait, &x.Steal, &x.Load1, &x.Load5, &x.Load15,
+			&x.MemUsed, &x.MemAvailable, &x.SwapUsed, &x.SwapTotal, &x.NetRx, &x.NetTx,
+			&x.DiskRead, &x.DiskWrite, &x.Uptime); err != nil {
+			return nil, err
+		}
+		latest[x.HostID] = x
+	}
+	return latest, rows.Err()
+}
+
+// HostFilesystem is a filesystem of some host, with its newest usage.
+type HostFilesystem struct {
+	HostID int64
+	Filesystem
+	// TS is when the usage was read.
+	TS *int64
+}
+
+// AllFilesystems returns the filesystems of every host.
+func (s *Store) AllFilesystems(ctx context.Context) ([]HostFilesystem, error) {
+	rows, err := s.read.QueryContext(ctx, `
+		SELECT f.host_id, f.id, f.mount, f.device, f.fstype, f.last_seen, x.used, x.total, x.ts
+		FROM filesystems f
+		LEFT JOIN fs_samples x ON x.filesystem_id = f.id
+			AND x.ts = (SELECT max(ts) FROM fs_samples WHERE filesystem_id = f.id)
+		ORDER BY f.host_id, f.mount`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	list := []HostFilesystem{}
+	for rows.Next() {
+		var f HostFilesystem
+		if err := rows.Scan(&f.HostID, &f.ID, &f.Mount, &f.Device, &f.FSType, &f.LastSeen, &f.Used, &f.Total, &f.TS); err != nil {
+			return nil, err
+		}
+		list = append(list, f)
+	}
+	return list, rows.Err()
+}
+
+// CountEvents counts the events of a kind since a time, by object.
+func (s *Store) CountEvents(ctx context.Context, kind string, since int64) (map[int64]int, error) {
+	rows, err := s.read.QueryContext(ctx, s.rebind(`SELECT subject_id, count(*) FROM events
+		WHERE kind = ? AND ts >= ? GROUP BY subject_id`), kind, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := map[int64]int{}
+	for rows.Next() {
+		var id int64
+		var n int
+		if err := rows.Scan(&id, &n); err != nil {
+			return nil, err
+		}
+		counts[id] = n
+	}
+	return counts, rows.Err()
+}

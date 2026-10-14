@@ -140,6 +140,9 @@ func (s *Store) DeleteScope(ctx context.Context, actor Actor, id int64) error {
 		if _, err := tx.ExecContext(ctx, s.rebind(`DELETE FROM scopes WHERE id = ?`), id); err != nil {
 			return err
 		}
+		if err := s.forget(ctx, tx, x.Kind, id); err != nil {
+			return err
+		}
 		return s.recorder(tx, actor).record(ctx, x.Kind, x.ID, x.Path, "deleted", map[string]string{"name": x.Name}, nil)
 	})
 }
