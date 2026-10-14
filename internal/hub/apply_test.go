@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"lotse.sh/internal/apply"
 	"lotse.sh/internal/hub/api"
@@ -106,7 +107,7 @@ func TestApply(t *testing.T) {
 	if list, _ := h.db.Scopes(t.Context()); len(list) != 0 {
 		t.Errorf("a dry run made %d scopes", len(list))
 	}
-	if len(res.Warnings) != 1 || !strings.Contains(res.Warnings[0], "web9 has not enrolled") {
+	if len(res.Warnings) != 0 {
 		t.Errorf("warnings: %v", res.Warnings)
 	}
 
@@ -118,7 +119,7 @@ func TestApply(t *testing.T) {
 	for _, c := range res.Changes {
 		kinds[string(c.Action)+" "+c.Kind]++
 	}
-	if kinds["create environment"] != 1 || kinds["create check"] != 2 || kinds["create channel"] != 2 || kinds["create setting"] != 2 || kinds["create maintenance"] != 1 {
+	if kinds["create host"] != 1 || kinds["create environment"] != 1 || kinds["create check"] != 2 || kinds["create channel"] != 2 || kinds["create setting"] != 2 || kinds["create maintenance"] != 1 {
 		t.Errorf("changes: %v", kinds)
 	}
 	checks, _ := h.db.Checks(t.Context(), 0)
@@ -222,5 +223,39 @@ func TestApplyToken(t *testing.T) {
 	// Tokens do not open the rest of the API.
 	if status, _ := withToken(t, server, tok, "GET", "/api/hosts", nil); status != http.StatusUnauthorized {
 		t.Errorf("a token on the UI's API: %d", status)
+	}
+}
+
+// A host named before its agent waits for it, with its settings; the
+// machine of that name becomes it when it enrolls.
+func TestApplyWaitingHost(t *testing.T) {
+	h, server := newTestHub(t)
+	tok := token(t, server, "apply", 1)
+	doc := "customers:\n  - key: acme\n    projects:\n      - key: shop\n        environments:\n          - key: prod\n            hosts:\n              - key: web1\n                settings:\n                  agent.auto_update: true\n"
+	if status, _, body := applyYAML(t, server, tok, doc, ""); status != http.StatusOK {
+		t.Fatalf("apply: %s", body)
+	}
+	hosts, _ := h.db.Hosts(t.Context())
+	if len(hosts) != 1 || !hosts[0].Waiting() || hosts[0].Name != "web1" {
+		t.Fatalf("hosts: %+v", hosts)
+	}
+	var list []api.HostSummary
+	getJSON(t, server, "/api/hosts", &list)
+	if len(list) != 1 || !list[0].Host.Waiting || list[0].Host.Online {
+		t.Errorf("api: %+v", list)
+	}
+	// It is not missed while it waits.
+	h.alerts.started = time.Unix(0, 0)
+	h.evaluate(t.Context(), time.Now().Add(time.Hour))
+	if states, _ := h.db.AlertStates(t.Context()); len(states) != 0 {
+		t.Errorf("alerts on a waiting host: %+v", states)
+	}
+	// Pruned when no longer named.
+	_, res, body := applyYAML(t, server, tok, "customers:\n  - key: acme\n    projects:\n      - key: shop\n        environments:\n          - key: prod\n", "?prune=true&scope=acme")
+	if len(res.Changes) != 2 || res.Changes[0].Kind != "setting" || res.Changes[1].Kind != "host" {
+		t.Errorf("pruned: %s", body)
+	}
+	if hosts, _ := h.db.Hosts(t.Context()); len(hosts) != 0 {
+		t.Errorf("the waiting host stayed: %+v", hosts)
 	}
 }

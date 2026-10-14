@@ -264,6 +264,7 @@ func (s apiServer) toHost(ctx context.Context, h store.Host) api.Host {
 	}
 	return api.Host{
 		AgentRevoked: revoked,
+		Waiting:      h.Waiting(),
 		Id:           h.ID, Name: h.Name, Hostname: h.Hostname, Os: h.OS, Platform: h.Platform,
 		Kernel: h.Kernel, Arch: h.Arch, CpuModel: h.CPUModel, Cores: h.Cores,
 		MemTotal: h.MemTotal, BootTime: h.BootTime, AgentVersion: h.AgentVersion,

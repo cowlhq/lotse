@@ -1382,6 +1382,9 @@ type Host struct {
 	Online   bool   `json:"online"`
 	Os       string `json:"os"`
 	Platform string `json:"platform"`
+
+	// Waiting Named in lotse.yaml, it waits for its agent to enroll.
+	Waiting bool `json:"waiting"`
 }
 
 // HostDetail defines model for HostDetail.

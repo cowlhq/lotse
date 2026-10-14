@@ -634,8 +634,8 @@ func (a *applier) checks(env store.Scope, list []apply.Check) error {
 }
 
 // hosts sets what the document says on an environment's hosts and their
-// containers. Hosts come from agents: one that has not enrolled yet is
-// named in a warning, and nothing is set on it.
+// containers. A host that has not enrolled yet is made to wait for its
+// agent, with what is set on it.
 func (a *applier) hosts(env store.Scope, list []apply.Host) error {
 	if len(list) == 0 {
 		return nil
@@ -652,9 +652,16 @@ func (a *applier) hosts(env store.Scope, list []apply.Host) error {
 			}
 		}
 		path := env.Path + "/" + h.Key
+		a.seen["host:"+path] = true
 		if host == nil {
-			a.warnings = append(a.warnings, fmt.Sprintf("%s has not enrolled yet; what is set on it waits until it has", path))
-			continue
+			// Named before its agent: it waits, with its settings, for the
+			// machine of that name to enroll here.
+			a.note(change{Action: "create", Kind: "host", Path: path, New: "waiting for its agent"})
+			created, err := a.tx.CreateWaitingHost(a.ctx, a.actor, env.ID, h.Key)
+			if err != nil {
+				return err
+			}
+			host = &created
 		}
 		sub := store.Subject{Kind: "host", ID: host.ID, Path: path}
 		if err := a.settings(sub, h.Settings); err != nil {
@@ -803,6 +810,27 @@ func (a *applier) prune() error {
 		}
 		a.note(change{Action: "delete", Kind: "check", Path: c.Path, Old: c.Type, of: store.Subject{Kind: "check", ID: c.ID}})
 		if err := a.tx.DeleteCheck(a.ctx, a.actor, c.ID); err != nil {
+			return err
+		}
+	}
+
+	// Hosts that wait for their agent and are no longer named. Hosts that
+	// enrolled come from agents and stay.
+	hosts, err := a.tx.Hosts(a.ctx)
+	if err != nil {
+		return err
+	}
+	for _, x := range hosts {
+		if !x.Waiting() || x.EnvironmentID == nil {
+			continue
+		}
+		env, ok := t.scopes[*x.EnvironmentID]
+		path := env.Path + "/" + x.Name
+		if !ok || !under(path) || a.seen["host:"+path] {
+			continue
+		}
+		a.note(change{Action: "delete", Kind: "host", Path: path, Old: "waiting for its agent"})
+		if err := a.tx.DeleteWaitingHost(a.ctx, a.actor, x.ID); err != nil {
 			return err
 		}
 	}

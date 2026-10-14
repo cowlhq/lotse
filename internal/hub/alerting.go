@@ -151,7 +151,8 @@ func (h *hub) readings(t *tree, in inputs, now time.Time) []reading {
 	// Hosts: whether their agent reports, and their readings, if fresh.
 	fresh := map[int64]bool{}
 	for _, x := range t.hosts {
-		if in.revoked[x.ID] {
+		// A revoked agent is not missed; one that never came is awaited.
+		if in.revoked[x.ID] || x.Waiting() {
 			continue
 		}
 		window := 3*h.hostEvery(t, t.chain("host", x.ID)) + 30*time.Second
