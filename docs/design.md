@@ -100,8 +100,10 @@ spec tagged `read`; the UI uses the same API with its session.
 ### 3.2 Web
 
 Vite, React 19, TypeScript, TanStack Router and Query, Tailwind 4, shadcn/ui,
-uPlot for time series, i18next for texts, openapi-typescript for API types.
-pnpm, ESLint, `tsc --noEmit` in `check`. All MIT.
+uPlot for time series, i18next for texts, openapi-typescript for API types,
+cmdk for search, sonner for toasts, Fira Sans and Fira Mono (SIL OFL).
+pnpm, ESLint, `tsc --noEmit` in `check`. All MIT unless named. How the
+interface looks and works is decision 0018.
 
 ### 3.3 The binary
 
