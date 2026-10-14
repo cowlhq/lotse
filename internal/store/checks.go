@@ -54,7 +54,11 @@ func (s *Store) CreateCheck(ctx context.Context, actor Actor, c Check, pingHash 
 		if env.Kind != "environment" {
 			return ErrNotFound
 		}
-		c.Path = env.Path + "/" + c.Slug
+		// A container's own check is named under its container:
+		// acme/shop/prod/web1/shop-app/web.
+		if c.ContainerID == nil || c.Path == "" {
+			c.Path = env.Path + "/" + c.Slug
+		}
 		var hash *string
 		if pingHash != "" {
 			hash = &pingHash

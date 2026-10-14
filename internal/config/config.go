@@ -109,6 +109,14 @@ var keys = []Key{
 		Check:       durationBetween(5*time.Second, time.Hour),
 	},
 	{
+		Name:        "ignore",
+		Type:        "bool",
+		Description: "Whether lotse leaves the container alone: no alerts, and kept out of the way.",
+		Default:     json.RawMessage(`false`),
+		On:          []string{"container", "host"},
+		Check:       isBool,
+	},
+	{
 		Name:        "notify.channels",
 		Type:        "channels",
 		Description: "Where alerts go: the keys of channels defined here or further up.",
