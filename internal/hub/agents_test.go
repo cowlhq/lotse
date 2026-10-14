@@ -46,7 +46,7 @@ func TestAgentReports(t *testing.T) {
 	// The first reading has no CPU share yet; the second, a second later,
 	// has.
 	waitFor(t, "two readings", func() bool {
-		s, err := h.db.Series(t.Context(), "host", hostID, 0, time.Now().Unix()+60, 1)
+		s, err := h.db.Series(t.Context(), "host", store.Raw, hostID, 0, time.Now().Unix()+60, 1)
 		return err == nil && len(s.Time) >= 2 && s.Columns["cpu"][1] != nil
 	})
 

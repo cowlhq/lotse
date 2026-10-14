@@ -61,7 +61,7 @@ func TestChecks(t *testing.T) {
 		if err != nil || len(latest) != 1 || latest[0].TS != 160 || latest[0].OK || latest[0].Error != "timeout" {
 			t.Errorf("latest: %+v, %v", latest, err)
 		}
-		sr, _ := s.Series(ctx, "check", c.ID, 0, 200, 200)
+		sr, _ := s.Series(ctx, "check", store.Raw, c.ID, 0, 200, 200)
 		if len(sr.Time) != 1 || *sr.Columns["ok"][0] != 0.5 || *sr.Columns["latency_ms"][0] != 120 {
 			t.Errorf("series: %+v", sr.Columns)
 		}

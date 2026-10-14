@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -165,47 +166,80 @@ type Series struct {
 	Columns map[string][]*float64 `json:"columns"`
 }
 
-// What each kind of series reads: its table, the column that selects the
-// object, and the columns it offers.
-var seriesKinds = map[string]struct {
-	table, key string
-	columns    []string
-}{
-	"host": {"host_samples", "host_id", []string{"cpu", "iowait", "steal", "load1", "load5",
-		"load15", "mem_used", "mem_available", "swap_used", "swap_total", "net_rx", "net_tx",
-		"disk_read", "disk_write"}},
-	"filesystem": {"fs_samples", "filesystem_id", []string{"used", "total", "inodes_used", "inodes_total"}},
-	"container":  {"container_samples", "container_id", []string{"cpu", "mem", "mem_limit", "net_rx", "net_tx"}},
-	// ok averages to the share of runs that passed.
-	"check": {"check_results", "check_id", []string{"latency_ms", "ok"}},
+// seriesKind is what a kind of series reads: its table, the column that
+// selects the object and the table of the objects, and the columns it
+// offers.
+type seriesKind struct {
+	table, key, parent string
+	columns            []string
 }
 
+var seriesKinds = map[string]seriesKind{
+	"host": {"host_samples", "host_id", "hosts", []string{"cpu", "iowait", "steal", "load1", "load5",
+		"load15", "mem_used", "mem_available", "swap_used", "swap_total", "net_rx", "net_tx",
+		"disk_read", "disk_write"}},
+	"filesystem": {"fs_samples", "filesystem_id", "filesystems", []string{"used", "total", "inodes_used", "inodes_total"}},
+	"container":  {"container_samples", "container_id", "containers", []string{"cpu", "mem", "mem_limit", "net_rx", "net_tx"}},
+	// ok averages to the share of runs that passed.
+	"check": {"check_results", "check_id", "checks", []string{"latency_ms", "ok"}},
+}
+
+// seriesOrder walks the kinds in a fixed order.
+var seriesOrder = []string{"host", "filesystem", "container", "check"}
+
 // Series returns an object's samples from from to to (Unix seconds), as
-// averages over steps of step seconds.
-func (s *Store) Series(ctx context.Context, kind string, id, from, to, step int64) (Series, error) {
+// averages over steps of step seconds, read at a resolution: raw, or the
+// 5-minute or hourly averages. What is newer than the averages made so far
+// comes from the finer ones, down to the raw readings, so that a long range
+// reaches up to now.
+func (s *Store) Series(ctx context.Context, kind, res string, id, from, to, step int64) (Series, error) {
 	k, ok := seriesKinds[kind]
 	if !ok {
 		return Series{}, fmt.Errorf("no series of kind %q", kind)
 	}
-	step = max(step, 1)
+	step = max(step, ResolutionSeconds[res])
+	out := Series{Time: []int64{}, Columns: make(map[string][]*float64, len(k.columns))}
+	for _, c := range k.columns {
+		out.Columns[c] = []*float64{}
+	}
+	start := from
+	for i := slices.Index(Resolutions, res); i >= 0 && start <= to; i-- {
+		r := Resolutions[i]
+		end := to + 1
+		if r != Raw {
+			made, _, err := s.watermark(ctx, table(k, r))
+			if err != nil {
+				return out, err
+			}
+			end = min(end, made)
+		}
+		if end <= start {
+			continue
+		}
+		if err := s.seriesPart(ctx, k, r, id, start, end, step, &out); err != nil {
+			return out, err
+		}
+		start = end
+	}
+	return out, nil
+}
+
+// seriesPart adds the steps of one resolution from start to before end. A
+// step that the part before ended in is averaged with it.
+func (s *Store) seriesPart(ctx context.Context, k seriesKind, res string, id, start, end, step int64, out *Series) error {
 	avgs := make([]string, len(k.columns))
 	for i, c := range k.columns {
 		avgs[i] = "avg(" + c + ")"
 	}
 	// Both databases divide integers without a remainder.
 	q := `SELECT (ts / ?) * ? AS t, ` + strings.Join(avgs, ", ") + `
-		FROM ` + k.table + ` WHERE ` + k.key + ` = ? AND ts >= ? AND ts <= ?
+		FROM ` + table(k, res) + ` WHERE ` + k.key + ` = ? AND ts >= ? AND ts < ?
 		GROUP BY t ORDER BY t`
-	rows, err := s.read.QueryContext(ctx, s.rebind(q), step, step, id, from, to)
+	rows, err := s.read.QueryContext(ctx, s.rebind(q), step, step, id, start, end)
 	if err != nil {
-		return Series{}, err
+		return err
 	}
 	defer rows.Close()
-	out := Series{Columns: make(map[string][]*float64, len(k.columns))}
-	for _, c := range k.columns {
-		out.Columns[c] = []*float64{}
-	}
-	out.Time = []int64{}
 	dest := make([]any, len(k.columns)+1)
 	values := make([]sql.NullFloat64, len(k.columns))
 	var t int64
@@ -215,19 +249,32 @@ func (s *Store) Series(ctx context.Context, kind string, id, from, to, step int6
 	}
 	for rows.Next() {
 		if err := rows.Scan(dest...); err != nil {
-			return Series{}, err
+			return err
 		}
-		out.Time = append(out.Time, t)
+		n := len(out.Time)
+		merge := n > 0 && out.Time[n-1] == t
+		if !merge {
+			out.Time = append(out.Time, t)
+		}
 		for i, c := range k.columns {
 			var v *float64
 			if values[i].Valid {
 				f := values[i].Float64
 				v = &f
 			}
-			out.Columns[c] = append(out.Columns[c], v)
+			if !merge {
+				out.Columns[c] = append(out.Columns[c], v)
+				continue
+			}
+			if prev := out.Columns[c][n-1]; prev != nil && v != nil {
+				avg := (*prev + *v) / 2
+				out.Columns[c][n-1] = &avg
+			} else if v != nil {
+				out.Columns[c][n-1] = v
+			}
 		}
 	}
-	return out, rows.Err()
+	return rows.Err()
 }
 
 // Events returns what happened to an object from from to to, oldest first.
@@ -249,33 +296,6 @@ func (s *Store) Events(ctx context.Context, kind string, id, from, to int64) ([]
 		list = append(list, e)
 	}
 	return list, rows.Err()
-}
-
-// DeleteSamplesBefore deletes samples older than before, object by object
-// so that no single statement holds the database for long. It returns how
-// many it deleted.
-func (s *Store) DeleteSamplesBefore(ctx context.Context, before int64) (int64, error) {
-	var total int64
-	for _, k := range []struct{ table, key, parent string }{
-		{"host_samples", "host_id", "hosts"},
-		{"fs_samples", "filesystem_id", "filesystems"},
-		{"container_samples", "container_id", "containers"},
-		{"check_results", "check_id", "checks"},
-	} {
-		ids, err := s.ids(ctx, `SELECT id FROM `+k.parent)
-		if err != nil {
-			return total, err
-		}
-		for _, id := range ids {
-			res, err := s.exec(ctx, `DELETE FROM `+k.table+` WHERE `+k.key+` = ? AND ts < ?`, id, before)
-			if err != nil {
-				return total, err
-			}
-			n, _ := res.RowsAffected()
-			total += n
-		}
-	}
-	return total, nil
 }
 
 func (s *Store) ids(ctx context.Context, q string, args ...any) ([]int64, error) {

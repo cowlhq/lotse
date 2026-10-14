@@ -85,9 +85,9 @@ func TestSettingsReachAgents(t *testing.T) {
 	}
 	hosts, _ := h.db.Hosts(ctx)
 	time.Sleep(2 * time.Second) // what was already on its way
-	before, _ := h.db.Series(ctx, "host", hosts[0].ID, 0, time.Now().Unix()+100, 1)
+	before, _ := h.db.Series(ctx, "host", store.Raw, hosts[0].ID, 0, time.Now().Unix()+100, 1)
 	time.Sleep(3 * time.Second)
-	after, _ := h.db.Series(ctx, "host", hosts[0].ID, 0, time.Now().Unix()+100, 1)
+	after, _ := h.db.Series(ctx, "host", store.Raw, hosts[0].ID, 0, time.Now().Unix()+100, 1)
 	if len(after.Time) != len(before.Time) {
 		t.Errorf("readings went on every second: %d, then %d", len(before.Time), len(after.Time))
 	}
