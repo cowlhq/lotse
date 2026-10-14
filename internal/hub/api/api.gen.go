@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/oapi-codegen/runtime"
@@ -311,6 +312,27 @@ func (e AlertStateUnit) Valid() bool {
 	case AlertStateUnitLoad:
 		return true
 	case AlertStateUnitPercent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ApplyChangeAction.
+const (
+	Create ApplyChangeAction = "create"
+	Delete ApplyChangeAction = "delete"
+	Update ApplyChangeAction = "update"
+)
+
+// Valid indicates whether the value is a known member of the ApplyChangeAction enum.
+func (e ApplyChangeAction) Valid() bool {
+	switch e {
+	case Create:
+		return true
+	case Delete:
+		return true
+	case Update:
 		return true
 	default:
 		return false
@@ -794,6 +816,24 @@ func (e SetupStep) Valid() bool {
 	}
 }
 
+// Defines values for TokenKind.
+const (
+	TokenKindApply TokenKind = "apply"
+	TokenKindRead  TokenKind = "read"
+)
+
+// Valid indicates whether the value is a known member of the TokenKind enum.
+func (e TokenKind) Valid() bool {
+	switch e {
+	case TokenKindApply:
+		return true
+	case TokenKindRead:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UserRole.
 const (
 	UserRoleAdmin  UserRole = "admin"
@@ -824,6 +864,24 @@ func (e SetupDatabaseJSONBodyKind) Valid() bool {
 	case SetupDatabaseJSONBodyKindPostgres:
 		return true
 	case SetupDatabaseJSONBodyKindSqlite:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreateTokenJSONBodyKind.
+const (
+	CreateTokenJSONBodyKindApply CreateTokenJSONBodyKind = "apply"
+	CreateTokenJSONBodyKindRead  CreateTokenJSONBodyKind = "read"
+)
+
+// Valid indicates whether the value is a known member of the CreateTokenJSONBodyKind enum.
+func (e CreateTokenJSONBodyKind) Valid() bool {
+	switch e {
+	case CreateTokenJSONBodyKindApply:
+		return true
+	case CreateTokenJSONBodyKindRead:
 		return true
 	default:
 		return false
@@ -946,6 +1004,34 @@ type AlertStateSubjectKind string
 
 // AlertStateUnit What value and threshold are in; empty for a rule on a condition.
 type AlertStateUnit string
+
+// ApplyChange defines model for ApplyChange.
+type ApplyChange struct {
+	Action ApplyChangeAction `json:"action"`
+	Field  *string           `json:"field,omitempty"`
+	Kind   string            `json:"kind"`
+
+	// Last Who changed it last, and how.
+	Last *struct {
+		At  int64  `json:"at"`
+		By  string `json:"by"`
+		Via string `json:"via"`
+	} `json:"last,omitempty"`
+	New  interface{} `json:"new,omitempty"`
+	Old  interface{} `json:"old,omitempty"`
+	Path string      `json:"path"`
+}
+
+// ApplyChangeAction defines model for ApplyChange.Action.
+type ApplyChangeAction string
+
+// ApplyResult defines model for ApplyResult.
+type ApplyResult struct {
+	// Applied False for a dry run.
+	Applied  bool          `json:"applied"`
+	Changes  []ApplyChange `json:"changes"`
+	Warnings []string      `json:"warnings"`
+}
 
 // Change defines model for Change.
 type Change struct {
@@ -1402,6 +1488,13 @@ type MaintenanceInput struct {
 	Subject string `json:"subject"`
 }
 
+// NewToken defines model for NewToken.
+type NewToken struct {
+	// Secret The token itself, lotse_tok_…; it is not shown again.
+	Secret string `json:"secret"`
+	Token  Token  `json:"token"`
+}
+
 // Notification defines model for Notification.
 type Notification struct {
 	Attempts int `json:"attempts"`
@@ -1525,6 +1618,24 @@ type TestResult struct {
 	Error *string `json:"error,omitempty"`
 	Sent  bool    `json:"sent"`
 }
+
+// Token defines model for Token.
+type Token struct {
+	CreatedAt  int64     `json:"created_at"`
+	CreatedBy  string    `json:"created_by"`
+	Id         int64     `json:"id"`
+	Kind       TokenKind `json:"kind"`
+	LastUsedAt *int64    `json:"last_used_at,omitempty"`
+	Name       string    `json:"name"`
+	Revoked    bool      `json:"revoked"`
+	ScopeId    int64     `json:"scope_id"`
+
+	// ScopePath Empty for all.
+	ScopePath string `json:"scope_path"`
+}
+
+// TokenKind defines model for Token.Kind.
+type TokenKind string
 
 // Updates defines model for Updates.
 type Updates struct {
@@ -1761,6 +1872,38 @@ type SetupDatabaseJSONBody struct {
 // SetupDatabaseJSONBodyKind defines parameters for SetupDatabase.
 type SetupDatabaseJSONBodyKind string
 
+// CreateTokenJSONBody defines parameters for CreateToken.
+type CreateTokenJSONBody struct {
+	Kind CreateTokenJSONBodyKind `json:"kind"`
+	Name string                  `json:"name"`
+
+	// ScopeId The scope it works on, with everything below; 1 for all.
+	ScopeId int64 `json:"scope_id"`
+}
+
+// CreateTokenJSONBodyKind defines parameters for CreateToken.
+type CreateTokenJSONBodyKind string
+
+// ApplyDocumentJSONBody defines parameters for ApplyDocument.
+type ApplyDocumentJSONBody map[string]interface{}
+
+// ApplyDocumentParams defines parameters for ApplyDocument.
+type ApplyDocumentParams struct {
+	DryRun *bool `form:"dry_run,omitempty" json:"dry_run,omitempty"`
+
+	// Prune Also delete, within scope, what the document does not name.
+	Prune *bool `form:"prune,omitempty" json:"prune,omitempty"`
+
+	// Scope The path of the scope to prune; the token's scope if not given.
+	Scope *string `form:"scope,omitempty" json:"scope,omitempty"`
+}
+
+// ExportScopeParams defines parameters for ExportScope.
+type ExportScopeParams struct {
+	// Scope The path of the scope, such as acme/shop; everything if not given.
+	Scope *string `form:"scope,omitempty" json:"scope,omitempty"`
+}
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody LoginJSONBody
 
@@ -1805,6 +1948,12 @@ type CheckSetupJSONRequestBody = SetupToken
 
 // SetupDatabaseJSONRequestBody defines body for SetupDatabase for application/json ContentType.
 type SetupDatabaseJSONRequestBody SetupDatabaseJSONBody
+
+// CreateTokenJSONRequestBody defines body for CreateToken for application/json ContentType.
+type CreateTokenJSONRequestBody CreateTokenJSONBody
+
+// ApplyDocumentJSONRequestBody defines body for ApplyDocument for application/json ContentType.
+type ApplyDocumentJSONRequestBody ApplyDocumentJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -1976,12 +2125,27 @@ type ServerInterface interface {
 	// SetupDatabase Choose the database, the first step of setup
 	// (POST /api/setup/database)
 	SetupDatabase(w http.ResponseWriter, r *http.Request)
+	// ListTokens The API tokens, the newest first
+	// (GET /api/tokens)
+	ListTokens(w http.ResponseWriter, r *http.Request)
+	// CreateToken Make an API token; its secret is shown this once
+	// (POST /api/tokens)
+	CreateToken(w http.ResponseWriter, r *http.Request)
+	// RevokeToken Revoke an API token
+	// (DELETE /api/tokens/{id})
+	RevokeToken(w http.ResponseWriter, r *http.Request, id ID)
 	// GetUpdates The hub's version and the newest release
 	// (GET /api/updates)
 	GetUpdates(w http.ResponseWriter, r *http.Request)
 	// CheckUpdates Look for a newer release now, instead of at the next check
 	// (POST /api/updates)
 	CheckUpdates(w http.ResponseWriter, r *http.Request)
+	// ApplyDocument Apply a lotse.yaml, or show what it would change
+	// (POST /api/v1/apply)
+	ApplyDocument(w http.ResponseWriter, r *http.Request, params ApplyDocumentParams)
+	// ExportScope A scope as lotse.yaml
+	// (GET /api/v1/export)
+	ExportScope(w http.ResponseWriter, r *http.Request, params ExportScopeParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -3490,6 +3654,60 @@ func (siw *ServerInterfaceWrapper) SetupDatabase(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// ListTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeToken operation middleware
+func (siw *ServerInterfaceWrapper) RevokeToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeToken(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUpdates operation middleware
 func (siw *ServerInterfaceWrapper) GetUpdates(w http.ResponseWriter, r *http.Request) {
 
@@ -3509,6 +3727,98 @@ func (siw *ServerInterfaceWrapper) CheckUpdates(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CheckUpdates(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ApplyDocument operation middleware
+func (siw *ServerInterfaceWrapper) ApplyDocument(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ApplyDocumentParams
+
+	// ------------- Optional query parameter "dry_run" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "dry_run", r.URL.Query(), &params.DryRun, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "dry_run"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "dry_run", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "prune" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "prune", r.URL.Query(), &params.Prune, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "prune"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "prune", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ApplyDocument(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportScope operation middleware
+func (siw *ServerInterfaceWrapper) ExportScope(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportScopeParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportScope(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3696,6 +4006,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/maintenance", wrapper.ListMaintenance)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/maintenance", wrapper.CreateMaintenance)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/maintenance/{id}", wrapper.DeleteMaintenance)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/apply", wrapper.ApplyDocument)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/export", wrapper.ExportScope)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/tokens", wrapper.ListTokens)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/tokens", wrapper.CreateToken)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/tokens/{id}", wrapper.RevokeToken)
 
 	return m
 }
@@ -6181,6 +6496,135 @@ func (response SetupDatabase409JSONResponse) VisitSetupDatabaseResponse(w http.R
 	return err
 }
 
+type ListTokensRequestObject struct {
+}
+
+type ListTokensResponseObject interface {
+	VisitListTokensResponse(w http.ResponseWriter) error
+}
+
+type ListTokens200JSONResponse []Token
+
+func (response ListTokens200JSONResponse) VisitListTokensResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTokens403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTokens403JSONResponse) VisitListTokensResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTokenRequestObject struct {
+	Body *CreateTokenJSONRequestBody
+}
+
+type CreateTokenResponseObject interface {
+	VisitCreateTokenResponse(w http.ResponseWriter) error
+}
+
+type CreateToken201JSONResponse NewToken
+
+func (response CreateToken201JSONResponse) VisitCreateTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateToken400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateToken400JSONResponse) VisitCreateTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateToken403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateToken403JSONResponse) VisitCreateTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeTokenRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type RevokeTokenResponseObject interface {
+	VisitRevokeTokenResponse(w http.ResponseWriter) error
+}
+
+type RevokeToken204Response struct {
+}
+
+func (response RevokeToken204Response) VisitRevokeTokenResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type RevokeToken403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response RevokeToken403JSONResponse) VisitRevokeTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RevokeToken404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response RevokeToken404JSONResponse) VisitRevokeTokenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetUpdatesRequestObject struct {
 }
 
@@ -6233,6 +6677,113 @@ func (response CheckUpdates403JSONResponse) VisitCheckUpdatesResponse(w http.Res
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApplyDocumentRequestObject struct {
+	Params ApplyDocumentParams
+	Body   *ApplyDocumentJSONRequestBody
+}
+
+type ApplyDocumentResponseObject interface {
+	VisitApplyDocumentResponse(w http.ResponseWriter) error
+}
+
+type ApplyDocument200JSONResponse ApplyResult
+
+func (response ApplyDocument200JSONResponse) VisitApplyDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApplyDocument400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ApplyDocument400JSONResponse) VisitApplyDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ApplyDocument403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ApplyDocument403JSONResponse) VisitApplyDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportScopeRequestObject struct {
+	Params ExportScopeParams
+}
+
+type ExportScopeResponseObject interface {
+	VisitExportScopeResponse(w http.ResponseWriter) error
+}
+
+type ExportScope200ApplicationyamlResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response ExportScope200ApplicationyamlResponse) VisitExportScopeResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/yaml")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type ExportScope403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ExportScope403JSONResponse) VisitExportScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportScope404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ExportScope404JSONResponse) VisitExportScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -6407,12 +6958,27 @@ type StrictServerInterface interface {
 	// SetupDatabase Choose the database, the first step of setup
 	// (POST /api/setup/database)
 	SetupDatabase(ctx context.Context, request SetupDatabaseRequestObject) (SetupDatabaseResponseObject, error)
+	// ListTokens The API tokens, the newest first
+	// (GET /api/tokens)
+	ListTokens(ctx context.Context, request ListTokensRequestObject) (ListTokensResponseObject, error)
+	// CreateToken Make an API token; its secret is shown this once
+	// (POST /api/tokens)
+	CreateToken(ctx context.Context, request CreateTokenRequestObject) (CreateTokenResponseObject, error)
+	// RevokeToken Revoke an API token
+	// (DELETE /api/tokens/{id})
+	RevokeToken(ctx context.Context, request RevokeTokenRequestObject) (RevokeTokenResponseObject, error)
 	// GetUpdates The hub's version and the newest release
 	// (GET /api/updates)
 	GetUpdates(ctx context.Context, request GetUpdatesRequestObject) (GetUpdatesResponseObject, error)
 	// CheckUpdates Look for a newer release now, instead of at the next check
 	// (POST /api/updates)
 	CheckUpdates(ctx context.Context, request CheckUpdatesRequestObject) (CheckUpdatesResponseObject, error)
+	// ApplyDocument Apply a lotse.yaml, or show what it would change
+	// (POST /api/v1/apply)
+	ApplyDocument(ctx context.Context, request ApplyDocumentRequestObject) (ApplyDocumentResponseObject, error)
+	// ExportScope A scope as lotse.yaml
+	// (GET /api/v1/export)
+	ExportScope(ctx context.Context, request ExportScopeRequestObject) (ExportScopeResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -7976,6 +8542,87 @@ func (sh *strictHandler) SetupDatabase(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListTokens operation middleware
+func (sh *strictHandler) ListTokens(w http.ResponseWriter, r *http.Request) {
+	var request ListTokensRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTokens(ctx, request.(ListTokensRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTokens")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTokensResponseObject); ok {
+		if err := validResponse.VisitListTokensResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateToken operation middleware
+func (sh *strictHandler) CreateToken(w http.ResponseWriter, r *http.Request) {
+	var request CreateTokenRequestObject
+
+	var body CreateTokenJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateToken(ctx, request.(CreateTokenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateToken")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTokenResponseObject); ok {
+		if err := validResponse.VisitCreateTokenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeToken operation middleware
+func (sh *strictHandler) RevokeToken(w http.ResponseWriter, r *http.Request, id ID) {
+	var request RevokeTokenRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeToken(ctx, request.(RevokeTokenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeToken")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeTokenResponseObject); ok {
+		if err := validResponse.VisitRevokeTokenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetUpdates operation middleware
 func (sh *strictHandler) GetUpdates(w http.ResponseWriter, r *http.Request) {
 	var request GetUpdatesRequestObject
@@ -8017,6 +8664,65 @@ func (sh *strictHandler) CheckUpdates(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CheckUpdatesResponseObject); ok {
 		if err := validResponse.VisitCheckUpdatesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ApplyDocument operation middleware
+func (sh *strictHandler) ApplyDocument(w http.ResponseWriter, r *http.Request, params ApplyDocumentParams) {
+	var request ApplyDocumentRequestObject
+
+	request.Params = params
+
+	var body ApplyDocumentJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ApplyDocument(ctx, request.(ApplyDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ApplyDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ApplyDocumentResponseObject); ok {
+		if err := validResponse.VisitApplyDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ExportScope operation middleware
+func (sh *strictHandler) ExportScope(w http.ResponseWriter, r *http.Request, params ExportScopeParams) {
+	var request ExportScopeRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ExportScope(ctx, request.(ExportScopeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExportScope")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ExportScopeResponseObject); ok {
+		if err := validResponse.VisitExportScopeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
