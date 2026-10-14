@@ -14,7 +14,308 @@ import (
 	"net/http"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for AlertFrom.
+const (
+	AlertFromCrit    AlertFrom = "crit"
+	AlertFromOk      AlertFrom = "ok"
+	AlertFromUnknown AlertFrom = "unknown"
+	AlertFromWarn    AlertFrom = "warn"
+)
+
+// Valid indicates whether the value is a known member of the AlertFrom enum.
+func (e AlertFrom) Valid() bool {
+	switch e {
+	case AlertFromCrit:
+		return true
+	case AlertFromOk:
+		return true
+	case AlertFromUnknown:
+		return true
+	case AlertFromWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertSubjectKind.
+const (
+	AlertSubjectKindChannel   AlertSubjectKind = "channel"
+	AlertSubjectKindCheck     AlertSubjectKind = "check"
+	AlertSubjectKindContainer AlertSubjectKind = "container"
+	AlertSubjectKindHost      AlertSubjectKind = "host"
+	AlertSubjectKindProbe     AlertSubjectKind = "probe"
+)
+
+// Valid indicates whether the value is a known member of the AlertSubjectKind enum.
+func (e AlertSubjectKind) Valid() bool {
+	switch e {
+	case AlertSubjectKindChannel:
+		return true
+	case AlertSubjectKindCheck:
+		return true
+	case AlertSubjectKindContainer:
+		return true
+	case AlertSubjectKindHost:
+		return true
+	case AlertSubjectKindProbe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertTo.
+const (
+	AlertToCrit    AlertTo = "crit"
+	AlertToOk      AlertTo = "ok"
+	AlertToUnknown AlertTo = "unknown"
+	AlertToWarn    AlertTo = "warn"
+)
+
+// Valid indicates whether the value is a known member of the AlertTo enum.
+func (e AlertTo) Valid() bool {
+	switch e {
+	case AlertToCrit:
+		return true
+	case AlertToOk:
+		return true
+	case AlertToUnknown:
+		return true
+	case AlertToWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertUnit.
+const (
+	AlertUnitCount   AlertUnit = "count"
+	AlertUnitDays    AlertUnit = "days"
+	AlertUnitEmpty   AlertUnit = ""
+	AlertUnitLoad    AlertUnit = "load"
+	AlertUnitPercent AlertUnit = "percent"
+)
+
+// Valid indicates whether the value is a known member of the AlertUnit enum.
+func (e AlertUnit) Valid() bool {
+	switch e {
+	case AlertUnitCount:
+		return true
+	case AlertUnitDays:
+		return true
+	case AlertUnitEmpty:
+		return true
+	case AlertUnitLoad:
+		return true
+	case AlertUnitPercent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertDetailFrom.
+const (
+	AlertDetailFromCrit    AlertDetailFrom = "crit"
+	AlertDetailFromOk      AlertDetailFrom = "ok"
+	AlertDetailFromUnknown AlertDetailFrom = "unknown"
+	AlertDetailFromWarn    AlertDetailFrom = "warn"
+)
+
+// Valid indicates whether the value is a known member of the AlertDetailFrom enum.
+func (e AlertDetailFrom) Valid() bool {
+	switch e {
+	case AlertDetailFromCrit:
+		return true
+	case AlertDetailFromOk:
+		return true
+	case AlertDetailFromUnknown:
+		return true
+	case AlertDetailFromWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertDetailSubjectKind.
+const (
+	AlertDetailSubjectKindChannel   AlertDetailSubjectKind = "channel"
+	AlertDetailSubjectKindCheck     AlertDetailSubjectKind = "check"
+	AlertDetailSubjectKindContainer AlertDetailSubjectKind = "container"
+	AlertDetailSubjectKindHost      AlertDetailSubjectKind = "host"
+	AlertDetailSubjectKindProbe     AlertDetailSubjectKind = "probe"
+)
+
+// Valid indicates whether the value is a known member of the AlertDetailSubjectKind enum.
+func (e AlertDetailSubjectKind) Valid() bool {
+	switch e {
+	case AlertDetailSubjectKindChannel:
+		return true
+	case AlertDetailSubjectKindCheck:
+		return true
+	case AlertDetailSubjectKindContainer:
+		return true
+	case AlertDetailSubjectKindHost:
+		return true
+	case AlertDetailSubjectKindProbe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertDetailTo.
+const (
+	AlertDetailToCrit    AlertDetailTo = "crit"
+	AlertDetailToOk      AlertDetailTo = "ok"
+	AlertDetailToUnknown AlertDetailTo = "unknown"
+	AlertDetailToWarn    AlertDetailTo = "warn"
+)
+
+// Valid indicates whether the value is a known member of the AlertDetailTo enum.
+func (e AlertDetailTo) Valid() bool {
+	switch e {
+	case AlertDetailToCrit:
+		return true
+	case AlertDetailToOk:
+		return true
+	case AlertDetailToUnknown:
+		return true
+	case AlertDetailToWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertDetailUnit.
+const (
+	AlertDetailUnitCount   AlertDetailUnit = "count"
+	AlertDetailUnitDays    AlertDetailUnit = "days"
+	AlertDetailUnitEmpty   AlertDetailUnit = ""
+	AlertDetailUnitLoad    AlertDetailUnit = "load"
+	AlertDetailUnitPercent AlertDetailUnit = "percent"
+)
+
+// Valid indicates whether the value is a known member of the AlertDetailUnit enum.
+func (e AlertDetailUnit) Valid() bool {
+	switch e {
+	case AlertDetailUnitCount:
+		return true
+	case AlertDetailUnitDays:
+		return true
+	case AlertDetailUnitEmpty:
+		return true
+	case AlertDetailUnitLoad:
+		return true
+	case AlertDetailUnitPercent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertStatePending.
+const (
+	AlertStatePendingCrit AlertStatePending = "crit"
+	AlertStatePendingWarn AlertStatePending = "warn"
+)
+
+// Valid indicates whether the value is a known member of the AlertStatePending enum.
+func (e AlertStatePending) Valid() bool {
+	switch e {
+	case AlertStatePendingCrit:
+		return true
+	case AlertStatePendingWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertStateState.
+const (
+	AlertStateStateCrit    AlertStateState = "crit"
+	AlertStateStateOk      AlertStateState = "ok"
+	AlertStateStateUnknown AlertStateState = "unknown"
+	AlertStateStateWarn    AlertStateState = "warn"
+)
+
+// Valid indicates whether the value is a known member of the AlertStateState enum.
+func (e AlertStateState) Valid() bool {
+	switch e {
+	case AlertStateStateCrit:
+		return true
+	case AlertStateStateOk:
+		return true
+	case AlertStateStateUnknown:
+		return true
+	case AlertStateStateWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertStateSubjectKind.
+const (
+	AlertStateSubjectKindChannel   AlertStateSubjectKind = "channel"
+	AlertStateSubjectKindCheck     AlertStateSubjectKind = "check"
+	AlertStateSubjectKindContainer AlertStateSubjectKind = "container"
+	AlertStateSubjectKindHost      AlertStateSubjectKind = "host"
+	AlertStateSubjectKindProbe     AlertStateSubjectKind = "probe"
+)
+
+// Valid indicates whether the value is a known member of the AlertStateSubjectKind enum.
+func (e AlertStateSubjectKind) Valid() bool {
+	switch e {
+	case AlertStateSubjectKindChannel:
+		return true
+	case AlertStateSubjectKindCheck:
+		return true
+	case AlertStateSubjectKindContainer:
+		return true
+	case AlertStateSubjectKindHost:
+		return true
+	case AlertStateSubjectKindProbe:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AlertStateUnit.
+const (
+	AlertStateUnitCount   AlertStateUnit = "count"
+	AlertStateUnitDays    AlertStateUnit = "days"
+	AlertStateUnitEmpty   AlertStateUnit = ""
+	AlertStateUnitLoad    AlertStateUnit = "load"
+	AlertStateUnitPercent AlertStateUnit = "percent"
+)
+
+// Valid indicates whether the value is a known member of the AlertStateUnit enum.
+func (e AlertStateUnit) Valid() bool {
+	switch e {
+	case AlertStateUnitCount:
+		return true
+	case AlertStateUnitDays:
+		return true
+	case AlertStateUnitEmpty:
+		return true
+	case AlertStateUnitLoad:
+		return true
+	case AlertStateUnitPercent:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for ChangeActorKind.
 const (
@@ -64,6 +365,48 @@ func (e ChangeVia) Valid() bool {
 	case ChangeViaSystem:
 		return true
 	case ChangeViaUi:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChannelType.
+const (
+	ChannelTypeEmail      ChannelType = "email"
+	ChannelTypeGooglechat ChannelType = "googlechat"
+	ChannelTypeWebhook    ChannelType = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the ChannelType enum.
+func (e ChannelType) Valid() bool {
+	switch e {
+	case ChannelTypeEmail:
+		return true
+	case ChannelTypeGooglechat:
+		return true
+	case ChannelTypeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChannelInputType.
+const (
+	ChannelInputTypeEmail      ChannelInputType = "email"
+	ChannelInputTypeGooglechat ChannelInputType = "googlechat"
+	ChannelInputTypeWebhook    ChannelInputType = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the ChannelInputType enum.
+func (e ChannelInputType) Valid() bool {
+	switch e {
+	case ChannelInputTypeEmail:
+		return true
+	case ChannelInputTypeGooglechat:
+		return true
+	case ChannelInputTypeWebhook:
 		return true
 	default:
 		return false
@@ -187,6 +530,7 @@ func (e CheckInputType) Valid() bool {
 // Defines values for ConfigLevelKind.
 const (
 	ConfigLevelKindCheck       ConfigLevelKind = "check"
+	ConfigLevelKindContainer   ConfigLevelKind = "container"
 	ConfigLevelKindCustomer    ConfigLevelKind = "customer"
 	ConfigLevelKindEnvironment ConfigLevelKind = "environment"
 	ConfigLevelKindGlobal      ConfigLevelKind = "global"
@@ -198,6 +542,8 @@ const (
 func (e ConfigLevelKind) Valid() bool {
 	switch e {
 	case ConfigLevelKindCheck:
+		return true
+	case ConfigLevelKindContainer:
 		return true
 	case ConfigLevelKindCustomer:
 		return true
@@ -216,10 +562,14 @@ func (e ConfigLevelKind) Valid() bool {
 
 // Defines values for ConfigValueType.
 const (
-	Bool     ConfigValueType = "bool"
-	Duration ConfigValueType = "duration"
-	Probes   ConfigValueType = "probes"
-	Window   ConfigValueType = "window"
+	Bool      ConfigValueType = "bool"
+	Channels  ConfigValueType = "channels"
+	Duration  ConfigValueType = "duration"
+	Level     ConfigValueType = "level"
+	Probes    ConfigValueType = "probes"
+	Threshold ConfigValueType = "threshold"
+	Url       ConfigValueType = "url"
+	Window    ConfigValueType = "window"
 )
 
 // Valid indicates whether the value is a known member of the ConfigValueType enum.
@@ -227,9 +577,17 @@ func (e ConfigValueType) Valid() bool {
 	switch e {
 	case Bool:
 		return true
+	case Channels:
+		return true
 	case Duration:
 		return true
+	case Level:
+		return true
 	case Probes:
+		return true
+	case Threshold:
+		return true
+	case Url:
 		return true
 	case Window:
 		return true
@@ -274,6 +632,123 @@ func (e HealthDatabase) Valid() bool {
 	case HealthDatabasePostgres:
 		return true
 	case HealthDatabaseSqlite:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MailServerTls.
+const (
+	MailServerTlsNone     MailServerTls = "none"
+	MailServerTlsStarttls MailServerTls = "starttls"
+	MailServerTlsTls      MailServerTls = "tls"
+)
+
+// Valid indicates whether the value is a known member of the MailServerTls enum.
+func (e MailServerTls) Valid() bool {
+	switch e {
+	case MailServerTlsNone:
+		return true
+	case MailServerTlsStarttls:
+		return true
+	case MailServerTlsTls:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MailServerInputTls.
+const (
+	MailServerInputTlsNone     MailServerInputTls = "none"
+	MailServerInputTlsStarttls MailServerInputTls = "starttls"
+	MailServerInputTlsTls      MailServerInputTls = "tls"
+)
+
+// Valid indicates whether the value is a known member of the MailServerInputTls enum.
+func (e MailServerInputTls) Valid() bool {
+	switch e {
+	case MailServerInputTlsNone:
+		return true
+	case MailServerInputTlsStarttls:
+		return true
+	case MailServerInputTlsTls:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for MaintenanceSubjectKind.
+const (
+	MaintenanceSubjectKindCheck       MaintenanceSubjectKind = "check"
+	MaintenanceSubjectKindContainer   MaintenanceSubjectKind = "container"
+	MaintenanceSubjectKindCustomer    MaintenanceSubjectKind = "customer"
+	MaintenanceSubjectKindEnvironment MaintenanceSubjectKind = "environment"
+	MaintenanceSubjectKindGlobal      MaintenanceSubjectKind = "global"
+	MaintenanceSubjectKindHost        MaintenanceSubjectKind = "host"
+	MaintenanceSubjectKindProject     MaintenanceSubjectKind = "project"
+)
+
+// Valid indicates whether the value is a known member of the MaintenanceSubjectKind enum.
+func (e MaintenanceSubjectKind) Valid() bool {
+	switch e {
+	case MaintenanceSubjectKindCheck:
+		return true
+	case MaintenanceSubjectKindContainer:
+		return true
+	case MaintenanceSubjectKindCustomer:
+		return true
+	case MaintenanceSubjectKindEnvironment:
+		return true
+	case MaintenanceSubjectKindGlobal:
+		return true
+	case MaintenanceSubjectKindHost:
+		return true
+	case MaintenanceSubjectKindProject:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationKind.
+const (
+	NotificationKindChange NotificationKind = "change"
+	NotificationKindRepeat NotificationKind = "repeat"
+)
+
+// Valid indicates whether the value is a known member of the NotificationKind enum.
+func (e NotificationKind) Valid() bool {
+	switch e {
+	case NotificationKindChange:
+		return true
+	case NotificationKindRepeat:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationStatus.
+const (
+	Failed     NotificationStatus = "failed"
+	Pending    NotificationStatus = "pending"
+	Sent       NotificationStatus = "sent"
+	Suppressed NotificationStatus = "suppressed"
+)
+
+// Valid indicates whether the value is a known member of the NotificationStatus enum.
+func (e NotificationStatus) Valid() bool {
+	switch e {
+	case Failed:
+		return true
+	case Pending:
+		return true
+	case Sent:
+		return true
+	case Suppressed:
 		return true
 	default:
 		return false
@@ -355,6 +830,123 @@ func (e SetupDatabaseJSONBodyKind) Valid() bool {
 	}
 }
 
+// Alert A transition of a rule on an object.
+type Alert struct {
+	At   int64     `json:"at"`
+	From AlertFrom `json:"from"`
+	Id   int64     `json:"id"`
+
+	// InMaintenance It happened during maintenance, so it was not sent then.
+	InMaintenance bool             `json:"in_maintenance"`
+	Instance      string           `json:"instance"`
+	Reason        string           `json:"reason"`
+	Rule          string           `json:"rule"`
+	SubjectId     int64            `json:"subject_id"`
+	SubjectKind   AlertSubjectKind `json:"subject_kind"`
+	SubjectPath   string           `json:"subject_path"`
+	Threshold     *float64         `json:"threshold,omitempty"`
+	To            AlertTo          `json:"to"`
+	Unit          AlertUnit        `json:"unit"`
+	Value         *float64         `json:"value,omitempty"`
+}
+
+// AlertFrom defines model for Alert.From.
+type AlertFrom string
+
+// AlertSubjectKind defines model for Alert.SubjectKind.
+type AlertSubjectKind string
+
+// AlertTo defines model for Alert.To.
+type AlertTo string
+
+// AlertUnit defines model for Alert.Unit.
+type AlertUnit string
+
+// AlertDetail defines model for AlertDetail.
+type AlertDetail struct {
+	At          int64           `json:"at"`
+	Description string          `json:"description"`
+	From        AlertDetailFrom `json:"from"`
+	Id          int64           `json:"id"`
+
+	// InMaintenance It happened during maintenance, so it was not sent then.
+	InMaintenance bool           `json:"in_maintenance"`
+	Instance      string         `json:"instance"`
+	Notifications []Notification `json:"notifications"`
+	Reason        string         `json:"reason"`
+	Rule          string         `json:"rule"`
+
+	// Settings The rule's settings as they applied, and where each came from.
+	Settings    []RuleSetting          `json:"settings"`
+	SubjectId   int64                  `json:"subject_id"`
+	SubjectKind AlertDetailSubjectKind `json:"subject_kind"`
+	SubjectPath string                 `json:"subject_path"`
+	Threshold   *float64               `json:"threshold,omitempty"`
+	To          AlertDetailTo          `json:"to"`
+	Unit        AlertDetailUnit        `json:"unit"`
+	Value       *float64               `json:"value,omitempty"`
+}
+
+// AlertDetailFrom defines model for AlertDetail.From.
+type AlertDetailFrom string
+
+// AlertDetailSubjectKind defines model for AlertDetail.SubjectKind.
+type AlertDetailSubjectKind string
+
+// AlertDetailTo defines model for AlertDetail.To.
+type AlertDetailTo string
+
+// AlertDetailUnit defines model for AlertDetail.Unit.
+type AlertDetailUnit string
+
+// AlertState Where a rule stands on an object.
+type AlertState struct {
+	AckedAt *int64  `json:"acked_at,omitempty"`
+	AckedBy *string `json:"acked_by,omitempty"`
+
+	// AlertId The transition into the state.
+	AlertId       int64  `json:"alert_id"`
+	Description   string `json:"description"`
+	InMaintenance bool   `json:"in_maintenance"`
+
+	// Instance What on the object, such as a filesystem's mount point; empty for most rules.
+	Instance string `json:"instance"`
+
+	// NotifiedState The state last sent.
+	NotifiedState string `json:"notified_state"`
+
+	// Pending The state it goes to, once it has held for the rule's for.
+	Pending *AlertStatePending `json:"pending,omitempty"`
+	Reason  *string            `json:"reason,omitempty"`
+
+	// Rule Example: host.disk
+	Rule        string                `json:"rule"`
+	Since       int64                 `json:"since"`
+	State       AlertStateState       `json:"state"`
+	SubjectId   int64                 `json:"subject_id"`
+	SubjectKind AlertStateSubjectKind `json:"subject_kind"`
+
+	// SubjectPath Example: acme/shop/prod/web1
+	SubjectPath string   `json:"subject_path"`
+	Threshold   *float64 `json:"threshold,omitempty"`
+
+	// Unit What value and threshold are in; empty for a rule on a condition.
+	Unit  AlertStateUnit `json:"unit"`
+	Value *float64       `json:"value,omitempty"`
+}
+
+// AlertStatePending The state it goes to, once it has held for the rule's for.
+type AlertStatePending string
+
+// AlertStateState defines model for AlertState.State.
+type AlertStateState string
+
+// AlertStateSubjectKind defines model for AlertState.SubjectKind.
+type AlertStateSubjectKind string
+
+// AlertStateUnit What value and threshold are in; empty for a rule on a condition.
+type AlertStateUnit string
+
 // Change defines model for Change.
 type Change struct {
 	ActorKind ChangeActorKind `json:"actor_kind"`
@@ -384,6 +976,51 @@ type ChangeActorKind string
 
 // ChangeVia defines model for Change.Via.
 type ChangeVia string
+
+// Channel defines model for Channel.
+type Channel struct {
+	Id int64 `json:"id"`
+
+	// Key Example: ops-mail
+	Key     string `json:"key"`
+	Name    string `json:"name"`
+	ScopeId int64  `json:"scope_id"`
+
+	// ScopePath Empty for the global scope.
+	ScopePath string `json:"scope_path"`
+
+	// Secrets email: password, for its own mail server. googlechat: url, the webhook. webhook: url, and signing_key.
+	Secrets map[string]SecretInfo `json:"secrets"`
+
+	// Spec email: to, a list of addresses, and smtp, a mail server of its own (host, port, username, from, tls). googlechat and webhook: nothing.
+	Spec map[string]interface{} `json:"spec"`
+	Type ChannelType            `json:"type"`
+}
+
+// ChannelType defines model for Channel.Type.
+type ChannelType string
+
+// ChannelInput defines model for ChannelInput.
+type ChannelInput struct {
+	Key     string                  `json:"key"`
+	Name    string                  `json:"name"`
+	ScopeId int64                   `json:"scope_id"`
+	Secrets *map[string]SecretInput `json:"secrets,omitempty"`
+	Spec    map[string]interface{}  `json:"spec"`
+	Type    ChannelInputType        `json:"type"`
+}
+
+// ChannelInputType defines model for ChannelInput.Type.
+type ChannelInputType string
+
+// ChannelUpdate defines model for ChannelUpdate.
+type ChannelUpdate struct {
+	Name string `json:"name"`
+
+	// Secrets The secrets to change; those not named stay as they are.
+	Secrets *map[string]SecretInput `json:"secrets,omitempty"`
+	Spec    map[string]interface{}  `json:"spec"`
+}
 
 // Check defines model for Check.
 type Check struct {
@@ -700,6 +1337,94 @@ type HostSummary struct {
 	Latest *HostReading `json:"latest,omitempty"`
 }
 
+// MailServer defines model for MailServer.
+type MailServer struct {
+	// From Example: lotse <lotse@example.com>
+	From string `json:"from"`
+	Host string `json:"host"`
+
+	// Password Whether a secret is set, and where it comes from; never the secret.
+	Password SecretInfo    `json:"password"`
+	Port     int           `json:"port"`
+	Tls      MailServerTls `json:"tls"`
+	Username string        `json:"username"`
+}
+
+// MailServerTls defines model for MailServer.Tls.
+type MailServerTls string
+
+// MailServerInput defines model for MailServerInput.
+type MailServerInput struct {
+	From string `json:"from"`
+	Host string `json:"host"`
+
+	// Password A secret: its value, which the hub keeps sealed, or where the hub reads it when it sends, an environment variable or a file in /run/secrets. An empty object removes it.
+	Password *SecretInput       `json:"password,omitempty"`
+	Port     int                `json:"port"`
+	Tls      MailServerInputTls `json:"tls"`
+	Username *string            `json:"username,omitempty"`
+}
+
+// MailServerInputTls defines model for MailServerInput.Tls.
+type MailServerInputTls string
+
+// Maintenance defines model for Maintenance.
+type Maintenance struct {
+	// Active Whether it covers now.
+	Active    bool   `json:"active"`
+	CreatedAt int64  `json:"created_at"`
+	CreatedBy string `json:"created_by"`
+	EndsAt    *int64 `json:"ends_at,omitempty"`
+	Id        int64  `json:"id"`
+	Reason    string `json:"reason"`
+
+	// Schedule A window that comes back, in the hub's time zone, such as sun 02:00-04:00.
+	//
+	// Example: sun 02:00-04:00
+	Schedule    *string                `json:"schedule,omitempty"`
+	StartsAt    *int64                 `json:"starts_at,omitempty"`
+	SubjectId   int64                  `json:"subject_id"`
+	SubjectKind MaintenanceSubjectKind `json:"subject_kind"`
+	SubjectPath string                 `json:"subject_path"`
+}
+
+// MaintenanceSubjectKind defines model for Maintenance.SubjectKind.
+type MaintenanceSubjectKind string
+
+// MaintenanceInput Either starts_at and ends_at, or schedule.
+type MaintenanceInput struct {
+	EndsAt   *int64  `json:"ends_at,omitempty"`
+	Reason   *string `json:"reason,omitempty"`
+	Schedule *string `json:"schedule,omitempty"`
+	StartsAt *int64  `json:"starts_at,omitempty"`
+
+	// Subject The object or scope, as kind:id.
+	Subject string `json:"subject"`
+}
+
+// Notification defines model for Notification.
+type Notification struct {
+	Attempts int `json:"attempts"`
+
+	// Channel The channel's key, with its scope's path.
+	Channel   string           `json:"channel"`
+	ChannelId *int64           `json:"channel_id,omitempty"`
+	CreatedAt int64            `json:"created_at"`
+	Error     *string          `json:"error,omitempty"`
+	Id        int64            `json:"id"`
+	Kind      NotificationKind `json:"kind"`
+	SentAt    *int64           `json:"sent_at,omitempty"`
+
+	// Status suppressed means held back during maintenance.
+	Status NotificationStatus `json:"status"`
+}
+
+// NotificationKind defines model for Notification.Kind.
+type NotificationKind string
+
+// NotificationStatus suppressed means held back during maintenance.
+type NotificationStatus string
+
 // Probe defines model for Probe.
 type Probe struct {
 	// Builtin The hub's own probe.
@@ -723,6 +1448,15 @@ type Release struct {
 
 	// Version Example: 0.1.2
 	Version string `json:"version"`
+}
+
+// RuleSetting defines model for RuleSetting.
+type RuleSetting struct {
+	From *ConfigLevel `json:"from,omitempty"`
+
+	// Key Example: rules.host.disk.crit
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
 }
 
 // Scope defines model for Scope.
@@ -752,6 +1486,23 @@ type ScopeName struct {
 	Slug string `json:"slug"`
 }
 
+// SecretInfo Whether a secret is set, and where it comes from; never the secret.
+type SecretInfo struct {
+	// Env The environment variable the hub reads it from.
+	Env *string `json:"env,omitempty"`
+
+	// File The file the hub reads it from.
+	File *string `json:"file,omitempty"`
+	Set  bool    `json:"set"`
+}
+
+// SecretInput A secret: its value, which the hub keeps sealed, or where the hub reads it when it sends, an environment variable or a file in /run/secrets. An empty object removes it.
+type SecretInput struct {
+	Env   *string `json:"env,omitempty"`
+	File  *string `json:"file,omitempty"`
+	Value *string `json:"value,omitempty"`
+}
+
 // Series Readings in columns, as charts take them: time holds the start of each step, each column one value per step (null where nothing was measured).
 type Series struct {
 	Columns map[string][]*float64 `json:"columns"`
@@ -767,6 +1518,12 @@ type SetupStep string
 // SetupToken defines model for SetupToken.
 type SetupToken struct {
 	Token string `json:"token"`
+}
+
+// TestResult defines model for TestResult.
+type TestResult struct {
+	Error *string `json:"error,omitempty"`
+	Sent  bool    `json:"sent"`
 }
 
 // Updates defines model for Updates.
@@ -821,6 +1578,24 @@ type InvalidSetupToken = Error
 // NotFound defines model for NotFound.
 type NotFound = Error
 
+// ListAlertsParams defines parameters for ListAlerts.
+type ListAlertsParams struct {
+	// Subject Only those of this object, or of everything in this scope, as kind:id, such as host:3 or environment:4.
+	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
+}
+
+// ListAlertHistoryParams defines parameters for ListAlertHistory.
+type ListAlertHistoryParams struct {
+	// Subject Only those of this object, or of everything in this scope.
+	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// From Start, in Unix seconds. Defaults to an hour before to.
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, in Unix seconds. Defaults to now.
+	To *To `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // LoginJSONBody defines parameters for Login.
 type LoginJSONBody struct {
 	Email    string `json:"email"`
@@ -831,6 +1606,12 @@ type LoginJSONBody struct {
 type ListChangesParams struct {
 	// Subject The object, as kind:id, such as environment:4 or host:3.
 	Subject string `form:"subject" json:"subject"`
+}
+
+// ListChannelsParams defines parameters for ListChannels.
+type ListChannelsParams struct {
+	// Scope Only the channels usable in this scope, defined in it or above it.
+	Scope *int64 `form:"scope,omitempty" json:"scope,omitempty"`
 }
 
 // ListChecksParams defines parameters for ListChecks.
@@ -868,7 +1649,7 @@ type GetCheckSeriesParams struct {
 
 // GetConfigParams defines parameters for GetConfig.
 type GetConfigParams struct {
-	// Subject host:<id>, environment:<id>, project:<id>, customer:<id>, or global:1.
+	// Subject check:<id>, host:<id>, container:<id>, environment:<id>, project:<id>, customer:<id>, or global:1.
 	Subject string `form:"subject" json:"subject"`
 }
 
@@ -932,6 +1713,17 @@ type GetHostSeriesParams struct {
 	Points *Points `form:"points,omitempty" json:"points,omitempty"`
 }
 
+// TestMailServerJSONBody defines parameters for TestMailServer.
+type TestMailServerJSONBody struct {
+	To openapi_types.Email `json:"to"`
+}
+
+// ListMaintenanceParams defines parameters for ListMaintenance.
+type ListMaintenanceParams struct {
+	// Subject Only those that cover this object or scope: on it, or on a scope above it, as kind:id.
+	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
+}
+
 // RenameScopeJSONBody defines parameters for RenameScope.
 type RenameScopeJSONBody struct {
 	Name string `json:"name"`
@@ -972,6 +1764,12 @@ type SetupDatabaseJSONBodyKind string
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody LoginJSONBody
 
+// CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
+type CreateChannelJSONRequestBody = ChannelInput
+
+// UpdateChannelJSONRequestBody defines body for UpdateChannel for application/json ContentType.
+type UpdateChannelJSONRequestBody = ChannelUpdate
+
 // CreateCheckJSONRequestBody defines body for CreateCheck for application/json ContentType.
 type CreateCheckJSONRequestBody = CheckInput
 
@@ -983,6 +1781,15 @@ type CreateEnvironmentJSONRequestBody CreateEnvironmentJSONBody
 
 // SetHostEnvironmentJSONRequestBody defines body for SetHostEnvironment for application/json ContentType.
 type SetHostEnvironmentJSONRequestBody SetHostEnvironmentJSONBody
+
+// SetMailServerJSONRequestBody defines body for SetMailServer for application/json ContentType.
+type SetMailServerJSONRequestBody = MailServerInput
+
+// TestMailServerJSONRequestBody defines body for TestMailServer for application/json ContentType.
+type TestMailServerJSONRequestBody TestMailServerJSONBody
+
+// CreateMaintenanceJSONRequestBody defines body for CreateMaintenance for application/json ContentType.
+type CreateMaintenanceJSONRequestBody = MaintenanceInput
 
 // RenameScopeJSONRequestBody defines body for RenameScope for application/json ContentType.
 type RenameScopeJSONRequestBody RenameScopeJSONBody
@@ -1001,6 +1808,18 @@ type SetupDatabaseJSONRequestBody SetupDatabaseJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListAlerts The alerts that are not OK now, the worst first
+	// (GET /api/alerts)
+	ListAlerts(w http.ResponseWriter, r *http.Request, params ListAlertsParams)
+	// ListAlertHistory The transitions of alerts, newest first, at most 500
+	// (GET /api/alerts/history)
+	ListAlertHistory(w http.ResponseWriter, r *http.Request, params ListAlertHistoryParams)
+	// GetAlert A transition, why it happened, and what was sent about it
+	// (GET /api/alerts/{id})
+	GetAlert(w http.ResponseWriter, r *http.Request, id ID)
+	// AcknowledgeAlert Note that someone looks after a firing alert, which stops repeats
+	// (POST /api/alerts/{id}/acknowledge)
+	AcknowledgeAlert(w http.ResponseWriter, r *http.Request, id ID)
 	// Login Log in
 	// (POST /api/auth/login)
 	Login(w http.ResponseWriter, r *http.Request)
@@ -1013,6 +1832,21 @@ type ServerInterface interface {
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(w http.ResponseWriter, r *http.Request, params ListChangesParams)
+	// ListChannels Where notifications can go
+	// (GET /api/channels)
+	ListChannels(w http.ResponseWriter, r *http.Request, params ListChannelsParams)
+	// CreateChannel Add a channel to a scope
+	// (POST /api/channels)
+	CreateChannel(w http.ResponseWriter, r *http.Request)
+	// DeleteChannel Delete a channel
+	// (DELETE /api/channels/{id})
+	DeleteChannel(w http.ResponseWriter, r *http.Request, id ID)
+	// UpdateChannel Change a channel; its scope, key and type stay
+	// (PATCH /api/channels/{id})
+	UpdateChannel(w http.ResponseWriter, r *http.Request, id ID)
+	// TestChannel Send a test message to a channel
+	// (POST /api/channels/{id}/test)
+	TestChannel(w http.ResponseWriter, r *http.Request, id ID)
 	// ListChecks Checks, with their state
 	// (GET /api/checks)
 	ListChecks(w http.ResponseWriter, r *http.Request, params ListChecksParams)
@@ -1076,6 +1910,27 @@ type ServerInterface interface {
 	// UpdateHub Update the hub to the newest release
 	// (POST /api/hub/update)
 	UpdateHub(w http.ResponseWriter, r *http.Request)
+	// DeleteMailServer Remove the mail server
+	// (DELETE /api/mail-server)
+	DeleteMailServer(w http.ResponseWriter, r *http.Request)
+	// GetMailServer The mail server email channels send through
+	// (GET /api/mail-server)
+	GetMailServer(w http.ResponseWriter, r *http.Request)
+	// SetMailServer Set the mail server
+	// (PUT /api/mail-server)
+	SetMailServer(w http.ResponseWriter, r *http.Request)
+	// TestMailServer Send a test email through the mail server
+	// (POST /api/mail-server/test)
+	TestMailServer(w http.ResponseWriter, r *http.Request)
+	// ListMaintenance Maintenance windows, the newest first
+	// (GET /api/maintenance)
+	ListMaintenance(w http.ResponseWriter, r *http.Request, params ListMaintenanceParams)
+	// CreateMaintenance Add a maintenance window, once or by schedule
+	// (POST /api/maintenance)
+	CreateMaintenance(w http.ResponseWriter, r *http.Request)
+	// DeleteMaintenance End a maintenance window, or remove one
+	// (DELETE /api/maintenance/{id})
+	DeleteMaintenance(w http.ResponseWriter, r *http.Request, id ID)
 	// ListProbes The probes, the hub's own first
 	// (GET /api/probes)
 	ListProbes(w http.ResponseWriter, r *http.Request)
@@ -1137,6 +1992,150 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAlerts operation middleware
+func (siw *ServerInterfaceWrapper) ListAlerts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAlertsParams
+
+	// ------------- Optional query parameter "subject" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subject", r.URL.Query(), &params.Subject, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAlerts(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAlertHistory operation middleware
+func (siw *ServerInterfaceWrapper) ListAlertHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAlertHistoryParams
+
+	// ------------- Optional query parameter "subject" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subject", r.URL.Query(), &params.Subject, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAlertHistory(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAlert operation middleware
+func (siw *ServerInterfaceWrapper) GetAlert(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAlert(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AcknowledgeAlert operation middleware
+func (siw *ServerInterfaceWrapper) AcknowledgeAlert(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AcknowledgeAlert(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // Login operation middleware
 func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
@@ -1204,6 +2203,131 @@ func (siw *ServerInterfaceWrapper) ListChanges(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListChanges(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListChannels operation middleware
+func (siw *ServerInterfaceWrapper) ListChannels(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListChannelsParams
+
+	// ------------- Optional query parameter "scope" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scope", r.URL.Query(), &params.Scope, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scope"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scope", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChannels(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateChannel operation middleware
+func (siw *ServerInterfaceWrapper) CreateChannel(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateChannel(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteChannel operation middleware
+func (siw *ServerInterfaceWrapper) DeleteChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteChannel(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateChannel operation middleware
+func (siw *ServerInterfaceWrapper) UpdateChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateChannel(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestChannel operation middleware
+func (siw *ServerInterfaceWrapper) TestChannel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestChannel(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1943,6 +3067,135 @@ func (siw *ServerInterfaceWrapper) UpdateHub(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteMailServer operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMailServer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMailServer(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMailServer operation middleware
+func (siw *ServerInterfaceWrapper) GetMailServer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMailServer(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetMailServer operation middleware
+func (siw *ServerInterfaceWrapper) SetMailServer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMailServer(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TestMailServer operation middleware
+func (siw *ServerInterfaceWrapper) TestMailServer(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TestMailServer(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMaintenance operation middleware
+func (siw *ServerInterfaceWrapper) ListMaintenance(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMaintenanceParams
+
+	// ------------- Optional query parameter "subject" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "subject", r.URL.Query(), &params.Subject, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "subject"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMaintenance(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMaintenance operation middleware
+func (siw *ServerInterfaceWrapper) CreateMaintenance(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMaintenance(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteMaintenance operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMaintenance(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMaintenance(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListProbes operation middleware
 func (siw *ServerInterfaceWrapper) ListProbes(w http.ResponseWriter, r *http.Request) {
 
@@ -2427,6 +3680,22 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/containers/{id}", wrapper.GetContainer)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/containers/{id}/series", wrapper.GetContainerSeries)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/events", wrapper.ListEvents)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/alerts", wrapper.ListAlerts)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/alerts/history", wrapper.ListAlertHistory)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/alerts/{id}", wrapper.GetAlert)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/alerts/{id}/acknowledge", wrapper.AcknowledgeAlert)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/channels", wrapper.ListChannels)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/channels", wrapper.CreateChannel)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/channels/{id}", wrapper.DeleteChannel)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/channels/{id}", wrapper.UpdateChannel)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/channels/{id}/test", wrapper.TestChannel)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/mail-server", wrapper.DeleteMailServer)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/mail-server", wrapper.GetMailServer)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/mail-server", wrapper.SetMailServer)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/mail-server/test", wrapper.TestMailServer)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/maintenance", wrapper.ListMaintenance)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/maintenance", wrapper.CreateMaintenance)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/maintenance/{id}", wrapper.DeleteMaintenance)
 
 	return m
 }
@@ -2440,6 +3709,158 @@ type ForbiddenJSONResponse Error
 type InvalidSetupTokenJSONResponse Error
 
 type NotFoundJSONResponse Error
+
+type ListAlertsRequestObject struct {
+	Params ListAlertsParams
+}
+
+type ListAlertsResponseObject interface {
+	VisitListAlertsResponse(w http.ResponseWriter) error
+}
+
+type ListAlerts200JSONResponse []AlertState
+
+func (response ListAlerts200JSONResponse) VisitListAlertsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAlerts400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListAlerts400JSONResponse) VisitListAlertsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAlertHistoryRequestObject struct {
+	Params ListAlertHistoryParams
+}
+
+type ListAlertHistoryResponseObject interface {
+	VisitListAlertHistoryResponse(w http.ResponseWriter) error
+}
+
+type ListAlertHistory200JSONResponse []Alert
+
+func (response ListAlertHistory200JSONResponse) VisitListAlertHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAlertHistory400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListAlertHistory400JSONResponse) VisitListAlertHistoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAlertRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type GetAlertResponseObject interface {
+	VisitGetAlertResponse(w http.ResponseWriter) error
+}
+
+type GetAlert200JSONResponse AlertDetail
+
+func (response GetAlert200JSONResponse) VisitGetAlertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetAlert404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetAlert404JSONResponse) VisitGetAlertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcknowledgeAlertRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type AcknowledgeAlertResponseObject interface {
+	VisitAcknowledgeAlertResponse(w http.ResponseWriter) error
+}
+
+type AcknowledgeAlert204Response struct {
+}
+
+func (response AcknowledgeAlert204Response) VisitAcknowledgeAlertResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type AcknowledgeAlert403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response AcknowledgeAlert403JSONResponse) VisitAcknowledgeAlertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AcknowledgeAlert404JSONResponse Error
+
+func (response AcknowledgeAlert404JSONResponse) VisitAcknowledgeAlertResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type LoginRequestObject struct {
 	Body *LoginJSONRequestBody
@@ -2577,6 +3998,251 @@ func (response ListChanges400JSONResponse) VisitListChangesResponse(w http.Respo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChannelsRequestObject struct {
+	Params ListChannelsParams
+}
+
+type ListChannelsResponseObject interface {
+	VisitListChannelsResponse(w http.ResponseWriter) error
+}
+
+type ListChannels200JSONResponse []Channel
+
+func (response ListChannels200JSONResponse) VisitListChannelsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannelRequestObject struct {
+	Body *CreateChannelJSONRequestBody
+}
+
+type CreateChannelResponseObject interface {
+	VisitCreateChannelResponse(w http.ResponseWriter) error
+}
+
+type CreateChannel201JSONResponse Channel
+
+func (response CreateChannel201JSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannel400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateChannel400JSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannel403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateChannel403JSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateChannel409JSONResponse Error
+
+func (response CreateChannel409JSONResponse) VisitCreateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteChannelRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type DeleteChannelResponseObject interface {
+	VisitDeleteChannelResponse(w http.ResponseWriter) error
+}
+
+type DeleteChannel204Response struct {
+}
+
+func (response DeleteChannel204Response) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteChannel403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteChannel403JSONResponse) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteChannel404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteChannel404JSONResponse) VisitDeleteChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannelRequestObject struct {
+	Id   ID `json:"id"`
+	Body *UpdateChannelJSONRequestBody
+}
+
+type UpdateChannelResponseObject interface {
+	VisitUpdateChannelResponse(w http.ResponseWriter) error
+}
+
+type UpdateChannel200JSONResponse Channel
+
+func (response UpdateChannel200JSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateChannel400JSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateChannel403JSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateChannel404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateChannel404JSONResponse) VisitUpdateChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestChannelRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type TestChannelResponseObject interface {
+	VisitTestChannelResponse(w http.ResponseWriter) error
+}
+
+type TestChannel200JSONResponse TestResult
+
+func (response TestChannel200JSONResponse) VisitTestChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestChannel403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response TestChannel403JSONResponse) VisitTestChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestChannel404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response TestChannel404JSONResponse) VisitTestChannelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -3451,6 +5117,328 @@ func (response UpdateHub409JSONResponse) VisitUpdateHubResponse(w http.ResponseW
 	return err
 }
 
+type DeleteMailServerRequestObject struct {
+}
+
+type DeleteMailServerResponseObject interface {
+	VisitDeleteMailServerResponse(w http.ResponseWriter) error
+}
+
+type DeleteMailServer204Response struct {
+}
+
+func (response DeleteMailServer204Response) VisitDeleteMailServerResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteMailServer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteMailServer403JSONResponse) VisitDeleteMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMailServerRequestObject struct {
+}
+
+type GetMailServerResponseObject interface {
+	VisitGetMailServerResponse(w http.ResponseWriter) error
+}
+
+type GetMailServer200JSONResponse MailServer
+
+func (response GetMailServer200JSONResponse) VisitGetMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMailServer404JSONResponse Error
+
+func (response GetMailServer404JSONResponse) VisitGetMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMailServerRequestObject struct {
+	Body *SetMailServerJSONRequestBody
+}
+
+type SetMailServerResponseObject interface {
+	VisitSetMailServerResponse(w http.ResponseWriter) error
+}
+
+type SetMailServer200JSONResponse MailServer
+
+func (response SetMailServer200JSONResponse) VisitSetMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMailServer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetMailServer400JSONResponse) VisitSetMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetMailServer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetMailServer403JSONResponse) VisitSetMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestMailServerRequestObject struct {
+	Body *TestMailServerJSONRequestBody
+}
+
+type TestMailServerResponseObject interface {
+	VisitTestMailServerResponse(w http.ResponseWriter) error
+}
+
+type TestMailServer200JSONResponse TestResult
+
+func (response TestMailServer200JSONResponse) VisitTestMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestMailServer400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response TestMailServer400JSONResponse) VisitTestMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestMailServer403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response TestMailServer403JSONResponse) VisitTestMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TestMailServer404JSONResponse Error
+
+func (response TestMailServer404JSONResponse) VisitTestMailServerResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMaintenanceRequestObject struct {
+	Params ListMaintenanceParams
+}
+
+type ListMaintenanceResponseObject interface {
+	VisitListMaintenanceResponse(w http.ResponseWriter) error
+}
+
+type ListMaintenance200JSONResponse []Maintenance
+
+func (response ListMaintenance200JSONResponse) VisitListMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMaintenance400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListMaintenance400JSONResponse) VisitListMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMaintenanceRequestObject struct {
+	Body *CreateMaintenanceJSONRequestBody
+}
+
+type CreateMaintenanceResponseObject interface {
+	VisitCreateMaintenanceResponse(w http.ResponseWriter) error
+}
+
+type CreateMaintenance201JSONResponse Maintenance
+
+func (response CreateMaintenance201JSONResponse) VisitCreateMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMaintenance400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateMaintenance400JSONResponse) VisitCreateMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMaintenance403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateMaintenance403JSONResponse) VisitCreateMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMaintenance404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateMaintenance404JSONResponse) VisitCreateMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMaintenanceRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type DeleteMaintenanceResponseObject interface {
+	VisitDeleteMaintenanceResponse(w http.ResponseWriter) error
+}
+
+type DeleteMaintenance204Response struct {
+}
+
+func (response DeleteMaintenance204Response) VisitDeleteMaintenanceResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteMaintenance403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteMaintenance403JSONResponse) VisitDeleteMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMaintenance404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteMaintenance404JSONResponse) VisitDeleteMaintenanceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListProbesRequestObject struct {
 }
 
@@ -4251,6 +6239,18 @@ func (response CheckUpdates403JSONResponse) VisitCheckUpdatesResponse(w http.Res
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ListAlerts The alerts that are not OK now, the worst first
+	// (GET /api/alerts)
+	ListAlerts(ctx context.Context, request ListAlertsRequestObject) (ListAlertsResponseObject, error)
+	// ListAlertHistory The transitions of alerts, newest first, at most 500
+	// (GET /api/alerts/history)
+	ListAlertHistory(ctx context.Context, request ListAlertHistoryRequestObject) (ListAlertHistoryResponseObject, error)
+	// GetAlert A transition, why it happened, and what was sent about it
+	// (GET /api/alerts/{id})
+	GetAlert(ctx context.Context, request GetAlertRequestObject) (GetAlertResponseObject, error)
+	// AcknowledgeAlert Note that someone looks after a firing alert, which stops repeats
+	// (POST /api/alerts/{id}/acknowledge)
+	AcknowledgeAlert(ctx context.Context, request AcknowledgeAlertRequestObject) (AcknowledgeAlertResponseObject, error)
 	// Login Log in
 	// (POST /api/auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -4263,6 +6263,21 @@ type StrictServerInterface interface {
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(ctx context.Context, request ListChangesRequestObject) (ListChangesResponseObject, error)
+	// ListChannels Where notifications can go
+	// (GET /api/channels)
+	ListChannels(ctx context.Context, request ListChannelsRequestObject) (ListChannelsResponseObject, error)
+	// CreateChannel Add a channel to a scope
+	// (POST /api/channels)
+	CreateChannel(ctx context.Context, request CreateChannelRequestObject) (CreateChannelResponseObject, error)
+	// DeleteChannel Delete a channel
+	// (DELETE /api/channels/{id})
+	DeleteChannel(ctx context.Context, request DeleteChannelRequestObject) (DeleteChannelResponseObject, error)
+	// UpdateChannel Change a channel; its scope, key and type stay
+	// (PATCH /api/channels/{id})
+	UpdateChannel(ctx context.Context, request UpdateChannelRequestObject) (UpdateChannelResponseObject, error)
+	// TestChannel Send a test message to a channel
+	// (POST /api/channels/{id}/test)
+	TestChannel(ctx context.Context, request TestChannelRequestObject) (TestChannelResponseObject, error)
 	// ListChecks Checks, with their state
 	// (GET /api/checks)
 	ListChecks(ctx context.Context, request ListChecksRequestObject) (ListChecksResponseObject, error)
@@ -4326,6 +6341,27 @@ type StrictServerInterface interface {
 	// UpdateHub Update the hub to the newest release
 	// (POST /api/hub/update)
 	UpdateHub(ctx context.Context, request UpdateHubRequestObject) (UpdateHubResponseObject, error)
+	// DeleteMailServer Remove the mail server
+	// (DELETE /api/mail-server)
+	DeleteMailServer(ctx context.Context, request DeleteMailServerRequestObject) (DeleteMailServerResponseObject, error)
+	// GetMailServer The mail server email channels send through
+	// (GET /api/mail-server)
+	GetMailServer(ctx context.Context, request GetMailServerRequestObject) (GetMailServerResponseObject, error)
+	// SetMailServer Set the mail server
+	// (PUT /api/mail-server)
+	SetMailServer(ctx context.Context, request SetMailServerRequestObject) (SetMailServerResponseObject, error)
+	// TestMailServer Send a test email through the mail server
+	// (POST /api/mail-server/test)
+	TestMailServer(ctx context.Context, request TestMailServerRequestObject) (TestMailServerResponseObject, error)
+	// ListMaintenance Maintenance windows, the newest first
+	// (GET /api/maintenance)
+	ListMaintenance(ctx context.Context, request ListMaintenanceRequestObject) (ListMaintenanceResponseObject, error)
+	// CreateMaintenance Add a maintenance window, once or by schedule
+	// (POST /api/maintenance)
+	CreateMaintenance(ctx context.Context, request CreateMaintenanceRequestObject) (CreateMaintenanceResponseObject, error)
+	// DeleteMaintenance End a maintenance window, or remove one
+	// (DELETE /api/maintenance/{id})
+	DeleteMaintenance(ctx context.Context, request DeleteMaintenanceRequestObject) (DeleteMaintenanceResponseObject, error)
 	// ListProbes The probes, the hub's own first
 	// (GET /api/probes)
 	ListProbes(ctx context.Context, request ListProbesRequestObject) (ListProbesResponseObject, error)
@@ -4416,6 +6452,110 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ListAlerts operation middleware
+func (sh *strictHandler) ListAlerts(w http.ResponseWriter, r *http.Request, params ListAlertsParams) {
+	var request ListAlertsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAlerts(ctx, request.(ListAlertsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAlerts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAlertsResponseObject); ok {
+		if err := validResponse.VisitListAlertsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListAlertHistory operation middleware
+func (sh *strictHandler) ListAlertHistory(w http.ResponseWriter, r *http.Request, params ListAlertHistoryParams) {
+	var request ListAlertHistoryRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAlertHistory(ctx, request.(ListAlertHistoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAlertHistory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAlertHistoryResponseObject); ok {
+		if err := validResponse.VisitListAlertHistoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAlert operation middleware
+func (sh *strictHandler) GetAlert(w http.ResponseWriter, r *http.Request, id ID) {
+	var request GetAlertRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAlert(ctx, request.(GetAlertRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAlert")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAlertResponseObject); ok {
+		if err := validResponse.VisitGetAlertResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AcknowledgeAlert operation middleware
+func (sh *strictHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request, id ID) {
+	var request AcknowledgeAlertRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AcknowledgeAlert(ctx, request.(AcknowledgeAlertRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AcknowledgeAlert")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AcknowledgeAlertResponseObject); ok {
+		if err := validResponse.VisitAcknowledgeAlertResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // Login operation middleware
@@ -4516,6 +6656,148 @@ func (sh *strictHandler) ListChanges(w http.ResponseWriter, r *http.Request, par
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListChangesResponseObject); ok {
 		if err := validResponse.VisitListChangesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListChannels operation middleware
+func (sh *strictHandler) ListChannels(w http.ResponseWriter, r *http.Request, params ListChannelsParams) {
+	var request ListChannelsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListChannels(ctx, request.(ListChannelsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListChannels")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChannelsResponseObject); ok {
+		if err := validResponse.VisitListChannelsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateChannel operation middleware
+func (sh *strictHandler) CreateChannel(w http.ResponseWriter, r *http.Request) {
+	var request CreateChannelRequestObject
+
+	var body CreateChannelJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateChannel(ctx, request.(CreateChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateChannelResponseObject); ok {
+		if err := validResponse.VisitCreateChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteChannel operation middleware
+func (sh *strictHandler) DeleteChannel(w http.ResponseWriter, r *http.Request, id ID) {
+	var request DeleteChannelRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteChannel(ctx, request.(DeleteChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteChannelResponseObject); ok {
+		if err := validResponse.VisitDeleteChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateChannel operation middleware
+func (sh *strictHandler) UpdateChannel(w http.ResponseWriter, r *http.Request, id ID) {
+	var request UpdateChannelRequestObject
+
+	request.Id = id
+
+	var body UpdateChannelJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateChannel(ctx, request.(UpdateChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateChannelResponseObject); ok {
+		if err := validResponse.VisitUpdateChannelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// TestChannel operation middleware
+func (sh *strictHandler) TestChannel(w http.ResponseWriter, r *http.Request, id ID) {
+	var request TestChannelRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.TestChannel(ctx, request.(TestChannelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TestChannel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(TestChannelResponseObject); ok {
+		if err := validResponse.VisitTestChannelResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -5085,6 +7367,199 @@ func (sh *strictHandler) UpdateHub(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateHubResponseObject); ok {
 		if err := validResponse.VisitUpdateHubResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteMailServer operation middleware
+func (sh *strictHandler) DeleteMailServer(w http.ResponseWriter, r *http.Request) {
+	var request DeleteMailServerRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMailServer(ctx, request.(DeleteMailServerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMailServer")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMailServerResponseObject); ok {
+		if err := validResponse.VisitDeleteMailServerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMailServer operation middleware
+func (sh *strictHandler) GetMailServer(w http.ResponseWriter, r *http.Request) {
+	var request GetMailServerRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMailServer(ctx, request.(GetMailServerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMailServer")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMailServerResponseObject); ok {
+		if err := validResponse.VisitGetMailServerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetMailServer operation middleware
+func (sh *strictHandler) SetMailServer(w http.ResponseWriter, r *http.Request) {
+	var request SetMailServerRequestObject
+
+	var body SetMailServerJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetMailServer(ctx, request.(SetMailServerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetMailServer")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetMailServerResponseObject); ok {
+		if err := validResponse.VisitSetMailServerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// TestMailServer operation middleware
+func (sh *strictHandler) TestMailServer(w http.ResponseWriter, r *http.Request) {
+	var request TestMailServerRequestObject
+
+	var body TestMailServerJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.TestMailServer(ctx, request.(TestMailServerRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TestMailServer")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(TestMailServerResponseObject); ok {
+		if err := validResponse.VisitTestMailServerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMaintenance operation middleware
+func (sh *strictHandler) ListMaintenance(w http.ResponseWriter, r *http.Request, params ListMaintenanceParams) {
+	var request ListMaintenanceRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMaintenance(ctx, request.(ListMaintenanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMaintenance")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMaintenanceResponseObject); ok {
+		if err := validResponse.VisitListMaintenanceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateMaintenance operation middleware
+func (sh *strictHandler) CreateMaintenance(w http.ResponseWriter, r *http.Request) {
+	var request CreateMaintenanceRequestObject
+
+	var body CreateMaintenanceJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateMaintenance(ctx, request.(CreateMaintenanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateMaintenance")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateMaintenanceResponseObject); ok {
+		if err := validResponse.VisitCreateMaintenanceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteMaintenance operation middleware
+func (sh *strictHandler) DeleteMaintenance(w http.ResponseWriter, r *http.Request, id ID) {
+	var request DeleteMaintenanceRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMaintenance(ctx, request.(DeleteMaintenanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMaintenance")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMaintenanceResponseObject); ok {
+		if err := validResponse.VisitDeleteMaintenanceResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

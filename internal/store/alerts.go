@@ -128,6 +128,9 @@ func (s *Store) SaveAlertState(ctx context.Context, st AlertState, transition *A
 	return st, err
 }
 
+// saveAlertState saves a state. An acknowledgement stays as long as the
+// state is the same one, the same transition, whatever st says, so that
+// the alert loop does not undo one it did not know of yet.
 func (s *Store) saveAlertState(ctx context.Context, tx *sql.Tx, st AlertState) error {
 	if st.State == "ok" && st.Pending == nil && st.RecoveringSince == nil && st.NotifiedState == "ok" {
 		_, err := tx.ExecContext(ctx, s.rebind(`DELETE FROM alert_states
@@ -141,7 +144,11 @@ func (s *Store) saveAlertState(ctx context.Context, tx *sql.Tx, st AlertState) e
 			state = excluded.state, since = excluded.since, pending = excluded.pending,
 			pending_since = excluded.pending_since, recovering_since = excluded.recovering_since,
 			previous = excluded.previous, value = excluded.value, alert_id = excluded.alert_id, notified_state = excluded.notified_state,
-			notified_at = excluded.notified_at, acked_by = excluded.acked_by, acked_at = excluded.acked_at`),
+			notified_at = excluded.notified_at,
+			acked_by = CASE WHEN COALESCE(alert_states.alert_id, 0) = COALESCE(excluded.alert_id, 0)
+				THEN COALESCE(excluded.acked_by, alert_states.acked_by) ELSE excluded.acked_by END,
+			acked_at = CASE WHEN COALESCE(alert_states.alert_id, 0) = COALESCE(excluded.alert_id, 0)
+				THEN COALESCE(excluded.acked_at, alert_states.acked_at) ELSE excluded.acked_at END`),
 		st.Rule, st.SubjectKind, st.SubjectID, st.Instance, st.State, st.Since, st.Pending, st.PendingSince,
 		st.RecoveringSince, st.Previous, st.Value, st.AlertID, st.NotifiedState, st.NotifiedAt, st.AckedBy, st.AckedAt)
 	return err

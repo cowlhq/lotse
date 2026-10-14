@@ -176,3 +176,22 @@ func (s *Store) AgentRevoked(ctx context.Context, hostID int64) (bool, error) {
 		FROM agents WHERE host_id = ?`, hostID).Scan(&active, &total)
 	return total > 0 && active == 0, err
 }
+
+// RevokedHosts returns the hosts whose agents are all revoked.
+func (s *Store) RevokedHosts(ctx context.Context) (map[int64]bool, error) {
+	rows, err := s.read.QueryContext(ctx, `SELECT host_id FROM agents
+		GROUP BY host_id HAVING SUM(CASE WHEN revoked_at IS NULL THEN 1 ELSE 0 END) = 0`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	revoked := map[int64]bool{}
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		revoked[id] = true
+	}
+	return revoked, rows.Err()
+}

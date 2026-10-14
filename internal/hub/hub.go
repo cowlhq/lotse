@@ -171,6 +171,8 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	go h.heartbeats(ctx)
 	go h.keepAssigned(ctx)
 	go h.autoUpdate(ctx)
+	go h.alertLoop(ctx)
+	go h.notifyLoop(ctx)
 	defer func() {
 		// What arrived until the very end is still written.
 		stopWriter()
@@ -233,6 +235,10 @@ type hub struct {
 	checks        checkState
 	builtinProbe  *probe.Scheduler
 	probes        probeConns
+	alerts        alerting
+	// How often the alert loop and the notifier run, and how long
+	// notifications are gathered; shorter in tests.
+	alertEvery, notifyEvery, gather time.Duration
 }
 
 // newHub makes the hub for a database. Without users, setup goes on with
@@ -245,6 +251,7 @@ func newHub(ctx context.Context, s shared, db *store.Store) (*hub, error) {
 		hostInterval:      15 * time.Second,
 		containerInterval: 30 * time.Second,
 	}
+	h.alerts.wake = make(chan struct{}, 1)
 	h.builtinProbe = &probe.Scheduler{Runner: &probe.Runner{}, Report: func(id int64, at time.Time, r probe.Result) {
 		h.checkResult(context.Background(), store.BuiltinProbe, id, at, r)
 	}}

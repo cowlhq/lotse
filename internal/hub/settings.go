@@ -17,8 +17,8 @@ import (
 )
 
 // levels returns the object a subject names and the scopes above it, in
-// the order settings are inherited: host:3, environment:4, project:5,
-// customer:6 or global:1.
+// the order settings are inherited: check:2, container:9 (then its host),
+// host:3, environment:4, project:5, customer:6 or global:1.
 func (h *hub) levels(ctx context.Context, subject string) ([]config.Level, error) {
 	kind, idText, _ := strings.Cut(subject, ":")
 	id, err := strconv.ParseInt(idText, 10, 64)
@@ -35,7 +35,16 @@ func (h *hub) levels(ctx context.Context, subject string) ([]config.Level, error
 		}
 		levels = append(levels, config.Level{Kind: "check", ID: c.ID, Path: c.Path, Name: c.Name})
 		scopeID = c.EnvironmentID
-	case "host":
+	case "container", "host":
+		if kind == "container" {
+			// A container's settings are inherited from its host.
+			c, err := h.db.Container(ctx, id)
+			if err != nil {
+				return nil, err
+			}
+			levels = append(levels, config.Level{Kind: "container", ID: c.ID, Path: c.Name, Name: c.Name})
+			id = c.HostID
+		}
 		host, err := h.db.Host(ctx, id)
 		if err != nil {
 			return nil, err
@@ -66,7 +75,7 @@ func (h *hub) levels(ctx context.Context, subject string) ([]config.Level, error
 	}
 }
 
-var errBadSubject = errors.New("subject must be check:<id>, host:<id>, environment:<id>, project:<id>, customer:<id> or global:1")
+var errBadSubject = errors.New("subject must be check:<id>, container:<id>, host:<id>, environment:<id>, project:<id>, customer:<id> or global:1")
 
 // effective resolves the settings of a subject.
 func (h *hub) effective(ctx context.Context, subject string) ([]config.Value, error) {

@@ -367,8 +367,8 @@ paths:
           in: query
           required: true
           description: >
-            host:<id>, environment:<id>, project:<id>, customer:<id>, or
-            global:1.
+            check:<id>, host:<id>, container:<id>, environment:<id>,
+            project:<id>, customer:<id>, or global:1.
           schema: { type: string }
       responses:
         "200":
@@ -778,6 +778,280 @@ paths:
                 items: { $ref: "#/components/schemas/Event" }
         "400": { $ref: "#/components/responses/BadRequest" }
 
+  /api/alerts:
+    get:
+      operationId: listAlerts
+      summary: The alerts that are not OK now, the worst first
+      parameters:
+        - name: subject
+          in: query
+          description: >
+            Only those of this object, or of everything in this scope, as
+            kind:id, such as host:3 or environment:4.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The alerts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AlertState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/alerts/history:
+    get:
+      operationId: listAlertHistory
+      summary: The transitions of alerts, newest first, at most 500
+      parameters:
+        - name: subject
+          in: query
+          description: Only those of this object, or of everything in this scope.
+          schema: { type: string }
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+      responses:
+        "200":
+          description: The transitions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Alert" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/alerts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: getAlert
+      summary: A transition, why it happened, and what was sent about it
+      responses:
+        "200":
+          description: The transition.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/alerts/{id}/acknowledge:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: acknowledgeAlert
+      summary: Note that someone looks after a firing alert, which stops repeats
+      description: >
+        The ID is the transition into the alert's current state. A change of
+        state, such as from WARN to CRIT, is sent again all the same.
+      responses:
+        "204":
+          description: Acknowledged.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: The alert does not fire, or is acknowledged already.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/channels:
+    get:
+      operationId: listChannels
+      summary: Where notifications can go
+      parameters:
+        - name: scope
+          in: query
+          description: Only the channels usable in this scope, defined in it or above it.
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: The channels, by scope and key.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Channel" }
+    post:
+      operationId: createChannel
+      summary: Add a channel to a scope
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChannelInput" }
+      responses:
+        "201":
+          description: The channel.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Channel" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: The scope has a channel with this key.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/channels/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    patch:
+      operationId: updateChannel
+      summary: Change a channel; its scope, key and type stay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChannelUpdate" }
+      responses:
+        "200":
+          description: The channel.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Channel" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: deleteChannel
+      summary: Delete a channel
+      responses:
+        "204":
+          description: Deleted.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/channels/{id}/test:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: testChannel
+      summary: Send a test message to a channel
+      responses:
+        "200":
+          description: How it went.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestResult" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/mail-server:
+    get:
+      operationId: getMailServer
+      summary: The mail server email channels send through
+      responses:
+        "200":
+          description: The mail server.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MailServer" }
+        "404":
+          description: There is none yet.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      operationId: setMailServer
+      summary: Set the mail server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MailServerInput" }
+      responses:
+        "200":
+          description: The mail server.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MailServer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    delete:
+      operationId: deleteMailServer
+      summary: Remove the mail server
+      responses:
+        "204":
+          description: Removed.
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/mail-server/test:
+    post:
+      operationId: testMailServer
+      summary: Send a test email through the mail server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to]
+              properties:
+                to: { type: string, format: email }
+      responses:
+        "200":
+          description: How it went.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: There is no mail server.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/maintenance:
+    get:
+      operationId: listMaintenance
+      summary: Maintenance windows, the newest first
+      parameters:
+        - name: subject
+          in: query
+          description: >
+            Only those that cover this object or scope: on it, or on a scope
+            above it, as kind:id.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The windows.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Maintenance" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+    post:
+      operationId: createMaintenance
+      summary: Add a maintenance window, once or by schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaintenanceInput" }
+      responses:
+        "201":
+          description: The window.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Maintenance" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/maintenance/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    delete:
+      operationId: deleteMaintenance
+      summary: End a maintenance window, or remove one
+      responses:
+        "204":
+          description: Removed.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
   securitySchemes:
     session:
@@ -940,7 +1214,7 @@ components:
       type: object
       required: [kind, id, path, name]
       properties:
-        kind: { type: string, enum: [check, host, environment, project, customer, global] }
+        kind: { type: string, enum: [check, host, container, environment, project, customer, global] }
         id: { type: integer, format: int64 }
         path: { type: string }
         name: { type: string }
@@ -950,7 +1224,7 @@ components:
       required: [key, type, description, value, overrides]
       properties:
         key: { type: string, example: agent.interval.host }
-        type: { type: string, enum: [duration, bool, window, probes] }
+        type: { type: string, enum: [duration, bool, window, probes, channels, threshold, level, url] }
         description: { type: string }
         value:
           description: The effective value.
@@ -1292,3 +1566,243 @@ components:
         data:
           type: object
           additionalProperties: true
+
+    AlertState:
+      type: object
+      description: Where a rule stands on an object.
+      required: [rule, description, subject_kind, subject_id, subject_path, instance, state, since,
+        unit, alert_id, in_maintenance, notified_state]
+      properties:
+        rule: { type: string, example: host.disk }
+        description: { type: string }
+        subject_kind: { type: string, enum: [host, container, check, probe, channel] }
+        subject_id: { type: integer, format: int64 }
+        subject_path: { type: string, example: acme/shop/prod/web1 }
+        instance:
+          type: string
+          description: What on the object, such as a filesystem's mount point; empty for most rules.
+        state: { type: string, enum: [ok, warn, crit, unknown] }
+        since: { type: integer, format: int64 }
+        pending:
+          type: string
+          enum: [warn, crit]
+          description: The state it goes to, once it has held for the rule's for.
+        value: { type: number, format: double }
+        threshold: { type: number, format: double }
+        unit:
+          type: string
+          description: What value and threshold are in; empty for a rule on a condition.
+          enum: ["", percent, count, days, load]
+        alert_id:
+          type: integer
+          format: int64
+          description: The transition into the state.
+        reason: { type: string }
+        in_maintenance: { type: boolean }
+        notified_state:
+          type: string
+          description: The state last sent.
+        acked_by: { type: string }
+        acked_at: { type: integer, format: int64 }
+
+    Alert:
+      type: object
+      description: A transition of a rule on an object.
+      required: [id, rule, subject_kind, subject_id, subject_path, instance, from, to, at, unit, reason, in_maintenance]
+      properties:
+        id: { type: integer, format: int64 }
+        rule: { type: string }
+        subject_kind: { type: string, enum: [host, container, check, probe, channel] }
+        subject_id: { type: integer, format: int64 }
+        subject_path: { type: string }
+        instance: { type: string }
+        from: { type: string, enum: [ok, warn, crit, unknown] }
+        to: { type: string, enum: [ok, warn, crit, unknown] }
+        at: { type: integer, format: int64 }
+        value: { type: number, format: double }
+        threshold: { type: number, format: double }
+        unit: { type: string, enum: ["", percent, count, days, load] }
+        reason: { type: string }
+        in_maintenance:
+          type: boolean
+          description: It happened during maintenance, so it was not sent then.
+
+    AlertDetail:
+      allOf:
+        - $ref: "#/components/schemas/Alert"
+        - type: object
+          required: [description, settings, notifications]
+          properties:
+            description: { type: string }
+            settings:
+              type: array
+              description: The rule's settings as they applied, and where each came from.
+              items: { $ref: "#/components/schemas/RuleSetting" }
+            notifications:
+              type: array
+              items: { $ref: "#/components/schemas/Notification" }
+
+    RuleSetting:
+      type: object
+      required: [key, value]
+      properties:
+        key: { type: string, example: rules.host.disk.crit }
+        value: {}
+        from:
+          $ref: "#/components/schemas/ConfigLevel"
+
+    Notification:
+      type: object
+      required: [id, channel, kind, status, attempts, created_at]
+      properties:
+        id: { type: integer, format: int64 }
+        channel:
+          type: string
+          description: The channel's key, with its scope's path.
+        channel_id: { type: integer, format: int64 }
+        kind: { type: string, enum: [change, repeat] }
+        status:
+          type: string
+          enum: [pending, sent, failed, suppressed]
+          description: suppressed means held back during maintenance.
+        attempts: { type: integer }
+        error: { type: string }
+        created_at: { type: integer, format: int64 }
+        sent_at: { type: integer, format: int64 }
+
+    SecretInfo:
+      type: object
+      description: Whether a secret is set, and where it comes from; never the secret.
+      required: [set]
+      properties:
+        set: { type: boolean }
+        env:
+          type: string
+          description: The environment variable the hub reads it from.
+        file:
+          type: string
+          description: The file the hub reads it from.
+
+    SecretInput:
+      type: object
+      description: >
+        A secret: its value, which the hub keeps sealed, or where the hub
+        reads it when it sends, an environment variable or a file in
+        /run/secrets. An empty object removes it.
+      properties:
+        value: { type: string }
+        env: { type: string }
+        file: { type: string }
+
+    Channel:
+      type: object
+      required: [id, scope_id, scope_path, key, name, type, spec, secrets]
+      properties:
+        id: { type: integer, format: int64 }
+        scope_id: { type: integer, format: int64 }
+        scope_path:
+          type: string
+          description: Empty for the global scope.
+        key: { type: string, example: ops-mail }
+        name: { type: string }
+        type: { type: string, enum: [email, googlechat, webhook] }
+        spec:
+          type: object
+          additionalProperties: true
+          description: >
+            email: to, a list of addresses, and smtp, a mail server of its own
+            (host, port, username, from, tls). googlechat and webhook: nothing.
+        secrets:
+          type: object
+          description: >
+            email: password, for its own mail server. googlechat: url, the
+            webhook. webhook: url, and signing_key.
+          additionalProperties: { $ref: "#/components/schemas/SecretInfo" }
+
+    ChannelInput:
+      type: object
+      required: [scope_id, key, name, type, spec]
+      properties:
+        scope_id: { type: integer, format: int64 }
+        key: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [email, googlechat, webhook] }
+        spec: { type: object, additionalProperties: true }
+        secrets:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/SecretInput" }
+
+    ChannelUpdate:
+      type: object
+      required: [name, spec]
+      properties:
+        name: { type: string }
+        spec: { type: object, additionalProperties: true }
+        secrets:
+          type: object
+          description: The secrets to change; those not named stay as they are.
+          additionalProperties: { $ref: "#/components/schemas/SecretInput" }
+
+    TestResult:
+      type: object
+      required: [sent]
+      properties:
+        sent: { type: boolean }
+        error: { type: string }
+
+    MailServer:
+      type: object
+      required: [host, port, username, from, tls, password]
+      properties:
+        host: { type: string }
+        port: { type: integer }
+        username: { type: string }
+        from: { type: string, example: lotse <lotse@example.com> }
+        tls: { type: string, enum: [starttls, tls, none] }
+        password: { $ref: "#/components/schemas/SecretInfo" }
+
+    MailServerInput:
+      type: object
+      required: [host, port, from, tls]
+      properties:
+        host: { type: string }
+        port: { type: integer }
+        username: { type: string }
+        from: { type: string }
+        tls: { type: string, enum: [starttls, tls, none] }
+        password:
+          $ref: "#/components/schemas/SecretInput"
+
+    Maintenance:
+      type: object
+      required: [id, subject_kind, subject_id, subject_path, reason, created_by, created_at, active]
+      properties:
+        id: { type: integer, format: int64 }
+        subject_kind: { type: string, enum: [host, container, check, environment, project, customer, global] }
+        subject_id: { type: integer, format: int64 }
+        subject_path: { type: string }
+        starts_at: { type: integer, format: int64 }
+        ends_at: { type: integer, format: int64 }
+        schedule:
+          type: string
+          description: A window that comes back, in the hub's time zone, such as sun 02:00-04:00.
+          example: sun 02:00-04:00
+        reason: { type: string }
+        created_by: { type: string }
+        created_at: { type: integer, format: int64 }
+        active:
+          type: boolean
+          description: Whether it covers now.
+
+    MaintenanceInput:
+      type: object
+      required: [subject]
+      description: Either starts_at and ends_at, or schedule.
+      properties:
+        subject:
+          type: string
+          description: The object or scope, as kind:id.
+        starts_at: { type: integer, format: int64 }
+        ends_at: { type: integer, format: int64 }
+        schedule: { type: string }
+        reason: { type: string }
