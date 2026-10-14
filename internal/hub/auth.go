@@ -58,7 +58,7 @@ func userOf(ctx context.Context) (store.User, bool) {
 // Paths that work without a session. Agents prove themselves with their
 // own token.
 func publicPath(path string) bool {
-	return path == "/api/health" || path == "/api/auth/login" ||
+	return path == "/api/health" || path == "/api/auth/login" || path == "/api/openapi.yaml" ||
 		strings.HasPrefix(path, "/api/setup/") || path == protocol.ConnectPath || path == protocol.EnrollPath ||
 		path == protocol.CheckPath || path == protocol.ProbeEnrollPath || path == protocol.ProbeConnectPath
 }

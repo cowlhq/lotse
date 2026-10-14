@@ -12,12 +12,22 @@ info:
 
     Everything but health, setup and login needs a session: the cookie
     lotse_session, which logging in sets. Without one, the answer is 401.
+
+    The part under /api/v1, tagged read, is the read API for other
+    programs: it is kept stable, takes an API token (Authorization: Bearer
+    lotse_tok_…) of either kind, and shows only what is in the token's scope.
+    The Go client lotse.sh/client is made from it. The rest is the web
+    interface's own and may change with it.
   license:
     name: AGPL-3.0-only
     url: https://www.gnu.org/licenses/agpl-3.0.html
 
 security:
   - session: []
+
+tags:
+  - name: read
+    description: The read API, for other programs; stable.
 
 paths:
   /api/health:
@@ -1095,6 +1105,7 @@ paths:
     get:
       operationId: exportScope
       summary: A scope as lotse.yaml
+      tags: [read]
       security:
         - bearer: []
         - session: []
@@ -1161,6 +1172,239 @@ paths:
         "204":
           description: Revoked.
         "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/status:
+    get:
+      operationId: readStatus
+      summary: How everything a token sees stands, in figures
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Status" }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/scopes:
+    get:
+      operationId: readScopes
+      summary: The customers, projects and environments a token sees
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Scope" } }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/hosts:
+    get:
+      operationId: readHosts
+      summary: Hosts, with their newest reading
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/HostSummary" } }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/hosts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      operationId: readHost
+      summary: A host, with its filesystems and containers
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HostDetail" }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/hosts/{id}/series:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+      - $ref: "#/components/parameters/Points"
+    get:
+      operationId: readHostSeries
+      summary: A host's readings over time
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Series" }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/containers/{id}/series:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+      - $ref: "#/components/parameters/Points"
+    get:
+      operationId: readContainerSeries
+      summary: A container's readings over time
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Series" }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/checks:
+    get:
+      operationId: readChecks
+      summary: Checks, with their state
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Check" } }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/checks/{id}/series:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+      - $ref: "#/components/parameters/Points"
+    get:
+      operationId: readCheckSeries
+      summary: A check's response time and success over time
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Series" }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/alerts:
+    get:
+      operationId: readAlerts
+      summary: The alerts that are not OK now, the worst first
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/AlertState" } }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/alerts/history:
+    parameters:
+      - $ref: "#/components/parameters/From"
+      - $ref: "#/components/parameters/To"
+    get:
+      operationId: readAlertHistory
+      summary: Transitions of alerts, newest first, at most 500
+      tags: [read]
+      security:
+        - bearer: []
+        - session: []
+      responses:
+        "200":
+          description: The answer.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Alert" } }
+        "401":
+          description: No token, or one that does not work.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "404": { $ref: "#/components/responses/NotFound" }
 
 components:
@@ -1985,3 +2229,23 @@ components:
         secret:
           type: string
           description: The token itself, lotse_tok_…; it is not shown again.
+
+    Status:
+      type: object
+      description: How everything stands, in figures.
+      required: [level, hosts, hosts_online, checks, checks_up, critical, warnings]
+      properties:
+        level:
+          type: string
+          enum: [ok, warn, crit]
+          description: The worst firing alert, or ok.
+        hosts: { type: integer }
+        hosts_online: { type: integer }
+        checks: { type: integer }
+        checks_up: { type: integer }
+        critical:
+          type: integer
+          description: Alerts firing at CRIT.
+        warnings:
+          type: integer
+          description: Alerts firing at WARN.

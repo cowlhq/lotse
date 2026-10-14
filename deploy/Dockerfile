@@ -19,6 +19,7 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY cmd cmd
 COPY internal internal
+COPY api api
 COPY client client
 COPY --from=web /src/internal/ui/dist internal/ui/dist
 ARG TARGETOS TARGETARCH VERSION=dev
