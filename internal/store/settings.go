@@ -77,3 +77,36 @@ func (s *Store) SetSetting(ctx context.Context, actor Actor, sub Subject, key st
 		return s.recorder(tx, actor).record(ctx, sub.Kind, sub.ID, sub.Path, key, before, after)
 	})
 }
+
+// AllSettings returns everything set on every subject, by subject and key.
+func (s *Store) AllSettings(ctx context.Context) (map[Subject]map[string]json.RawMessage, error) {
+	rows, err := s.read.QueryContext(ctx, `SELECT subject_kind, subject_id, key, value_json FROM settings`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[Subject]map[string]json.RawMessage{}
+	for rows.Next() {
+		var sub Subject
+		var k, v string
+		if err := rows.Scan(&sub.Kind, &sub.ID, &k, &v); err != nil {
+			return nil, err
+		}
+		if out[sub] == nil {
+			out[sub] = map[string]json.RawMessage{}
+		}
+		out[sub][k] = json.RawMessage(v)
+	}
+	return out, rows.Err()
+}
+
+// forget deletes what is kept about an object besides itself: its settings
+// and maintenance windows, in the transaction that deletes it.
+func (s *Store) forget(ctx context.Context, tx *sql.Tx, kind string, id int64) error {
+	for _, table := range []string{"settings", "maintenance"} {
+		if _, err := tx.ExecContext(ctx, s.rebind(`DELETE FROM `+table+` WHERE subject_kind = ? AND subject_id = ?`), kind, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}

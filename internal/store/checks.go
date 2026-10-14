@@ -117,6 +117,9 @@ func (s *Store) DeleteCheck(ctx context.Context, actor Actor, id int64) error {
 		if _, err := tx.ExecContext(ctx, s.rebind(`DELETE FROM checks WHERE id = ?`), id); err != nil {
 			return err
 		}
+		if err := s.forget(ctx, tx, "check", id); err != nil {
+			return err
+		}
 		return s.recorder(tx, actor).record(ctx, "check", c.ID, c.Path, "deleted", map[string]any{"name": c.Name, "type": c.Type}, nil)
 	})
 }
