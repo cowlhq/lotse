@@ -582,8 +582,9 @@ labels:
   like an `apply` limited to that container, and only when their hash changes,
   that is, on a new deploy. A UI edit of a label-made check stands until the
   next deploy with changed labels.
-- Labels can set the container's environment, its name, `ignore` and its own
-  checks. They cannot touch channels, routing, secrets, other objects, or
+- Labels can set the container's environment, its name, `ignore`, its own
+  checks and its own alert rules (`lotse.rules.container.…`, decision
+  0019). They cannot touch channels, routing, secrets, other objects, or
   create scopes. `lotse.env` only reaches environments of the host's own
   customer, so no container can move itself, or its alerts, into another
   customer's environment. If it names an environment that does not exist or

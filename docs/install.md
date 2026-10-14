@@ -268,6 +268,27 @@ environment becomes it, and no alert is raised while it waits. Hosts that
 enrolled are never deleted; `--prune` deletes only waiting ones the file no
 longer names.
 
+### Docker labels
+
+A container can say how it wants to be watched, with labels in its compose
+file; the hub applies them on each deploy:
+
+```yaml
+services:
+  app:
+    labels:
+      lotse.check.web.http.url: https://shop.acme.de/health   # a check of its own
+      lotse.check.web.http.keyword: ok
+      lotse.rules.container.restarting.enabled: "false"         # its own alert rules
+      lotse.ignore: "true"                                      # or no alerts at all
+      lotse.env: acme/shop/staging     # another environment of its host's customer
+      lotse.name: shop-app             # its key, instead of project-service
+```
+
+Labels reach only the container itself: no channels, no routing, no
+secrets, no other customer. What a removed label set is undone on the next
+deploy; a label that cannot be applied is shown in the container's events.
+
 ## Checking what you download
 
 Each release has `checksums.txt` with the SHA-256 of every archive, and

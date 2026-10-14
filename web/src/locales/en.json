@@ -141,7 +141,8 @@
     "restartCount_one": "{{count}} restart",
     "restartCount_other": "{{count}} restarts",
     "upFor": "up for {{time}}",
-    "events": "Events"
+    "events": "Events",
+    "ignored": "ignored"
   },
   "event": {
     "container": {
@@ -170,7 +171,8 @@
       "up": "up",
       "down": "down: {{error}}",
       "unknown": "unknown"
-    }
+    },
+    "container.labels": "Labels not applied: {{problems}}"
   },
   "chart": {
     "empty": "No readings in this time range"

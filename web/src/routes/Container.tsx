@@ -102,6 +102,7 @@ export function Container({ id }: { id: number }) {
           <Facts
             items={[
               <ContainerState container={c} />,
+              c.ignored && t("container.ignored"),
               c.state === "running" && c.started_at > 0 && t("container.upFor", { time: ago(c.started_at) }),
               t("container.restartCount", { count: c.restarts }),
               <span className="font-mono text-mini">{c.image}</span>,
