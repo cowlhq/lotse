@@ -87,7 +87,11 @@ func (t *tree) chain(kind string, id int64) []config.Level {
 			return nil
 		}
 		levels = append(levels, config.Level{Kind: "container", ID: c.ID, Path: c.Name, Name: c.Name})
-		return append(levels, t.chain("host", c.HostID)...)
+		if c.EnvironmentID == nil {
+			return append(levels, t.chain("host", c.HostID)...)
+		}
+		// Put elsewhere by its lotse.env label: that environment is its.
+		return append(levels, t.chain("environment", *c.EnvironmentID)...)
 	case "host":
 		x, ok := t.hosts[id]
 		if !ok {
@@ -152,7 +156,13 @@ func (t *tree) path(kind string, id int64) string {
 		return x.Name
 	case "container":
 		c := t.containers[id]
-		return t.path("host", c.HostID) + "/" + c.Name
+		if c.EnvironmentID != nil {
+			if env, ok := t.scopes[*c.EnvironmentID]; ok {
+				return env.Path + "/" + t.hosts[c.HostID].Name + "/" + c.Slug
+			}
+		}
+		// By its key, which outlives redeploys, not Docker's name.
+		return t.path("host", c.HostID) + "/" + c.Slug
 	case "check":
 		return t.checks[id].Path
 	case "probe":

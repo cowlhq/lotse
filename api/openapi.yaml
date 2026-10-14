@@ -1604,6 +1604,9 @@ components:
         compose_service, state, health, exit_code, restarts, started_at, labels,
         first_seen, last_seen]
       properties:
+        ignored:
+          type: boolean
+          description: Whether lotse leaves it alone (the ignore setting, as lotse.ignore sets it).
         id: { type: integer, format: int64 }
         host_id: { type: integer, format: int64 }
         host_name: { type: string }

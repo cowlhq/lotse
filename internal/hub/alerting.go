@@ -221,6 +221,10 @@ func (h *hub) readings(t *tree, in inputs, now time.Time) []reading {
 		if in.revoked[c.HostID] {
 			continue
 		}
+		// An ignored container raises nothing.
+		if ignored(t, c.ID) {
+			continue
+		}
 		r := reading{rule: rule("container.unhealthy"), kind: "container", id: c.ID,
 			value: yes(c.State == "running" && c.Health == "unhealthy")}
 		if !fresh[c.HostID] {

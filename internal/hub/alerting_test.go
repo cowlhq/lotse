@@ -325,7 +325,7 @@ func TestHostRules(t *testing.T) {
 	if disk.State != "crit" || disk.Instance != "/data" || *disk.Value != 97 || *disk.Threshold != 95 || disk.Subject != "acme/shop/prod/web1" {
 		t.Errorf("disk: %+v", disk)
 	}
-	if unhealthy.State != "crit" || unhealthy.Subject != "acme/shop/prod/web1/shop-db-1" || unhealthy.Value != nil {
+	if unhealthy.State != "crit" || unhealthy.Subject != "acme/shop/prod/web1/db" || unhealthy.Value != nil {
 		t.Errorf("unhealthy: %+v", unhealthy)
 	}
 	var detail api.AlertDetail
