@@ -65,6 +65,16 @@ type ScopeName struct{ Slug, Name string }
 // creating whatever of the three does not exist yet. Existing ones keep
 // their names.
 func (s *Store) EnsureEnvironment(ctx context.Context, actor Actor, levels [3]ScopeName) (Scope, error) {
+	return s.EnsureScope(ctx, actor, levels[:])
+}
+
+// EnsureScope returns the scope at the end of levels: a customer, its
+// project, its environment. It creates whatever does not exist yet;
+// existing ones keep their names.
+func (s *Store) EnsureScope(ctx context.Context, actor Actor, levels []ScopeName) (Scope, error) {
+	if len(levels) == 0 || len(levels) > 3 {
+		return Scope{}, errors.New("a scope is a customer, a project or an environment")
+	}
 	var env Scope
 	err := s.tx(ctx, func(tx *sql.Tx) error {
 		r := s.recorder(tx, actor)
