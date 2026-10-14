@@ -3,7 +3,14 @@ name: ci
 on:
   push:
     branches: [main]
+  # A release pull request only writes the changelog and the version. It is
+  # made with the workflow's own token, which starts no run that works, and
+  # release.yml checks the release itself.
   pull_request:
+    paths-ignore:
+      - CHANGELOG.md
+      - .release-please-manifest.json
+      - version.txt
   workflow_call: # release.yml checks a release with it
 
 # A newer push to the same ref makes the older run pointless. When release.yml
