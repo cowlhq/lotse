@@ -108,7 +108,7 @@ func TestWriteAndSeries(t *testing.T) {
 			t.Fatalf("writing the same samples again: %v", err)
 		}
 
-		raw, err := s.Series(ctx, "host", h.ID, 0, 200, 1)
+		raw, err := s.Series(ctx, "host", store.Raw, h.ID, 0, 200, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -116,7 +116,7 @@ func TestWriteAndSeries(t *testing.T) {
 			t.Errorf("raw series: %v %v", raw.Time, raw.Columns["cpu"])
 		}
 		// Steps of 30 s: 100 and 115 fall into the step at 90, 130 into 120.
-		avg, err := s.Series(ctx, "host", h.ID, 0, 200, 30)
+		avg, err := s.Series(ctx, "host", store.Raw, h.ID, 0, 200, 30)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -136,14 +136,14 @@ func TestWriteAndSeries(t *testing.T) {
 			t.Errorf("last seen %d, want 130", got.LastSeen)
 		}
 
-		n, err := s.DeleteSamplesBefore(ctx, 120)
+		n, err := s.DeleteBefore(ctx, store.Raw, 120)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if n != 3 { // two host samples, one filesystem sample
 			t.Errorf("deleted %d samples, want 3", n)
 		}
-		left, _ := s.Series(ctx, "host", h.ID, 0, 200, 1)
+		left, _ := s.Series(ctx, "host", store.Raw, h.ID, 0, 200, 1)
 		if len(left.Time) != 1 || left.Time[0] != 130 {
 			t.Errorf("after deleting: %v", left.Time)
 		}

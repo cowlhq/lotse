@@ -230,8 +230,14 @@ func (s apiServer) ListEvents(ctx context.Context, req api.ListEventsRequestObje
 func (s apiServer) series(ctx context.Context, kind string, id int64, from, to *int64, points *int, interval time.Duration) (api.Series, error) {
 	f, t := timeRange(from, to)
 	n := int64(cmp.Or(ptrValue(points), 600))
-	step := max(int64(interval/time.Second), (t-f+n-1)/n)
-	sr, err := s.db.Series(ctx, kind, id, f, t, step)
+	// Older readings are kept as averages only: read the finest that
+	// reaches back far enough.
+	res, err := s.db.Resolution(ctx, kind, id, f)
+	if err != nil {
+		return api.Series{}, err
+	}
+	step := max(int64(interval/time.Second), (t-f+n-1)/n, store.ResolutionSeconds[res])
+	sr, err := s.db.Series(ctx, kind, res, id, f, t, step)
 	if err != nil {
 		return api.Series{}, err
 	}
