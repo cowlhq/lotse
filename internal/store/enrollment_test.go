@@ -69,3 +69,36 @@ func join(s []string) string {
 	}
 	return out
 }
+
+// A host named before its agent: the machine of that name becomes it.
+func TestWaitingHost(t *testing.T) {
+	storetest.Each(t, func(t *testing.T, s *store.Store) {
+		ctx := t.Context()
+		env, _ := s.EnsureEnvironment(ctx, ada, [3]store.ScopeName{{Slug: "acme", Name: "ACME"}, {Slug: "shop", Name: "Shop"}, {Slug: "prod", Name: "Prod"}})
+		w, err := s.CreateWaitingHost(ctx, ada, env.ID, "web1")
+		if err != nil || !w.Waiting() || w.LastSeen != 0 {
+			t.Fatalf("waiting: %+v, %v", w, err)
+		}
+		s.SetSetting(ctx, ada, store.Subject{Kind: "host", ID: w.ID}, "agent.auto_update", []byte("true"), 1)
+		s.NewEnrollmentToken(ctx, ada, env.ID, "enr", "sealed", 1)
+		e, err := s.Enroll(ctx, "enr", "m1", "web1", "cred", 10)
+		if err != nil || e.Host.ID != w.ID || e.Host.Waiting() || e.Host.MachineID != "m1" || e.TookOver {
+			t.Fatalf("enrolled: %+v, %v", e, err)
+		}
+		if set, _ := s.Settings(ctx, []store.Subject{{Kind: "host", ID: w.ID}}); string(set[0]["agent.auto_update"]) != "true" {
+			t.Errorf("settings lost: %v", set)
+		}
+		// Another name is another host.
+		if e, _ := s.Enroll(ctx, "enr", "m2", "web2", "cred2", 11); e.Host.ID == w.ID {
+			t.Error("web2 took web1's place")
+		}
+		// Only a waiting host can be deleted.
+		if err := s.DeleteWaitingHost(ctx, ada, w.ID); err != store.ErrNotEmpty {
+			t.Errorf("an enrolled host deleted: %v", err)
+		}
+		w3, _ := s.CreateWaitingHost(ctx, ada, env.ID, "web3")
+		if err := s.DeleteWaitingHost(ctx, ada, w3.ID); err != nil {
+			t.Fatal(err)
+		}
+	})
+}

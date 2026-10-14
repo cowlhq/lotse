@@ -2,8 +2,11 @@ package store
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
+	"strings"
 )
 
 // Host is a machine with an agent.
@@ -26,6 +29,56 @@ type Host struct {
 	LastSeen      int64  `json:"last_seen"`
 	// EnvironmentID is nil until the host is put into an environment.
 	EnvironmentID *int64 `json:"environment_id"`
+}
+
+// waitingPrefix marks the machine ID of a host that lotse.yaml named before
+// its agent enrolled.
+const waitingPrefix = "waiting:"
+
+// Waiting says whether a host waits for its agent: named in lotse.yaml,
+// never heard from.
+func (h Host) Waiting() bool { return strings.HasPrefix(h.MachineID, waitingPrefix) }
+
+// CreateWaitingHost names a host in an environment before its agent
+// enrolls; the first machine of that name to enroll there becomes it.
+func (s *Store) CreateWaitingHost(ctx context.Context, actor Actor, envID int64, name string) (Host, error) {
+	var h Host
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		b := make([]byte, 8)
+		rand.Read(b)
+		if err := tx.QueryRowContext(ctx, s.rebind(`
+			INSERT INTO hosts (machine_id, name, hostname, first_seen, last_seen, environment_id)
+			VALUES (?, ?, ?, 0, 0, ?) RETURNING `+hostColumns),
+			waitingPrefix+hex.EncodeToString(b), name, name, envID).Scan(hostDest(&h)...); err != nil {
+			return err
+		}
+		return s.recorder(tx, actor).record(ctx, "host", h.ID, name, "created", nil, map[string]string{"name": name})
+	})
+	return h, err
+}
+
+// DeleteWaitingHost deletes a host that never heard from its agent. Hosts
+// that did are never deleted.
+func (s *Store) DeleteWaitingHost(ctx context.Context, actor Actor, id int64) error {
+	return s.tx(ctx, func(tx *sql.Tx) error {
+		h, err := scanHost(tx.QueryRowContext(ctx, s.rebind(`SELECT `+hostColumns+` FROM hosts WHERE id = ?`), id))
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if !h.Waiting() {
+			return ErrNotEmpty
+		}
+		if _, err := tx.ExecContext(ctx, s.rebind(`DELETE FROM hosts WHERE id = ?`), id); err != nil {
+			return err
+		}
+		if err := s.forget(ctx, tx, "host", id); err != nil {
+			return err
+		}
+		return s.recorder(tx, actor).record(ctx, "host", id, h.Name, "deleted", map[string]string{"name": h.Name}, nil)
+	})
 }
 
 const hostColumns = `id, machine_id, name, hostname, os, platform, kernel, arch, cpu_model,
