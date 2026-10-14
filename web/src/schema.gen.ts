@@ -686,6 +686,211 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The alerts that are not OK now, the worst first */
+        get: operations["listAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/alerts/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The transitions of alerts, newest first, at most 500 */
+        get: operations["listAlertHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/alerts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        /** A transition, why it happened, and what was sent about it */
+        get: operations["getAlert"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/alerts/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Note that someone looks after a firing alert, which stops repeats
+         * @description The ID is the transition into the alert's current state. A change of state, such as from WARN to CRIT, is sent again all the same.
+         */
+        post: operations["acknowledgeAlert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where notifications can go */
+        get: operations["listChannels"];
+        put?: never;
+        /** Add a channel to a scope */
+        post: operations["createChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/channels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a channel */
+        delete: operations["deleteChannel"];
+        options?: never;
+        head?: never;
+        /** Change a channel; its scope, key and type stay */
+        patch: operations["updateChannel"];
+        trace?: never;
+    };
+    "/api/channels/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test message to a channel */
+        post: operations["testChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mail-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The mail server email channels send through */
+        get: operations["getMailServer"];
+        /** Set the mail server */
+        put: operations["setMailServer"];
+        post?: never;
+        /** Remove the mail server */
+        delete: operations["deleteMailServer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mail-server/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test email through the mail server */
+        post: operations["testMailServer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Maintenance windows, the newest first */
+        get: operations["listMaintenance"];
+        put?: never;
+        /** Add a maintenance window, once or by schedule */
+        post: operations["createMaintenance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/maintenance/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** End a maintenance window, or remove one */
+        delete: operations["deleteMaintenance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -768,7 +973,7 @@ export interface components {
         };
         ConfigLevel: {
             /** @enum {string} */
-            kind: "check" | "host" | "environment" | "project" | "customer" | "global";
+            kind: "check" | "host" | "container" | "environment" | "project" | "customer" | "global";
             /** Format: int64 */
             id: number;
             path: string;
@@ -778,7 +983,7 @@ export interface components {
             /** @example agent.interval.host */
             key: string;
             /** @enum {string} */
-            type: "duration" | "bool" | "window" | "probes";
+            type: "duration" | "bool" | "window" | "probes" | "channels" | "threshold" | "level" | "url";
             description: string;
             /** @description The effective value. */
             value: unknown;
@@ -1081,6 +1286,227 @@ export interface components {
             data: {
                 [key: string]: unknown;
             };
+        };
+        /** @description Where a rule stands on an object. */
+        AlertState: {
+            /** @example host.disk */
+            rule: string;
+            description: string;
+            /** @enum {string} */
+            subject_kind: "host" | "container" | "check" | "probe" | "channel";
+            /** Format: int64 */
+            subject_id: number;
+            /** @example acme/shop/prod/web1 */
+            subject_path: string;
+            /** @description What on the object, such as a filesystem's mount point; empty for most rules. */
+            instance: string;
+            /** @enum {string} */
+            state: "ok" | "warn" | "crit" | "unknown";
+            /** Format: int64 */
+            since: number;
+            /**
+             * @description The state it goes to, once it has held for the rule's for.
+             * @enum {string}
+             */
+            pending?: "warn" | "crit";
+            /** Format: double */
+            value?: number;
+            /** Format: double */
+            threshold?: number;
+            /**
+             * @description What value and threshold are in; empty for a rule on a condition.
+             * @enum {string}
+             */
+            unit: "" | "percent" | "count" | "days" | "load";
+            /**
+             * Format: int64
+             * @description The transition into the state.
+             */
+            alert_id: number;
+            reason?: string;
+            in_maintenance: boolean;
+            /** @description The state last sent. */
+            notified_state: string;
+            acked_by?: string;
+            /** Format: int64 */
+            acked_at?: number;
+        };
+        /** @description A transition of a rule on an object. */
+        Alert: {
+            /** Format: int64 */
+            id: number;
+            rule: string;
+            /** @enum {string} */
+            subject_kind: "host" | "container" | "check" | "probe" | "channel";
+            /** Format: int64 */
+            subject_id: number;
+            subject_path: string;
+            instance: string;
+            /** @enum {string} */
+            from: "ok" | "warn" | "crit" | "unknown";
+            /** @enum {string} */
+            to: "ok" | "warn" | "crit" | "unknown";
+            /** Format: int64 */
+            at: number;
+            /** Format: double */
+            value?: number;
+            /** Format: double */
+            threshold?: number;
+            /** @enum {string} */
+            unit: "" | "percent" | "count" | "days" | "load";
+            reason: string;
+            /** @description It happened during maintenance, so it was not sent then. */
+            in_maintenance: boolean;
+        };
+        AlertDetail: components["schemas"]["Alert"] & {
+            description: string;
+            /** @description The rule's settings as they applied, and where each came from. */
+            settings: components["schemas"]["RuleSetting"][];
+            notifications: components["schemas"]["Notification"][];
+        };
+        RuleSetting: {
+            /** @example rules.host.disk.crit */
+            key: string;
+            value: unknown;
+            from?: components["schemas"]["ConfigLevel"];
+        };
+        Notification: {
+            /** Format: int64 */
+            id: number;
+            /** @description The channel's key, with its scope's path. */
+            channel: string;
+            /** Format: int64 */
+            channel_id?: number;
+            /** @enum {string} */
+            kind: "change" | "repeat";
+            /**
+             * @description suppressed means held back during maintenance.
+             * @enum {string}
+             */
+            status: "pending" | "sent" | "failed" | "suppressed";
+            attempts: number;
+            error?: string;
+            /** Format: int64 */
+            created_at: number;
+            /** Format: int64 */
+            sent_at?: number;
+        };
+        /** @description Whether a secret is set, and where it comes from; never the secret. */
+        SecretInfo: {
+            set: boolean;
+            /** @description The environment variable the hub reads it from. */
+            env?: string;
+            /** @description The file the hub reads it from. */
+            file?: string;
+        };
+        /** @description A secret: its value, which the hub keeps sealed, or where the hub reads it when it sends, an environment variable or a file in /run/secrets. An empty object removes it. */
+        SecretInput: {
+            value?: string;
+            env?: string;
+            file?: string;
+        };
+        Channel: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            scope_id: number;
+            /** @description Empty for the global scope. */
+            scope_path: string;
+            /** @example ops-mail */
+            key: string;
+            name: string;
+            /** @enum {string} */
+            type: "email" | "googlechat" | "webhook";
+            /** @description email: to, a list of addresses, and smtp, a mail server of its own (host, port, username, from, tls). googlechat and webhook: nothing. */
+            spec: {
+                [key: string]: unknown;
+            };
+            /** @description email: password, for its own mail server. googlechat: url, the webhook. webhook: url, and signing_key. */
+            secrets: {
+                [key: string]: components["schemas"]["SecretInfo"];
+            };
+        };
+        ChannelInput: {
+            /** Format: int64 */
+            scope_id: number;
+            key: string;
+            name: string;
+            /** @enum {string} */
+            type: "email" | "googlechat" | "webhook";
+            spec: {
+                [key: string]: unknown;
+            };
+            secrets?: {
+                [key: string]: components["schemas"]["SecretInput"];
+            };
+        };
+        ChannelUpdate: {
+            name: string;
+            spec: {
+                [key: string]: unknown;
+            };
+            /** @description The secrets to change; those not named stay as they are. */
+            secrets?: {
+                [key: string]: components["schemas"]["SecretInput"];
+            };
+        };
+        TestResult: {
+            sent: boolean;
+            error?: string;
+        };
+        MailServer: {
+            host: string;
+            port: number;
+            username: string;
+            /** @example lotse <lotse@example.com> */
+            from: string;
+            /** @enum {string} */
+            tls: "starttls" | "tls" | "none";
+            password: components["schemas"]["SecretInfo"];
+        };
+        MailServerInput: {
+            host: string;
+            port: number;
+            username?: string;
+            from: string;
+            /** @enum {string} */
+            tls: "starttls" | "tls" | "none";
+            password?: components["schemas"]["SecretInput"];
+        };
+        Maintenance: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            subject_kind: "host" | "container" | "check" | "environment" | "project" | "customer" | "global";
+            /** Format: int64 */
+            subject_id: number;
+            subject_path: string;
+            /** Format: int64 */
+            starts_at?: number;
+            /** Format: int64 */
+            ends_at?: number;
+            /**
+             * @description A window that comes back, in the hub's time zone, such as sun 02:00-04:00.
+             * @example sun 02:00-04:00
+             */
+            schedule?: string;
+            reason: string;
+            created_by: string;
+            /** Format: int64 */
+            created_at: number;
+            /** @description Whether it covers now. */
+            active: boolean;
+        };
+        /** @description Either starts_at and ends_at, or schedule. */
+        MaintenanceInput: {
+            /** @description The object or scope, as kind:id. */
+            subject: string;
+            /** Format: int64 */
+            starts_at?: number;
+            /** Format: int64 */
+            ends_at?: number;
+            schedule?: string;
+            reason?: string;
         };
     };
     responses: {
@@ -1617,7 +2043,7 @@ export interface operations {
     getConfig: {
         parameters: {
             query: {
-                /** @description host:<id>, environment:<id>, project:<id>, customer:<id>, or global:1. */
+                /** @description check:<id>, host:<id>, container:<id>, environment:<id>, project:<id>, customer:<id>, or global:1. */
                 subject: string;
             };
             header?: never;
@@ -2275,6 +2701,429 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    listAlerts: {
+        parameters: {
+            query?: {
+                /** @description Only those of this object, or of everything in this scope, as kind:id, such as host:3 or environment:4. */
+                subject?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The alerts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertState"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    listAlertHistory: {
+        parameters: {
+            query?: {
+                /** @description Only those of this object, or of everything in this scope. */
+                subject?: string;
+                /** @description Start, in Unix seconds. Defaults to an hour before to. */
+                from?: components["parameters"]["From"];
+                /** @description End, in Unix seconds. Defaults to now. */
+                to?: components["parameters"]["To"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The transitions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    getAlert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The transition. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertDetail"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    acknowledgeAlert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Acknowledged. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            /** @description The alert does not fire, or is acknowledged already. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listChannels: {
+        parameters: {
+            query?: {
+                /** @description Only the channels usable in this scope, defined in it or above it. */
+                scope?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The channels, by scope and key. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Channel"][];
+                };
+            };
+        };
+    };
+    createChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChannelInput"];
+            };
+        };
+        responses: {
+            /** @description The channel. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Channel"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            /** @description The scope has a channel with this key. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChannelUpdate"];
+            };
+        };
+        responses: {
+            /** @description The channel. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Channel"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    testChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description How it went. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getMailServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The mail server. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailServer"];
+                };
+            };
+            /** @description There is none yet. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setMailServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MailServerInput"];
+            };
+        };
+        responses: {
+            /** @description The mail server. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailServer"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteMailServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    testMailServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    to: string;
+                };
+            };
+        };
+        responses: {
+            /** @description How it went. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            /** @description There is no mail server. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listMaintenance: {
+        parameters: {
+            query?: {
+                /** @description Only those that cover this object or scope: on it, or on a scope above it, as kind:id. */
+                subject?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The windows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Maintenance"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    createMaintenance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaintenanceInput"];
+            };
+        };
+        responses: {
+            /** @description The window. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Maintenance"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteMaintenance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

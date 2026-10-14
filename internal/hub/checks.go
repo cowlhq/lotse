@@ -35,8 +35,10 @@ type checkState struct {
 	mu sync.Mutex
 	// assigned is every check's assignment, rebuilt by reassign.
 	assigned map[int64]assignment
-	// latest is each check's newest result per probe.
+	// latest is each check's newest result per probe, and fails how many
+	// runs in a row failed there.
 	latest map[int64]map[int64]resultAt
+	fails  map[int64]map[int64]int
 }
 
 type resultAt struct {
@@ -137,6 +139,17 @@ func (h *hub) checkResult(ctx context.Context, probeID, checkID int64, at time.T
 		h.checks.latest[checkID] = map[int64]resultAt{}
 	}
 	h.checks.latest[checkID][probeID] = resultAt{at, r}
+	if h.checks.fails == nil {
+		h.checks.fails = map[int64]map[int64]int{}
+	}
+	if h.checks.fails[checkID] == nil {
+		h.checks.fails[checkID] = map[int64]int{}
+	}
+	if r.OK {
+		h.checks.fails[checkID][probeID] = 0
+	} else {
+		h.checks.fails[checkID][probeID]++
+	}
 	a := h.checks.assigned[checkID]
 	results := h.checks.latest[checkID]
 	var fresh []probe.Result
@@ -149,6 +162,47 @@ func (h *hub) checkResult(ctx context.Context, probeID, checkID int64, at time.T
 
 	state, reason := quorum(fresh)
 	h.setCheckState(ctx, checkID, state, reason)
+}
+
+// standing is how a check stands for the alert rules, from its probes'
+// fresh results: how many runs in a row failed on most of them, the
+// earliest expiry of a certificate they saw, and an error one of them got.
+// fresh is false when no probe has a fresh result.
+type standing struct {
+	failed       int
+	certNotAfter int64
+	reason       string
+	fresh        bool
+}
+
+func (h *hub) checkStanding(id int64, now time.Time) standing {
+	h.checks.mu.Lock()
+	defer h.checks.mu.Unlock()
+	a := h.checks.assigned[id]
+	var out standing
+	var counts []int
+	for _, p := range a.probes {
+		ra, ok := h.checks.latest[id][p]
+		if !ok || now.Sub(ra.at) >= 3*a.Interval+a.Timeout {
+			continue
+		}
+		counts = append(counts, h.checks.fails[id][p])
+		if c := ra.r.CertNotAfter; c > 0 && (out.certNotAfter == 0 || c < out.certNotAfter) {
+			out.certNotAfter = c
+		}
+		if !ra.r.OK && ra.r.Error != "" {
+			out.reason = ra.r.Error
+		}
+	}
+	if len(counts) == 0 {
+		return out
+	}
+	// The count that more than half of the probes reach: with three
+	// probes, the second highest.
+	slices.Sort(counts)
+	slices.Reverse(counts)
+	out.failed, out.fresh = counts[len(counts)/2], true
+	return out
 }
 
 // quorum is a check's state from the probes' fresh results: down when
@@ -373,6 +427,7 @@ func (s apiServer) DeleteCheck(ctx context.Context, req api.DeleteCheckRequestOb
 	}
 	s.checks.mu.Lock()
 	delete(s.checks.latest, req.Id)
+	delete(s.checks.fails, req.Id)
 	s.checks.mu.Unlock()
 	s.reassign(context.WithoutCancel(ctx))
 	return api.DeleteCheck204Response{}, nil

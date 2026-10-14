@@ -22,13 +22,14 @@ import (
 //
 //	hosts     every host's readings and state, for the overview
 //	host:<id> one host's readings, its containers' readings and changes
+//	alerts    that alerts changed, to fetch them again
 //
 // The hub sends what happens to those, as LiveMessage. While anyone
 // watches a host, its agent reads every few seconds.
 
 // LiveMessage is what the hub sends to the browser.
 type LiveMessage struct {
-	Type string `json:"type"` // host, host_state, container_stats, containers, update
+	Type string `json:"type"` // host, host_state, container_stats, containers, update, alerts
 	// HostID is the host the message is about.
 	HostID     int64                  `json:"host_id"`
 	Reading    *api.HostReading       `json:"reading,omitempty"`
@@ -84,11 +85,14 @@ type live struct {
 }
 
 func (l *live) publish(m LiveMessage) {
-	topic := "host:" + strconv.FormatInt(m.HostID, 10)
+	topic, toHosts := "host:"+strconv.FormatInt(m.HostID, 10), m.Type != "container_stats"
+	if m.Type == "alerts" {
+		topic, toHosts = "alerts", false
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	for c := range l.clients {
-		if !c.topics[topic] && !(c.topics["hosts"] && m.Type != "container_stats") {
+		if !c.topics[topic] && !(c.topics["hosts"] && toHosts) {
 			continue
 		}
 		select {
