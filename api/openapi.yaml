@@ -1052,12 +1052,127 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/v1/apply:
+    post:
+      operationId: applyDocument
+      summary: Apply a lotse.yaml, or show what it would change
+      description: >
+        The document as JSON, as lotse apply sends it: secrets of the form
+        from_env are read by lotse apply and sent as value. Objects are
+        matched by key; everything happens in one transaction. Needs an
+        apply token, or an admin's session; a token limited to a scope can
+        change only what is in it.
+      security:
+        - bearer: []
+        - session: []
+      parameters:
+        - name: dry_run
+          in: query
+          schema: { type: boolean }
+        - name: prune
+          in: query
+          description: Also delete, within scope, what the document does not name.
+          schema: { type: boolean }
+        - name: scope
+          in: query
+          description: The path of the scope to prune; the token's scope if not given.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "200":
+          description: What changed, or would.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplyResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/v1/export:
+    get:
+      operationId: exportScope
+      summary: A scope as lotse.yaml
+      security:
+        - bearer: []
+        - session: []
+      parameters:
+        - name: scope
+          in: query
+          description: The path of the scope, such as acme/shop; everything if not given.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The document.
+          content:
+            application/yaml:
+              schema: { type: string }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/tokens:
+    get:
+      operationId: listTokens
+      summary: The API tokens, the newest first
+      responses:
+        "200":
+          description: The tokens; never their secret.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Token" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      operationId: createToken
+      summary: Make an API token; its secret is shown this once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, kind, scope_id]
+              properties:
+                name: { type: string }
+                kind: { type: string, enum: [read, apply] }
+                scope_id:
+                  type: integer
+                  format: int64
+                  description: The scope it works on, with everything below; 1 for all.
+      responses:
+        "201":
+          description: The token, and its secret.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NewToken" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /api/tokens/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    delete:
+      operationId: revokeToken
+      summary: Revoke an API token
+      responses:
+        "204":
+          description: Revoked.
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
   securitySchemes:
     session:
       type: apiKey
       in: cookie
       name: lotse_session
+    bearer:
+      type: http
+      scheme: bearer
+      description: An API token, lotse_tok_…, for /api/v1.
 
   headers:
     SetCookie:
@@ -1806,3 +1921,61 @@ components:
         ends_at: { type: integer, format: int64 }
         schedule: { type: string }
         reason: { type: string }
+
+    ApplyResult:
+      type: object
+      required: [changes, warnings, applied]
+      properties:
+        changes:
+          type: array
+          items: { $ref: "#/components/schemas/ApplyChange" }
+        warnings:
+          type: array
+          items: { type: string }
+        applied:
+          type: boolean
+          description: False for a dry run.
+
+    ApplyChange:
+      type: object
+      required: [action, kind, path]
+      properties:
+        action: { type: string, enum: [create, update, delete] }
+        kind: { type: string }
+        path: { type: string }
+        field: { type: string }
+        old: {}
+        new: {}
+        last:
+          type: object
+          description: Who changed it last, and how.
+          required: [at, by, via]
+          properties:
+            at: { type: integer, format: int64 }
+            by: { type: string }
+            via: { type: string }
+
+    Token:
+      type: object
+      required: [id, name, kind, scope_id, scope_path, created_by, created_at, revoked]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        kind: { type: string, enum: [read, apply] }
+        scope_id: { type: integer, format: int64 }
+        scope_path:
+          type: string
+          description: Empty for all.
+        created_by: { type: string }
+        created_at: { type: integer, format: int64 }
+        last_used_at: { type: integer, format: int64 }
+        revoked: { type: boolean }
+
+    NewToken:
+      type: object
+      required: [token, secret]
+      properties:
+        token: { $ref: "#/components/schemas/Token" }
+        secret:
+          type: string
+          description: The token itself, lotse_tok_…; it is not shown again.

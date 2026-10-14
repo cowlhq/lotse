@@ -22,47 +22,52 @@ type tree struct {
 }
 
 func (h *hub) loadTree(ctx context.Context) (*tree, error) {
+	return h.loadTreeFrom(ctx, h.db)
+}
+
+// loadTreeFrom reads the tree from a store, which may be a transaction.
+func (h *hub) loadTreeFrom(ctx context.Context, db *store.Store) (*tree, error) {
 	t := &tree{scopes: map[int64]store.Scope{}, hosts: map[int64]store.Host{}, containers: map[int64]store.Container{}, checks: map[int64]store.Check{}}
-	global, err := h.db.Scope(ctx, store.GlobalScope)
+	global, err := db.Scope(ctx, store.GlobalScope)
 	if err != nil {
 		return nil, err
 	}
 	t.scopes[global.ID] = global
-	scopes, err := h.db.Scopes(ctx)
+	scopes, err := db.Scopes(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, x := range scopes {
 		t.scopes[x.ID] = x
 	}
-	hosts, err := h.db.Hosts(ctx)
+	hosts, err := db.Hosts(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, x := range hosts {
 		t.hosts[x.ID] = x
 	}
-	containers, err := h.db.AllContainers(ctx)
+	containers, err := db.AllContainers(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, x := range containers {
 		t.containers[x.ID] = x
 	}
-	checks, err := h.db.Checks(ctx, 0)
+	checks, err := db.Checks(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
 	for _, x := range checks {
 		t.checks[x.ID] = x
 	}
-	if t.probes, err = h.db.Probes(ctx); err != nil {
+	if t.probes, err = db.Probes(ctx); err != nil {
 		return nil, err
 	}
-	if t.channels, err = h.db.Channels(ctx); err != nil {
+	if t.channels, err = db.Channels(ctx); err != nil {
 		return nil, err
 	}
-	if t.settings, err = h.db.AllSettings(ctx); err != nil {
+	if t.settings, err = db.AllSettings(ctx); err != nil {
 		return nil, err
 	}
 	return t, nil

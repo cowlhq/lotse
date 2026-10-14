@@ -891,6 +891,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply a lotse.yaml, or show what it would change
+         * @description The document as JSON, as lotse apply sends it: secrets of the form from_env are read by lotse apply and sent as value. Objects are matched by key; everything happens in one transaction. Needs an apply token, or an admin's session; a token limited to a scope can change only what is in it.
+         */
+        post: operations["applyDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A scope as lotse.yaml */
+        get: operations["exportScope"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The API tokens, the newest first */
+        get: operations["listTokens"];
+        put?: never;
+        /** Make an API token; its secret is shown this once */
+        post: operations["createToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an API token */
+        delete: operations["revokeToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1507,6 +1581,50 @@ export interface components {
             ends_at?: number;
             schedule?: string;
             reason?: string;
+        };
+        ApplyResult: {
+            changes: components["schemas"]["ApplyChange"][];
+            warnings: string[];
+            /** @description False for a dry run. */
+            applied: boolean;
+        };
+        ApplyChange: {
+            /** @enum {string} */
+            action: "create" | "update" | "delete";
+            kind: string;
+            path: string;
+            field?: string;
+            old?: unknown;
+            new?: unknown;
+            /** @description Who changed it last, and how. */
+            last?: {
+                /** Format: int64 */
+                at: number;
+                by: string;
+                via: string;
+            };
+        };
+        Token: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            /** @enum {string} */
+            kind: "read" | "apply";
+            /** Format: int64 */
+            scope_id: number;
+            /** @description Empty for all. */
+            scope_path: string;
+            created_by: string;
+            /** Format: int64 */
+            created_at: number;
+            /** Format: int64 */
+            last_used_at?: number;
+            revoked: boolean;
+        };
+        NewToken: {
+            token: components["schemas"]["Token"];
+            /** @description The token itself, lotse_tok_…; it is not shown again. */
+            secret: string;
         };
     };
     responses: {
@@ -3116,6 +3234,143 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Removed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    applyDocument: {
+        parameters: {
+            query?: {
+                dry_run?: boolean;
+                /** @description Also delete, within scope, what the document does not name. */
+                prune?: boolean;
+                /** @description The path of the scope to prune; the token's scope if not given. */
+                scope?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description What changed, or would. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplyResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    exportScope: {
+        parameters: {
+            query?: {
+                /** @description The path of the scope, such as acme/shop; everything if not given. */
+                scope?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The document. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/yaml": string;
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tokens; never their secret. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Token"][];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @enum {string} */
+                    kind: "read" | "apply";
+                    /**
+                     * Format: int64
+                     * @description The scope it works on, with everything below; 1 for all.
+                     */
+                    scope_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The token, and its secret. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewToken"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    revokeToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked. */
             204: {
                 headers: {
                     [name: string]: unknown;

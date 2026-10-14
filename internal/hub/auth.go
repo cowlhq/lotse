@@ -28,6 +28,7 @@ type ctxKey int
 const (
 	ctxRequest ctxKey = iota
 	ctxUser
+	ctxToken
 )
 
 // request is what handlers need to know about the HTTP request, which the
@@ -41,6 +42,12 @@ type request struct {
 func requestOf(ctx context.Context) request {
 	r, _ := ctx.Value(ctxRequest).(request)
 	return r
+}
+
+// tokenOf is the API token a request of /api/v1 came with, if any.
+func tokenOf(ctx context.Context) (store.Token, bool) {
+	t, ok := ctx.Value(ctxToken).(store.Token)
+	return t, ok
 }
 
 func userOf(ctx context.Context) (store.User, bool) {
@@ -61,7 +68,8 @@ func publicPath(path string) bool {
 //   - a request that changes something and comes from another site's page
 //     is refused (the Origin header says where a browser request comes
 //     from);
-//   - everything but the public paths needs a session.
+//   - everything but the public paths needs a session; /api/v1, for
+//     lotse apply, export and the read API, takes an API token instead.
 func (h *hub) guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
@@ -84,6 +92,18 @@ func (h *hub) guard(next http.Handler) http.Handler {
 			info.session = auth.HashToken(c.Value)
 		}
 		ctx := context.WithValue(r.Context(), ctxRequest, info)
+		if bearer, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); ok && strings.HasPrefix(path, "/api/v1/") {
+			t, err := h.db.TokenByHash(ctx, auth.HashToken(strings.TrimSpace(bearer)), time.Now().Unix())
+			if err != nil {
+				if !errors.Is(err, store.ErrNotFound) {
+					h.log.Error("cannot check a token", "err", err)
+				}
+				writeError(w, http.StatusUnauthorized, "this token does not work; it may be revoked")
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, ctxToken, t)))
+			return
+		}
 		if !publicPath(path) {
 			user, err := h.sessionUser(ctx, info.session)
 			if err != nil {
