@@ -42,12 +42,45 @@ var migrations embed.FS
 // Store is the hub's database.
 type Store struct {
 	dialect Dialect
-	// db takes all writes. For SQLite it has a single connection, since
-	// SQLite allows one writer at a time anyway.
-	db *sql.DB
-	// read serves queries. For SQLite it is a pool of read-only connections
-	// that WAL lets run beside the writer; for Postgres it is db.
-	read *sql.DB
+	// writer takes all writes. For SQLite it has a single connection,
+	// since SQLite allows one writer at a time anyway. reader serves
+	// queries: for SQLite a pool of read-only connections that WAL lets run
+	// beside the writer; for Postgres the same pool as writer.
+	writer, reader *sql.DB
+	// db and read are what the store's functions use: the pools, or,
+	// within WithTx, the one transaction.
+	db, read querier
+	inTx     *sql.Tx
+}
+
+// querier is what a pool and a transaction both do.
+type querier interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+func newStore(dialect Dialect, writer, reader *sql.DB) *Store {
+	return &Store{dialect: dialect, writer: writer, reader: reader, db: writer, read: reader}
+}
+
+// WithTx runs f with a store whose every function works in one
+// transaction, committed if f returns nil: all of it happens, or none.
+func (s *Store) WithTx(ctx context.Context, f func(*Store) error) error {
+	if s.inTx != nil {
+		return f(s)
+	}
+	tx, err := s.writer.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	in := *s
+	in.db, in.read, in.inTx = tx, tx, tx
+	if err := f(&in); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 // Open connects to the database at url and brings its schema up to date.
@@ -71,7 +104,7 @@ func open(url string) (*Store, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &Store{dialect: Postgres, db: db, read: db}, nil
+		return newStore(Postgres, db, db), nil
 	}
 	path := strings.TrimPrefix(url, "sqlite:")
 	if path == "" {
@@ -94,7 +127,7 @@ func open(url string) (*Store, error) {
 		return nil, err
 	}
 	read.SetMaxOpenConns(4)
-	return &Store{dialect: SQLite, db: db, read: read}, nil
+	return newStore(SQLite, db, read), nil
 }
 
 // Ping says whether the database at url answers, without changing it.
@@ -104,7 +137,7 @@ func Ping(ctx context.Context, url string) error {
 		return err
 	}
 	defer s.Close()
-	return s.db.PingContext(ctx)
+	return s.writer.PingContext(ctx)
 }
 
 // Backup writes a consistent copy of a SQLite database to path, while it
@@ -120,9 +153,9 @@ func (s *Store) Backup(ctx context.Context, path string) error {
 
 // Close closes the database.
 func (s *Store) Close() error {
-	err := s.db.Close()
-	if s.read != s.db {
-		err = errors.Join(err, s.read.Close())
+	err := s.writer.Close()
+	if s.reader != s.writer {
+		err = errors.Join(err, s.reader.Close())
 	}
 	return err
 }
@@ -139,7 +172,7 @@ func (s *Store) migrate(ctx context.Context) error {
 	if s.dialect == Postgres {
 		dialect = goose.DialectPostgres
 	}
-	provider, err := goose.NewProvider(dialect, s.db, files)
+	provider, err := goose.NewProvider(dialect, s.writer, files)
 	if err != nil {
 		return err
 	}
@@ -179,9 +212,13 @@ func (s *Store) rebind(q string) string {
 	return b.String()
 }
 
-// tx runs f in a transaction, which it commits if f returns nil.
+// tx runs f in a transaction, which it commits if f returns nil. Within
+// WithTx, it is that transaction.
 func (s *Store) tx(ctx context.Context, f func(*sql.Tx) error) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	if s.inTx != nil {
+		return f(s.inTx)
+	}
+	tx, err := s.writer.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
