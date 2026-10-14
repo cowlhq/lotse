@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.4](https://github.com/cowlhq/lotse/compare/v0.1.3...v0.1.4) (2026-10-14)
+
+
+### Features
+
+* **hub:** checks, their state by the probes' majority, external probes and heartbeats ([3d55321](https://github.com/cowlhq/lotse/commit/3d553217f2d7336282f2d2d44ae3ff427cdf5f47))
+* **probe:** lotse probe runs checks from another place ([661adb8](https://github.com/cowlhq/lotse/commit/661adb854784c8b98ae5915d33bd278fdc9fd0b2))
+* **probe:** run HTTP, TLS and TCP checks, each at its interval ([5f32737](https://github.com/cowlhq/lotse/commit/5f327370aeb0b8f7716a7e771c1f7c4d606b77fd))
+* **store:** checks, their results, and probes ([5c4c428](https://github.com/cowlhq/lotse/commit/5c4c428e1476ea0aa557655ed1a8aaec736ff39a))
+* **web:** checks in environments, a page for each, and probes in settings ([202a520](https://github.com/cowlhq/lotse/commit/202a520e5280f0f04b076ed42344b4defbfd2d6a))
+
 ## [0.1.3](https://github.com/cowlhq/lotse/compare/v0.1.2...v0.1.3) (2026-10-13)
 
 
