@@ -116,7 +116,7 @@ export function HostTable({ hosts, alerts, where, group }: { hosts: HostSummary[
                     <div className="min-w-0">
                       <p className="truncate font-medium">{h.host.name}</p>
                       <p className="truncate text-mini text-muted-foreground">
-                        {h.host.online ? where(h) : h.host.agent_revoked ? t("status.revoked") : t("rows.offlineSince", { time: ago(h.host.last_seen) })}
+                        {h.host.waiting ? t("status.waiting") : h.host.online ? where(h) : h.host.agent_revoked ? t("status.revoked") : t("rows.offlineSince", { time: ago(h.host.last_seen) })}
                       </p>
                     </div>
                   </div>
