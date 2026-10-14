@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/cowlhq/lotse/compare/v0.1.7...v0.1.8) (2026-10-14)
+
+
+### Features
+
+* **web:** get started, adding a host waits for it, login and setup in the new look ([22c58de](https://github.com/cowlhq/lotse/commit/22c58de28ce88e0d85bac6e632226c84a231357b))
+
 ## [0.1.7](https://github.com/cowlhq/lotse/compare/v0.1.6...v0.1.7) (2026-10-14)
 
 
