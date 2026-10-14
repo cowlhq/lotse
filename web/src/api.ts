@@ -25,6 +25,18 @@ export type CheckInput = Schemas["CheckInput"];
 export type CheckResult = Schemas["CheckResult"];
 export type Probe = Schemas["Probe"];
 export type SetupStep = Schemas["SetupStep"];
+export type AlertState = Schemas["AlertState"];
+export type Alert = Schemas["Alert"];
+export type AlertDetail = Schemas["AlertDetail"];
+export type Channel = Schemas["Channel"];
+export type ChannelInput = Schemas["ChannelInput"];
+export type SecretInput = Schemas["SecretInput"];
+export type SecretInfo = Schemas["SecretInfo"];
+export type MailServer = Schemas["MailServer"];
+export type MailServerInput = Schemas["MailServerInput"];
+export type Maintenance = Schemas["Maintenance"];
+export type MaintenanceInput = Schemas["MaintenanceInput"];
+export type TestResult = Schemas["TestResult"];
 
 export type Range = { from: number; to: number };
 
@@ -70,6 +82,24 @@ export const revokeProbe = (id: number) => send<void>("DELETE", `/api/probes/${i
 export const getProbeEnrollment = () => get<Enrollment>("/api/probes/enrollment");
 export const newProbeEnrollment = () => post<Enrollment>("/api/probes/enrollment");
 export const listChanges = (subject: string) => get<Change[]>(`/api/changes?subject=${subject}`);
+export const listAlerts = (subject?: string) => get<AlertState[]>(subject ? `/api/alerts?subject=${subject}` : "/api/alerts");
+export const listAlertHistory = (r: Range, subject?: string) =>
+  get<Alert[]>(`/api/alerts/history?from=${r.from}&to=${r.to}${subject ? `&subject=${subject}` : ""}`);
+export const getAlert = (id: number) => get<AlertDetail>(`/api/alerts/${id}`);
+export const acknowledgeAlert = (id: number) => post<void>(`/api/alerts/${id}/acknowledge`);
+export const listChannels = (scopeID?: number) => get<Channel[]>(scopeID ? `/api/channels?scope=${scopeID}` : "/api/channels");
+export const createChannel = (input: ChannelInput) => post<Channel>("/api/channels", input);
+export const updateChannel = (id: number, input: { name: string; spec: Record<string, unknown>; secrets?: Record<string, SecretInput> }) =>
+  send<Channel>("PATCH", `/api/channels/${id}`, input);
+export const deleteChannel = (id: number) => send<void>("DELETE", `/api/channels/${id}`);
+export const testChannel = (id: number) => post<TestResult>(`/api/channels/${id}/test`);
+export const getMailServer = () => get<MailServer>("/api/mail-server");
+export const setMailServer = (input: MailServerInput) => send<MailServer>("PUT", "/api/mail-server", input);
+export const deleteMailServer = () => send<void>("DELETE", "/api/mail-server");
+export const testMailServer = (to: string) => post<TestResult>("/api/mail-server/test", { to });
+export const listMaintenance = (subject: string) => get<Maintenance[]>(`/api/maintenance?subject=${subject}`);
+export const createMaintenance = (input: MaintenanceInput) => post<Maintenance>("/api/maintenance", input);
+export const deleteMaintenance = (id: number) => send<void>("DELETE", `/api/maintenance/${id}`);
 
 export type SetupCheck = { valid: boolean; step?: SetupStep; postgres?: string };
 

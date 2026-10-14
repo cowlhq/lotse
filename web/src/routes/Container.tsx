@@ -3,6 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getContainer, getSeries, listEvents, NotFound, type Container as ContainerData, type Series } from "@/api";
+import { AlertHistory, AlertList } from "@/components/Alerts";
+import { Config } from "@/components/Config";
+import { History } from "@/components/History";
+import { Maintenance } from "@/components/Maintenance";
 import { Events } from "@/components/Events";
 import { LiveBadge } from "@/components/LiveBadge";
 import { appendReading, useLive } from "@/lib/live";
@@ -87,6 +91,7 @@ export function Container({ id }: { id: number }) {
           {c.state === "running" && c.started_at > 0 && <> · {t("container.upFor", { time: ago(c.started_at) })}</>}
         </p>
       </div>
+      <AlertList subject={`container:${id}`} />
       <div className="flex justify-end">
         <RangePicker value={seconds} onChange={setSeconds} />
       </div>
@@ -103,6 +108,10 @@ export function Container({ id }: { id: number }) {
         ))}
       </div>
       <Events events={events.data ?? []} />
+      <AlertHistory subject={`container:${id}`} />
+      <Maintenance subject={`container:${id}`} />
+      <Config subject={`container:${id}`} />
+      <History subject={`container:${id}`} />
     </div>
   );
 }

@@ -4,6 +4,9 @@ import { useTranslation } from "react-i18next";
 import { getHealth, getMe, logout, Unauthorized } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { status } from "@/lib/palette";
+import { useAlerts } from "@/components/Alerts";
+import { AlertDetail, Alerts } from "@/routes/Alerts";
 import { Check } from "@/routes/Check";
 import { Container } from "@/routes/Container";
 import { Scope } from "@/routes/Scope";
@@ -49,6 +52,7 @@ function Layout({ name, version }: { name: string; version: string }) {
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-xs text-muted-foreground">{version}</span>
+            <AlertsLink />
             <Link to="/settings" className="hover:underline">
               {t("settings.title")}
             </Link>
@@ -63,6 +67,24 @@ function Layout({ name, version }: { name: string; version: string }) {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+// AlertsLink leads to the alerts, saying how many fire.
+function AlertsLink() {
+  const { t } = useTranslation();
+  const alerts = useAlerts();
+  const firing = (alerts.data ?? []).filter((a) => a.state === "crit" || a.state === "warn");
+  const crit = firing.some((a) => a.state === "crit");
+  return (
+    <Link to="/alerts" className="inline-flex items-center gap-1.5 hover:underline">
+      {t("alert.title")}
+      {firing.length > 0 && (
+        <span className="rounded-full px-1.5 text-xs font-medium text-white tabular-nums" style={{ background: crit ? status.critical : status.warning }}>
+          {firing.length}
+        </span>
+      )}
+    </Link>
   );
 }
 
@@ -106,6 +128,17 @@ const check = createRoute({
   },
 });
 
+const alerts = createRoute({ getParentRoute: () => root, path: "/alerts", component: Alerts });
+
+const alertDetail = createRoute({
+  getParentRoute: () => root,
+  path: "/alerts/$id",
+  component: function AlertRoute() {
+    const { id } = alertDetail.useParams();
+    return <AlertDetail id={Number(id)} />;
+  },
+});
+
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: Settings });
 
 const setup = createRoute({
@@ -132,7 +165,7 @@ const login = createRoute({
   },
 });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, host, container, scope, check, settings, setup, login]) });
+export const router = createRouter({ routeTree: root.addChildren([overview, host, container, scope, check, alerts, alertDetail, settings, setup, login]) });
 
 declare module "@tanstack/react-router" {
   interface Register {
