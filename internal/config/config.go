@@ -7,27 +7,34 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
 
 // Key is one setting.
 type Key struct {
-	Name        string
-	Type        string // duration, bool
+	Name string
+	// Type tells the UI how to show and edit it: duration, bool, window,
+	// probes, channels, threshold, level or url.
+	Type        string
 	Description string
 	// Default is the built-in value, as JSON.
 	Default json.RawMessage
 	// On says which kinds of objects use it. It can be set on those and on
 	// every scope above them.
 	On []string
+	// GlobalOnly keys are set on the global scope and nowhere else.
+	GlobalOnly bool
 	// Check says what is wrong with a value, if anything.
 	Check func(json.RawMessage) error
 }
 
-// Keys are the settings there are. More come with the features that use
-// them: notifications, rules, checks, updates.
-var Keys = []Key{
+// Keys are the settings there are, the rules' last.
+var Keys = append(keys, ruleKeys()...)
+
+var keys = []Key{
 	{
 		Name:        "agent.interval.host",
 		Type:        "duration",
@@ -101,7 +108,71 @@ var Keys = []Key{
 		On:          []string{"host"},
 		Check:       durationBetween(5*time.Second, time.Hour),
 	},
+	{
+		Name:        "notify.channels",
+		Type:        "channels",
+		Description: "Where alerts go: the keys of channels defined here or further up.",
+		Default:     json.RawMessage(`[]`),
+		On:          []string{"host", "container", "check"},
+		Check: func(v json.RawMessage) error {
+			var list []string
+			if json.Unmarshal(v, &list) != nil {
+				return fmt.Errorf("a list of channel keys such as [\"ops-mail\"]")
+			}
+			for _, k := range list {
+				if !slugPattern.MatchString(k) {
+					return fmt.Errorf("%q is not a channel key", k)
+				}
+			}
+			return nil
+		},
+	},
+	{
+		Name:        "notify.repeat",
+		Type:        "duration",
+		Description: "How often an alert that still fires and is not acknowledged is sent again; 0s for never.",
+		Default:     json.RawMessage(`"0s"`),
+		On:          []string{"host", "container", "check"},
+		Check: func(v json.RawMessage) error {
+			if d, err := Duration(v); err == nil && d == 0 {
+				return nil
+			}
+			return durationBetween(5*time.Minute, 7*24*time.Hour)(v)
+		},
+	},
+	{
+		Name:        "deadman.url",
+		Type:        "url",
+		Description: "An address the hub calls while its alerting works, such as a healthchecks.io check, which raises the alarm when the calls stop.",
+		Default:     json.RawMessage(`""`),
+		GlobalOnly:  true,
+		Check: func(v json.RawMessage) error {
+			var s string
+			if json.Unmarshal(v, &s) != nil {
+				return fmt.Errorf("an address such as https://hc-ping.com/…")
+			}
+			if s == "" {
+				return nil
+			}
+			u, err := url.Parse(s)
+			if err != nil || u.Scheme != "https" && u.Scheme != "http" || u.Host == "" {
+				return fmt.Errorf("an http or https address")
+			}
+			return nil
+		},
+	},
+	{
+		Name:        "deadman.interval",
+		Type:        "duration",
+		Description: "How often the hub calls the dead man's switch.",
+		Default:     json.RawMessage(`"1m"`),
+		GlobalOnly:  true,
+		Check:       durationBetween(30*time.Second, time.Hour),
+	},
 }
+
+// slugPattern is what keys of channels and the like look like.
+var slugPattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$`)
 
 func Lookup(name string) (Key, bool) {
 	for _, k := range Keys {
@@ -118,6 +189,9 @@ var scopeKinds = []string{"environment", "project", "customer", "global"}
 // SettableOn says whether key can be set on an object of kind: on objects
 // that use it, and on any scope above them.
 func (k Key) SettableOn(kind string) bool {
+	if k.GlobalOnly {
+		return kind == "global"
+	}
 	for _, on := range k.On {
 		if on == kind {
 			return true

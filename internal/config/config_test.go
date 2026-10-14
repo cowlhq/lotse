@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -22,8 +23,13 @@ func TestResolve(t *testing.T) {
 		{"agent.interval.containers": json.RawMessage(`"45s"`)},
 	}
 	got := Resolve("host", levels, set, nil)
-	if len(got) != 4 {
-		t.Fatalf("%d values", len(got))
+	for _, v := range got {
+		if strings.HasPrefix(v.Key, "check.") || strings.HasPrefix(v.Key, "deadman.") || strings.HasPrefix(v.Key, "rules.probe.") {
+			t.Errorf("a host has %s", v.Key)
+		}
+	}
+	if byKey(got, "rules.container.unhealthy.enabled").Key == "" {
+		t.Error("a host has no settings for its containers")
 	}
 	host := byKey(got, "agent.interval.host")
 	if string(host.Value) != `"20s"` || host.From.Kind != "environment" || len(host.Overrides) != 1 || host.Overrides[0].Level.Kind != "customer" {
@@ -89,5 +95,85 @@ func TestWindow(t *testing.T) {
 	k, _ := Lookup("agent.auto_update")
 	if k.Check(json.RawMessage(`true`)) != nil || k.Check(json.RawMessage(`"yes"`)) == nil {
 		t.Error("auto_update check")
+	}
+}
+
+func TestRuleKeys(t *testing.T) {
+	for _, r := range Rules {
+		enabled, ok := Lookup("rules." + r.Name + ".enabled")
+		if !ok || enabled.Check(enabled.Default) != nil {
+			t.Errorf("%s: no enabled key", r.Name)
+		}
+		for _, k := range Keys {
+			if strings.HasPrefix(k.Name, "rules."+r.Name+".") && k.Check(k.Default) != nil {
+				t.Errorf("%s: the default %s is not valid", k.Name, k.Default)
+			}
+		}
+	}
+	warn, _ := Lookup("rules.host.disk.warn")
+	for v, ok := range map[string]bool{`80`: true, `92.5`: true, `"off"`: true, `"80"`: false, `true`: false} {
+		if err := warn.Check(json.RawMessage(v)); (err == nil) != ok {
+			t.Errorf("warn %s: %v", v, err)
+		}
+	}
+	if th, _ := Threshold(json.RawMessage(`"off"`)); th != nil {
+		t.Error("off is a threshold")
+	}
+	probe, _ := Lookup("rules.probe.silent.enabled")
+	if probe.SettableOn("customer") || !probe.SettableOn("global") {
+		t.Error("probe rules are set globally only")
+	}
+	if _, ok := Lookup("rules.host.silent.warn"); ok {
+		t.Error("a condition has thresholds")
+	}
+	repeat, _ := Lookup("notify.repeat")
+	for v, ok := range map[string]bool{`"0s"`: true, `"1h"`: true, `"1m"`: false} {
+		if err := repeat.Check(json.RawMessage(v)); (err == nil) != ok {
+			t.Errorf("repeat %s: %v", v, err)
+		}
+	}
+	channels, _ := Lookup("notify.channels")
+	for v, ok := range map[string]bool{`[]`: true, `["ops-mail"]`: true, `["Ops Mail"]`: false, `"ops"`: false} {
+		if err := channels.Check(json.RawMessage(v)); (err == nil) != ok {
+			t.Errorf("channels %s: %v", v, err)
+		}
+	}
+	deadman, _ := Lookup("deadman.url")
+	for v, ok := range map[string]bool{`""`: true, `"https://hc-ping.com/abc"`: true, `"ftp://x"`: false, `"hc-ping.com"`: false} {
+		if err := deadman.Check(json.RawMessage(v)); (err == nil) != ok {
+			t.Errorf("deadman %s: %v", v, err)
+		}
+	}
+}
+
+func TestSchedule(t *testing.T) {
+	for s, ok := range map[string]bool{"04:00-06:00": true, "daily 04:00-06:00": true, "sun 02:00-04:00": true,
+		"mon,wed 22:00-02:00": true, "mon-fri 08:00-18:00": true, "fri-mon 00:00-24:00": true,
+		"sunday 02:00-04:00": false, "sun": false, "sun 02:00": false, "mon- 01:00-02:00": false} {
+		if _, err := ParseSchedule(s); (err == nil) != ok {
+			t.Errorf("%q: %v", s, err)
+		}
+	}
+	// 2026-10-11 is a Sunday.
+	at := func(day, h, m int) time.Time { return time.Date(2026, 10, day, h, m, 0, 0, time.UTC) }
+	for _, c := range []struct {
+		schedule string
+		t        time.Time
+		want     bool
+	}{
+		{"sun 02:00-04:00", at(11, 3, 0), true},
+		{"sun 02:00-04:00", at(12, 3, 0), false},
+		{"sun 22:00-02:00", at(11, 23, 0), true},
+		{"sun 22:00-02:00", at(12, 1, 0), true},
+		{"sun 22:00-02:00", at(11, 1, 0), false},
+		{"mon-fri 08:00-18:00", at(14, 9, 0), true},
+		{"mon-fri 08:00-18:00", at(17, 9, 0), false},
+		{"fri-mon 08:00-18:00", at(11, 9, 0), true},
+		{"04:00-06:00", at(13, 5, 59), true},
+	} {
+		sc, _ := ParseSchedule(c.schedule)
+		if got := sc.Contains(c.t); got != c.want {
+			t.Errorf("%s contains %s: %v", c.schedule, c.t.Format("Mon 15:04"), got)
+		}
 	}
 }
