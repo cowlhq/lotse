@@ -14,7 +14,7 @@ import { useMe } from "@/lib/useMe";
 // where it comes from, the object itself, a scope above, or the default
 // (principle 4: every object shows its effective configuration). The alert
 // rules come last, as a table, one rule a row.
-export function Config({ subject }: { subject: string }) {
+export function Config({ subject, part }: { subject: string; part?: "general" | "rules" }) {
   const { t } = useTranslation();
   const values = useQuery({ queryKey: ["config", subject], queryFn: () => getConfig(subject) });
   const all = values.data ?? [];
@@ -28,7 +28,7 @@ export function Config({ subject }: { subject: string }) {
   }
   return (
     <>
-      <Card>
+      {part !== "rules" && <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">{t("config.title")}</CardTitle>
           <CardDescription>{t("config.description")}</CardDescription>
@@ -38,8 +38,8 @@ export function Config({ subject }: { subject: string }) {
             <Row key={v.key} subject={subject} value={v} />
           ))}
         </CardContent>
-      </Card>
-      {rules.size > 0 && (
+      </Card>}
+      {part !== "general" && rules.size > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">{t("config.rules")}</CardTitle>
@@ -51,8 +51,8 @@ export function Config({ subject }: { subject: string }) {
                 <TableRow>
                   <TableHead>{t("config.rule")}</TableHead>
                   <TableHead>{t("config.enabled")}</TableHead>
-                  <TableHead>{t("alert.state.warn")}</TableHead>
-                  <TableHead>{t("alert.state.crit")}</TableHead>
+                  <TableHead>{t("config.warning")}</TableHead>
+                  <TableHead>{t("config.critical")}</TableHead>
                   <TableHead>{t("config.for")}</TableHead>
                   <TableHead>{t("config.recover")}</TableHead>
                 </TableRow>
@@ -61,8 +61,8 @@ export function Config({ subject }: { subject: string }) {
                 {[...rules].map(([name, f]) => (
                   <TableRow key={name} className={f.enabled?.value ? undefined : "text-muted-foreground"}>
                     <TableCell>
-                      <p className="font-mono text-xs">{name}</p>
-                      <p className="text-xs text-muted-foreground">{t(`rules.${name}`)}</p>
+                      <p className="font-medium">{t(`alert.titles.${name}`)}</p>
+                      <p className="text-mini text-muted-foreground">{t(`rules.${name}`)}</p>
                     </TableCell>
                     <TableCell>{f.enabled && <Cell subject={subject} value={f.enabled} />}</TableCell>
                     {f.level ? (

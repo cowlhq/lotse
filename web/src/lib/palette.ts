@@ -1,22 +1,32 @@
-// Colors for data, from the dataviz reference palette. Series take the
-// categorical slots in this order and never cycle; the first three are safe
-// together for color-blind readers. Status colors are reserved for state and
-// always come with a label.
+// Colors for data and state. They live in index.css as variables, so that
+// light and dark each have their own; the DOM uses the variables, and
+// canvases (charts) resolve them with css(). Series take the chart slots in
+// order and never cycle. Status colors mean only state and always come
+// with a word.
 
-export const series = ["#2a78d6", "#eb6834", "#1baf7a"] as const;
+export const series = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"] as const;
 
 export const status = {
-  good: "#0ca30c",
-  warning: "#fab219",
-  serious: "#ec835a",
-  critical: "#d03b3b",
+  good: "var(--ok)",
+  warning: "var(--warn)",
+  serious: "var(--warn)",
+  critical: "var(--crit)",
+  unknown: "var(--unknown)",
 } as const;
 
 export const chrome = {
-  grid: "#e1e0d9",
-  axis: "#c3c2b7",
-  muted: "#898781",
+  grid: "var(--border)",
+  axis: "var(--border)",
+  muted: "var(--muted-foreground)",
 } as const;
+
+// css resolves a color such as "var(--crit)" for a canvas, in the theme
+// shown now.
+export function css(color: string): string {
+  const m = /^var\((--[\w-]+)\)$/.exec(color);
+  if (!m) return color;
+  return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || color;
+}
 
 // usageColor is the fill of a usage meter: it turns to warning and critical
 // at the thresholds of the default disk rule (85 and 95 %).

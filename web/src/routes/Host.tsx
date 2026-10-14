@@ -1,29 +1,36 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Ban, FolderInput, MoreHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { getHost, getSeries, listEvents, listScopes, NotFound, revokeAgent, setHostEnvironment, updateHost, type Container, type Host as HostData, type HostDetail, type Series } from "@/api";
-import { AlertHistory, AlertList } from "@/components/Alerts";
-import { Maintenance } from "@/components/Maintenance";
+import { AlertBell } from "@/components/AlertBell";
+import { AlertHistory, useAlerts } from "@/components/Alerts";
+import { Chart, type Line } from "@/components/Chart";
 import { Config } from "@/components/Config";
 import { Events } from "@/components/Events";
-import { UpdateBadge } from "@/components/UpdateBadge";
 import { History } from "@/components/History";
+import { Incidents } from "@/components/Incidents";
 import { LiveBadge } from "@/components/LiveBadge";
-import { Chart, type Line } from "@/components/Chart";
+import { Maintenance } from "@/components/Maintenance";
 import { RangePicker, type RangeSeconds } from "@/components/Range";
-import { Meter, Online } from "@/components/Status";
-import { Badge } from "@/components/ui/badge";
+import { StatusIcon } from "@/components/shell/Dot";
+import { Page } from "@/components/shell/PageHeader";
+import { PageTabs } from "@/components/shell/PageTabs";
+import { Facts, ObjectHeader, Panel } from "@/components/shell/Panel";
+import { Bar } from "@/components/Tables";
+import { UpdateBadge } from "@/components/UpdateBadge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ago, bytes, duration, number, percent, rate } from "@/lib/format";
-import { status, status as statusColors, usageColor } from "@/lib/palette";
 import { appendReading, useLive, type LiveMessage } from "@/lib/live";
-import { useUpdates } from "@/lib/useUpdates";
 import { useMe } from "@/lib/useMe";
 import { useRange } from "@/lib/useRange";
+import { useUpdates } from "@/lib/useUpdates";
 
 export function Host({ id }: { id: number }) {
   const { t } = useTranslation();
@@ -40,50 +47,179 @@ export function Host({ id }: { id: number }) {
     queryFn: () => listEvents(`host:${id}`, range),
     placeholderData: (prev) => prev,
   });
-
+  const alerts = useAlerts().data ?? [];
   const charts = useCharts();
   const { last: lastLive, update } = useLiveHost(id);
 
-  if (host.isPending) return <Skeleton className="h-64 w-full" />;
-  if (host.error instanceof NotFound) return <p>{t("host.notFound")}</p>;
-  if (host.isError) return <p className="text-destructive">{t("app.unreachable")}</p>;
+  if (host.isPending) return <Skeleton className="m-6 h-64" />;
+  if (host.error instanceof NotFound) return <p className="p-6">{t("host.notFound")}</p>;
+  if (host.isError) return <p className="p-6 text-destructive">{t("app.unreachable")}</p>;
+  const d = host.data;
+  const h = d.host;
+  const subject = `host:${id}`;
+  const problems = alerts.filter((a) => a.state !== "ok" && ((a.subject_kind === "host" && a.subject_id === id) || d.containers.some((c) => a.subject_kind === "container" && a.subject_id === c.id)));
+  const level = !h.online ? (h.agent_revoked ? "unknown" : "crit") : problems.some((a) => a.state === "crit") ? "crit" : problems.length ? "warn" : "ok";
+  const current = (key: string) => (d.latest as Record<string, number | null | undefined> | undefined)?.[key];
+  const running = d.containers.filter((c) => c.state === "running" && c.gone_at == null).length;
 
   return (
-    <div className="space-y-6">
-      <Header detail={host.data} live={lastLive} />
-      <AgentUpdate host={host.data.host} status={update} />
-      <AlertList subject={`host:${id}`} />
-      <div className="flex justify-end">
-        <RangePicker value={seconds} onChange={setSeconds} />
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        {charts.map((c) => (
-          <Card key={c.title}>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">{t(c.title)}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Chart data={series.data} lines={c.lines} format={c.format} range={range} events={events.data} max={c.max} binary={c.binary} />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <Filesystems detail={host.data} />
-      <Containers containers={host.data.containers} />
-      <Events events={events.data ?? []} />
-      <AlertHistory subject={`host:${id}`} />
-      <Maintenance subject={`host:${id}`} />
-      <Config subject={`host:${id}`} />
-      <History subject={`host:${id}`} />
-      {!host.data.host.agent_revoked && <Revoke hostID={id} />}
-    </div>
+    <Tabs defaultValue="overview" className="gap-0">
+      <ObjectHeader
+        above={<EnvironmentLink envID={h.environment_id ?? null} />}
+        icon={<StatusIcon level={level} size={22} />}
+        title={h.name}
+        actions={
+          <>
+            <LiveBadge last={lastLive} />
+            <AlertBell subject={subject} name={h.name} kind="host" />
+            <HostMenu host={h} />
+          </>
+        }
+        facts={
+          <Facts
+            items={[
+              h.online ? t("status.online") : h.agent_revoked ? t("status.revoked") : t("rows.offlineSince", { time: ago(h.last_seen) }),
+              h.platform || h.os,
+              h.cpu_model ? `${h.cores} × ${h.cpu_model}` : t("host.cores", { count: h.cores }),
+              bytes(h.mem_total),
+              d.latest?.uptime != null && t("host.upFor", { time: duration(d.latest.uptime) }),
+              `${t("host.agent")} ${h.agent_version}`,
+              h.docker_version && `Docker ${h.docker_version}`,
+            ]}
+          />
+        }
+      />
+      <Page>
+        <AgentUpdate host={h} status={update} />
+        {problems.length > 0 && (
+          <section className="overflow-hidden rounded-lg border bg-card">
+            <Incidents alerts={problems} />
+          </section>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PageTabs
+            tabs={[
+              { value: "overview", label: t("tabs.overview") },
+              { value: "containers", label: t("host.containers"), count: d.containers.filter((c) => c.gone_at == null).length },
+              { value: "alerts", label: t("tabs.alerts") },
+              { value: "settings", label: t("tabs.settings") },
+              { value: "activity", label: t("tabs.activity") },
+            ]}
+          />
+          <RangePicker value={seconds} onChange={setSeconds} />
+        </div>
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {charts.map((c) => (
+              <Panel key={c.title} title={t(c.title)} right={<span className="text-foreground tabular-nums">{c.now(current)}</span>}>
+                <Chart data={series.data} lines={c.lines} format={c.format} range={range} events={events.data} max={c.max} binary={c.binary} />
+              </Panel>
+            ))}
+          </div>
+          <Filesystems detail={d} />
+        </TabsContent>
+        <TabsContent value="containers">
+          <Panel title={t("host.containers")} right={t("host.running", { count: running })} flush>
+            <Containers containers={d.containers} />
+          </Panel>
+        </TabsContent>
+        <TabsContent value="alerts" className="space-y-6">
+          <AlertHistory subject={subject} always />
+          <Maintenance subject={subject} />
+        </TabsContent>
+        <TabsContent value="settings" className="space-y-6">
+          <Config subject={subject} />
+        </TabsContent>
+        <TabsContent value="activity" className="space-y-6">
+          <Events events={events.data ?? []} />
+          <History subject={subject} />
+        </TabsContent>
+      </Page>
+    </Tabs>
+  );
+}
+
+// EnvironmentLink names where a host is, leading there.
+function EnvironmentLink({ envID }: { envID: number | null }) {
+  const { t } = useTranslation();
+  const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
+  const env = (scopes.data ?? []).find((s) => s.id === envID);
+  if (!env) return <span>{t("overview.unassigned")}</span>;
+  return (
+    <Link to="/scopes/$id" params={{ id: String(env.id) }} className="font-mono text-mini hover:text-foreground hover:underline">
+      {env.path}
+    </Link>
+  );
+}
+
+// HostMenu holds what is seldom done to a host: moving it to another
+// environment, and cutting its agent off.
+function HostMenu({ host }: { host: HostData }) {
+  const { t } = useTranslation();
+  const { isAdmin } = useMe();
+  const client = useQueryClient();
+  const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
+  const [moving, setMoving] = useState(false);
+  const done = () => {
+    client.invalidateQueries({ queryKey: ["host", host.id] });
+    client.invalidateQueries({ queryKey: ["hosts"] });
+    client.invalidateQueries({ queryKey: ["changes"] });
+  };
+  const move = useMutation({ mutationFn: (env: number | null) => setHostEnvironment(host.id, env), onSuccess: () => (done(), setMoving(false), toast.success(t("host.moved"))) });
+  const revoke = useMutation({ mutationFn: () => revokeAgent(host.id), onSuccess: () => (done(), toast.success(t("agent.revoked"))) });
+  if (!isAdmin) return null;
+  const envs = (scopes.data ?? []).filter((s) => s.kind === "environment");
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t("host.more")} />}>
+          <MoreHorizontal />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuItem onClick={() => setMoving(true)}>
+            <FolderInput />
+            {t("host.move")}
+          </DropdownMenuItem>
+          {!host.agent_revoked && (
+            <DropdownMenuItem variant="destructive" onClick={() => confirm(t("agent.revokeConfirm")) && revoke.mutate()}>
+              <Ban />
+              {t("agent.revoke")}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Dialog open={moving} onOpenChange={setMoving}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("host.move")}</DialogTitle>
+            <DialogDescription>{t("host.moveHint")}</DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-72 overflow-y-auto rounded-md border">
+            {envs.map((e) => (
+              <li key={e.id}>
+                <button
+                  type="button"
+                  disabled={e.id === host.environment_id || move.isPending}
+                  onClick={() => move.mutate(e.id)}
+                  className="flex w-full items-center justify-between border-b px-3 py-2.5 text-left last:border-b-0 hover:bg-accent disabled:opacity-50"
+                >
+                  <span className="font-medium">{e.name}</span>
+                  <span className="font-mono text-mini text-muted-foreground">{e.path}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 function useCharts() {
   const { t } = useTranslation();
   return useMemo(() => {
-    const charts: { title: string; lines: Line[]; format: (v: number | null, digits?: number) => string; max?: number; binary?: boolean }[] = [
+    type Now = (key: string) => number | null | undefined;
+    const charts: { title: string; lines: Line[]; format: (v: number | null, digits?: number) => string; max?: number; binary?: boolean; now: (get: Now) => string }[] = [
       {
         title: "metric.cpu",
         lines: [
@@ -93,6 +229,7 @@ function useCharts() {
         ],
         format: (v, d) => percent(v, d ?? 1),
         max: 100,
+        now: (get) => percent(get("cpu"), 1),
       },
       {
         title: "metric.memory",
@@ -102,6 +239,7 @@ function useCharts() {
         ],
         format: (v) => bytes(v),
         binary: true,
+        now: (get) => bytes(get("mem_used")),
       },
       {
         title: "metric.load",
@@ -111,6 +249,7 @@ function useCharts() {
           { key: "load15", label: t("metric.load15") },
         ],
         format: (v, d) => number(v, d ?? 2),
+        now: (get) => number(get("load1"), 2),
       },
       {
         title: "metric.network",
@@ -120,6 +259,7 @@ function useCharts() {
         ],
         format: rate,
         binary: true,
+        now: (get) => `↓ ${rate(get("net_rx"))}  ↑ ${rate(get("net_tx"))}`,
       },
       {
         title: "metric.diskio",
@@ -129,6 +269,7 @@ function useCharts() {
         ],
         format: rate,
         binary: true,
+        now: (get) => `${rate(get("disk_read"))} / ${rate(get("disk_write"))}`,
       },
     ];
     return charts;
@@ -171,190 +312,90 @@ function useLiveHost(id: number) {
   return { last, update };
 }
 
-function Header({ detail, live }: { detail: HostDetail; live: number }) {
-  const { t } = useTranslation();
-  const { host, latest } = detail;
-  const facts: [string, string][] = [
-    [t("host.platform"), host.platform || host.os],
-    [t("host.kernel"), host.kernel],
-    [t("host.cpu"), host.cpu_model ? `${host.cores} × ${host.cpu_model}` : t("host.cores", { count: host.cores })],
-    [t("host.memory"), bytes(host.mem_total)],
-    [t("host.uptime"), duration(latest?.uptime)],
-    [t("host.agent"), host.agent_version],
-    [t("host.docker"), host.docker_version || t("host.noDocker")],
-    [t("host.lastSeen"), t("ago", { time: ago(host.last_seen) })],
-  ];
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <h2 className="text-xl font-semibold">{host.name}</h2>
-        <Online online={host.online} revoked={host.agent_revoked} />
-        <LiveBadge last={live} />
-      </div>
-      <EnvironmentPicker hostID={host.id} current={host.environment_id ?? null} />
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
-        {facts.map(([k, v]) => (
-          <div key={k} className="min-w-0">
-            <dt className="text-muted-foreground">{k}</dt>
-            <dd className="truncate">{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
 function Filesystems({ detail }: { detail: HostDetail }) {
   const { t } = useTranslation();
   if (detail.filesystems.length === 0) return null;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("host.filesystems")}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <Panel title={t("host.filesystems")} flush>
+      <ul>
         {detail.filesystems.map((fs) => {
           const pct = fs.used != null && fs.total ? (100 * fs.used) / fs.total : null;
           return (
-            <div key={fs.id} className="space-y-1 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="truncate">
-                  {fs.mount} <span className="text-muted-foreground">{fs.fstype}</span>
-                </span>
-                <span className="tabular-nums text-muted-foreground">
-                  {bytes(fs.used)} / {bytes(fs.total)} · {percent(pct)}
-                </span>
-              </div>
-              <Meter pct={pct} color={usageColor(pct ?? 0)} />
-            </div>
+            <li key={fs.id} className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,16rem)_auto] items-center gap-4 border-b px-4 py-3 last:border-b-0">
+              <span className="min-w-0 truncate">
+                <span className="font-mono">{fs.mount}</span> <span className="text-mini text-muted-foreground">{fs.device} · {fs.fstype}</span>
+              </span>
+              <Bar pct={pct} />
+              <span className="text-right text-mini whitespace-nowrap tabular-nums text-muted-foreground">
+                {bytes(fs.used)} / {bytes(fs.total)}
+              </span>
+            </li>
           );
         })}
-      </CardContent>
-    </Card>
+      </ul>
+    </Panel>
   );
 }
 
 function Containers({ containers }: { containers: Container[] }) {
   const { t } = useTranslation();
-  if (containers.length === 0) return null;
+  const navigate = useNavigate();
+  if (containers.length === 0) return <p className="px-4 py-10 text-center text-muted-foreground">{t("host.noContainers")}</p>;
+  const shown = [...containers].sort((a, b) => Number(a.gone_at != null) - Number(b.gone_at != null) || a.slug.localeCompare(b.slug));
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("host.containers")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("container.name")}</TableHead>
-              <TableHead>{t("container.state")}</TableHead>
-              <TableHead className="text-right">{t("metric.cpu")}</TableHead>
-              <TableHead className="text-right">{t("metric.memory")}</TableHead>
-              <TableHead className="text-right">{t("container.restarts")}</TableHead>
-              <TableHead>{t("container.image")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {containers.map((c) => (
-              <TableRow key={c.id} className={c.gone_at != null ? "opacity-50" : undefined}>
-                <TableCell>
-                  <Link to="/containers/$id" params={{ id: String(c.id) }} className="font-medium hover:underline">
-                    {c.slug}
-                  </Link>
-                </TableCell>
-                <TableCell>
+    <div className="overflow-x-auto">
+      <table className="w-full text-left">
+        <thead className="border-b text-muted-foreground">
+          <tr>
+            <th className="h-10 pl-4 font-medium">{t("container.name")}</th>
+            <th className="h-10 px-3 font-medium">{t("container.state")}</th>
+            <th className="h-10 w-[16%] px-3 font-medium">{t("metric.cpu")}</th>
+            <th className="h-10 w-[12%] px-3 font-medium">{t("metric.memory")}</th>
+            <th className="hidden h-10 px-3 font-medium md:table-cell">{t("container.restarts")}</th>
+            <th className="hidden h-10 pr-4 font-medium lg:table-cell">{t("container.image")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((c) => {
+            const running = c.state === "running" && c.gone_at == null;
+            return (
+              <tr
+                key={c.id}
+                onClick={() => navigate({ to: "/containers/$id", params: { id: String(c.id) } })}
+                className={`cursor-pointer border-b transition-colors last:border-b-0 hover:bg-accent/60 ${c.gone_at != null ? "opacity-50" : ""}`}
+              >
+                <td className="py-3 pl-4 font-medium">{c.slug}</td>
+                <td className="px-3">
                   <ContainerState container={c} />
-                </TableCell>
+                </td>
                 {/* The last reading of a stopped container says nothing about now. */}
-                <TableCell className="text-right tabular-nums">{c.state === "running" ? percent(c.latest?.cpu, 1) : "–"}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.state === "running" ? bytes(c.latest?.mem) : "–"}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.restarts}</TableCell>
-                <TableCell className="max-w-64 truncate text-muted-foreground">{c.image}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                <td className="px-3">{running ? <Bar pct={c.latest?.cpu} /> : <span className="text-muted-foreground">–</span>}</td>
+                <td className="px-3 tabular-nums">{running ? bytes(c.latest?.mem) : <span className="text-muted-foreground">–</span>}</td>
+                <td className="hidden px-3 tabular-nums md:table-cell">{c.restarts}</td>
+                <td className="hidden max-w-72 truncate pr-4 font-mono text-mini text-muted-foreground lg:table-cell">{c.image}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 // ContainerState names the state in words; color only backs it up.
 export function ContainerState({ container: c }: { container: Container }) {
   const { t } = useTranslation();
-  if (c.gone_at != null) return <Badge variant="outline">{t("container.gone")}</Badge>;
+  if (c.gone_at != null) return <span className="text-muted-foreground">{t("container.gone")}</span>;
   // Docker keeps the last health of a stopped container; only a running
   // one can be unhealthy.
   const running = c.state === "running";
   const bad = (running && c.health === "unhealthy") || (c.state === "exited" && c.exit_code !== 0) || c.state === "dead";
   const label = c.health && running ? `${c.state}, ${c.health}` : c.state === "exited" ? t("container.exited", { code: c.exit_code }) : c.state;
   return (
-    <Badge variant="outline" style={bad ? { color: status.critical, borderColor: status.critical } : undefined}>
-      {label}
-    </Badge>
-  );
-}
-
-// EnvironmentPicker shows the host's environment; an admin can move it.
-function EnvironmentPicker({ hostID, current }: { hostID: number; current: number | null }) {
-  const { t } = useTranslation();
-  const { isAdmin } = useMe();
-  const client = useQueryClient();
-  const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
-  const move = useMutation({
-    mutationFn: (env: number | null) => setHostEnvironment(hostID, env),
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: ["host", hostID] });
-      client.invalidateQueries({ queryKey: ["hosts"] });
-      client.invalidateQueries({ queryKey: ["changes", `host:${hostID}`] });
-    },
-  });
-  const envs = (scopes.data ?? []).filter((s) => s.kind === "environment");
-  const here = envs.find((e) => e.id === current);
-  if (!isAdmin) {
-    return <p className="text-sm text-muted-foreground">{here ? here.path : t("overview.unassigned")}</p>;
-  }
-  return (
-    <label className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">{t("tree.environment")}</span>
-      <select
-        className="h-8 rounded-md border bg-background px-2 text-sm"
-        value={current ?? ""}
-        onChange={(e) => move.mutate(e.target.value ? Number(e.target.value) : null)}
-      >
-        <option value="">{t("overview.unassigned")}</option>
-        {envs.map((e) => (
-          <option key={e.id} value={e.id}>
-            {e.path}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-// Revoke cuts the host's agent off: it can only come back by enrolling
-// again.
-function Revoke({ hostID }: { hostID: number }) {
-  const { t } = useTranslation();
-  const { isAdmin } = useMe();
-  const client = useQueryClient();
-  const revoke = useMutation({
-    mutationFn: () => revokeAgent(hostID),
-    onSuccess: () => {
-      client.invalidateQueries({ queryKey: ["host", hostID] });
-      client.invalidateQueries({ queryKey: ["hosts"] });
-      client.invalidateQueries({ queryKey: ["changes", `host:${hostID}`] });
-    },
-  });
-  if (!isAdmin) return null;
-  return (
-    <div className="space-y-1">
-      <Button variant="outline" size="sm" disabled={revoke.isPending || revoke.isSuccess} onClick={() => confirm(t("agent.revokeConfirm")) && revoke.mutate()}>
-        {t("agent.revoke")}
-      </Button>
-      <p className="text-xs text-muted-foreground">{t("agent.revokeHint")}</p>
-    </div>
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+      <StatusIcon level={bad ? "crit" : running ? "ok" : "unknown"} size={12} />
+      <span style={bad ? { color: "var(--crit)" } : undefined}>{label}</span>
+    </span>
   );
 }
 
@@ -370,7 +411,7 @@ function AgentUpdate({ host, status }: { host: HostData; status?: LiveMessage["u
     return (
       <p className="text-sm">
         {status.state === "failed" ? (
-          <span style={{ color: statusColors.critical }}>{t("update.failed", { version: status.version, error: status.error })}</span>
+          <span style={{ color: "var(--crit)" }}>{t("update.failed", { version: status.version, error: status.error })}</span>
         ) : (
           t(`update.${status.state}`, { version: status.version })
         )}

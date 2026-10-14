@@ -1,11 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createRootRoute, createRoute, createRouter, Link, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { createRootRoute, createRoute, createRouter, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { getHealth, getMe, logout, Unauthorized } from "@/api";
+import { useState } from "react";
+import { getHealth, getMe, Unauthorized } from "@/api";
+import { CommandMenu } from "@/components/shell/CommandMenu";
+import { Sidebar, Wordmark } from "@/components/shell/Sidebar";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { status } from "@/lib/palette";
-import { useAlerts } from "@/components/Alerts";
 import { AlertDetail, Alerts } from "@/routes/Alerts";
 import { Check } from "@/routes/Check";
 import { Container } from "@/routes/Container";
@@ -36,55 +40,37 @@ function Gate() {
     return path === "/login" ? <Outlet /> : <Navigate to="/login" search={{ next: path }} />;
   }
   if (path === "/login") return <Navigate to="/" />;
-  return <Layout name={me.data?.name || me.data?.email || ""} version={health.data.version} />;
+  return <Layout />;
 }
 
-function Layout({ name, version }: { name: string; version: string }) {
+function Layout() {
   const { t } = useTranslation();
-  const client = useQueryClient();
-  const out = useMutation({ mutationFn: logout, onSuccess: () => client.invalidateQueries({ queryKey: ["me"] }) });
+  const [search, setSearch] = useState(false);
+  const [menu, setMenu] = useState(false);
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link to="/" className="text-lg font-semibold tracking-tight">
-            {t("app.name")}
-          </Link>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-xs text-muted-foreground">{version}</span>
-            <AlertsLink />
-            <Link to="/settings" className="hover:underline">
-              {t("settings.title")}
-            </Link>
-            <span>{name}</span>
-            <Button variant="ghost" size="sm" onClick={() => out.mutate()}>
-              {t("login.logout")}
-            </Button>
-          </div>
+    <div className="flex h-dvh bg-sidebar">
+      <aside className="hidden w-64 shrink-0 md:block">
+        <Sidebar onSearch={() => setSearch(true)} />
+      </aside>
+      <Sheet open={menu} onOpenChange={setMenu}>
+        <SheetContent side="left" className="w-72 bg-sidebar p-0">
+          <Sidebar onSearch={() => (setMenu(false), setSearch(true))} onNavigate={() => setMenu(false)} />
+        </SheetContent>
+      </Sheet>
+      <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-3 md:hidden">
+          <Button variant="ghost" size="icon-sm" aria-label={t("nav.menu")} onClick={() => setMenu(true)}>
+            <Menu />
+          </Button>
+          <Wordmark />
         </div>
-      </header>
-      <main className="mx-auto max-w-6xl px-6 py-6">
-        <Outlet />
-      </main>
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background pb-16 md:rounded-lg md:border md:shadow-xs">
+          <Outlet />
+        </main>
+      </div>
+      <CommandMenu open={search} onOpenChange={setSearch} />
+      <Toaster position="bottom-right" />
     </div>
-  );
-}
-
-// AlertsLink leads to the alerts, saying how many fire.
-function AlertsLink() {
-  const { t } = useTranslation();
-  const alerts = useAlerts();
-  const firing = (alerts.data ?? []).filter((a) => a.state === "crit" || a.state === "warn");
-  const crit = firing.some((a) => a.state === "crit");
-  return (
-    <Link to="/alerts" className="inline-flex items-center gap-1.5 hover:underline">
-      {t("alert.title")}
-      {firing.length > 0 && (
-        <span className="rounded-full px-1.5 text-xs font-medium text-white tabular-nums" style={{ background: crit ? status.critical : status.warning }}>
-          {firing.length}
-        </span>
-      )}
-    </Link>
   );
 }
 
@@ -139,6 +125,11 @@ const alertDetail = createRoute({
   },
 });
 
+// The lists are the home page now.
+const hostList = createRoute({ getParentRoute: () => root, path: "/hosts", component: () => <Navigate to="/" /> });
+
+const checkList = createRoute({ getParentRoute: () => root, path: "/checks", component: () => <Navigate to="/" /> });
+
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: Settings });
 
 const setup = createRoute({
@@ -165,7 +156,7 @@ const login = createRoute({
   },
 });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, host, container, scope, check, alerts, alertDetail, settings, setup, login]) });
+export const router = createRouter({ routeTree: root.addChildren([overview, hostList, checkList, host, container, scope, check, alerts, alertDetail, settings, setup, login]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

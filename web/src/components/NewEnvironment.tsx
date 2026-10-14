@@ -23,12 +23,12 @@ export function NewEnvironment({ customer = "", project = "" }: { customer?: str
         <Plus className="size-4" />
         {t("tree.newEnvironment")}
       </DialogTrigger>
-      <DialogContent>{open && <Form customer={customer} project={project} done={() => setOpen(false)} />}</DialogContent>
+      <DialogContent>{open && <EnvironmentForm customer={customer} project={project} done={() => setOpen(false)} />}</DialogContent>
     </Dialog>
   );
 }
 
-function Form({ customer: c0, project: p0, done }: { customer: string; project: string; done: () => void }) {
+export function EnvironmentForm({ customer: c0, project: p0, done }: { customer: string; project: string; done: () => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const navigate = useNavigate();

@@ -45,8 +45,8 @@ export const listHosts = () => get<HostSummary[]>("/api/hosts");
 export const getHost = (id: number) => get<HostDetail>(`/api/hosts/${id}`);
 export const getContainer = (id: number) => get<Container>(`/api/containers/${id}`);
 
-export const getSeries = (kind: "hosts" | "filesystems" | "containers" | "checks", id: number, r: Range) =>
-  get<Series>(`/api/${kind}/${id}/series?from=${r.from}&to=${r.to}&points=600`);
+export const getSeries = (kind: "hosts" | "filesystems" | "containers" | "checks", id: number, r: Range, points = 600) =>
+  get<Series>(`/api/${kind}/${id}/series?from=${r.from}&to=${r.to}&points=${points}`);
 
 export const listEvents = (subject: string, r: Range) =>
   get<Event[]>(`/api/events?subject=${subject}&from=${r.from}&to=${r.to}`);

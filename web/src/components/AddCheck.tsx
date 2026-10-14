@@ -25,12 +25,12 @@ export function AddCheck({ envID }: { envID: number }) {
         <Plus className="size-4" />
         {t("check.add")}
       </DialogTrigger>
-      <DialogContent>{open && <Form envID={envID} />}</DialogContent>
+      <DialogContent>{open && <CheckForm envID={envID} />}</DialogContent>
     </Dialog>
   );
 }
 
-function Form({ envID }: { envID: number }) {
+export function CheckForm({ envID }: { envID: number }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const navigate = useNavigate();

@@ -19,12 +19,12 @@ export function AddAgent({ envID }: { envID: number }) {
         <Plus className="size-4" />
         {t("agent.add")}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">{open && <Body envID={envID} />}</DialogContent>
+      <DialogContent className="sm:max-w-2xl">{open && <AgentBody envID={envID} />}</DialogContent>
     </Dialog>
   );
 }
 
-function Body({ envID }: { envID: number }) {
+export function AgentBody({ envID }: { envID: number }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   // An environment gets its token the first time someone adds an agent.

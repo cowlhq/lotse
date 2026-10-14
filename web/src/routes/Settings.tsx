@@ -2,11 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { checkUpdates, getHealth, listHosts, updateHub } from "@/api";
+import { Page } from "@/components/shell/PageHeader";
+import { ObjectHeader } from "@/components/shell/Panel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BellRing, Cog, History, Radar, Send, SlidersHorizontal, Wrench } from "lucide-react";
 import { Channels } from "@/components/Channels";
 import { MailServer } from "@/components/MailServer";
 import { Maintenance } from "@/components/Maintenance";
 import { Config } from "@/components/Config";
-import { History } from "@/components/History";
+import { History as HistoryList } from "@/components/History";
 import { Probes } from "@/components/Probes";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -23,18 +27,60 @@ export function Settings() {
   const { t } = useTranslation();
   const { isAdmin } = useMe();
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts });
+  const sections = [
+    { value: "general", label: t("settings.general"), icon: <SlidersHorizontal /> },
+    { value: "notifications", label: t("settings.notifications"), icon: <Send /> },
+    { value: "rules", label: t("settings.rules"), icon: <BellRing /> },
+    { value: "probes", label: t("probe.title"), icon: <Radar /> },
+    { value: "maintenance", label: t("maintenance.title"), icon: <Wrench /> },
+    { value: "advanced", label: t("settings.advanced"), icon: <Cog /> },
+    { value: "activity", label: t("tabs.activity"), icon: <History /> },
+  ];
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{t("settings.title")}</h1>
-      <HubVersion />
-      {isAdmin && <UpdateAgents scopeID={1} hosts={hosts.data ?? []} />}
-      <Probes />
-      <MailServer />
-      <Channels scopeID={1} />
-      <Maintenance subject="global:1" />
-      <Config subject="global:1" />
-      <History subject="global:1" />
-    </div>
+    <>
+      <ObjectHeader icon={null} title={t("settings.title")} />
+      <Page>
+        <Tabs defaultValue="general" orientation="vertical" className="flex-col gap-6 md:flex-row">
+          <TabsList variant="line" className="h-auto w-full shrink-0 flex-row flex-wrap items-stretch gap-0.5 p-0 md:w-52 md:flex-col">
+            {sections.map((x) => (
+              <TabsTrigger
+                key={x.value}
+                value={x.value}
+                className="h-9 flex-none justify-start gap-2.5 rounded-md border-0 px-2.5 text-ui! font-medium text-muted-foreground after:hidden hover:bg-accent/60 hover:text-foreground data-active:bg-accent! data-active:text-foreground! [&_svg]:size-4"
+              >
+                {x.icon}
+                {x.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <div className="min-w-0 flex-1">
+            <TabsContent value="general" className="space-y-6">
+              <HubVersion />
+              {isAdmin && <UpdateAgents scopeID={1} hosts={hosts.data ?? []} />}
+            </TabsContent>
+            <TabsContent value="notifications" className="space-y-6">
+              <MailServer />
+              <Channels scopeID={1} />
+            </TabsContent>
+            <TabsContent value="rules">
+              <Config subject="global:1" part="rules" />
+            </TabsContent>
+            <TabsContent value="probes">
+              <Probes />
+            </TabsContent>
+            <TabsContent value="maintenance">
+              <Maintenance subject="global:1" />
+            </TabsContent>
+            <TabsContent value="advanced">
+              <Config subject="global:1" part="general" />
+            </TabsContent>
+            <TabsContent value="activity">
+              <HistoryList subject="global:1" />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </Page>
+    </>
   );
 }
 
