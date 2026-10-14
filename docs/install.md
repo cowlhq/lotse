@@ -212,6 +212,59 @@ with the key, of `X-Lotse-Timestamp`, a dot, and the body.
 or the like: the hub calls it every minute while its alerting runs, and the
 service raises the alarm when the calls stop.
 
+## Configuration as code
+
+Everything you set in the UI can live in a file as well, `lotse.yaml`, kept
+in Git and applied from a pipeline:
+
+```yaml
+customers:
+  - key: acme
+    name: ACME GmbH
+    channels:
+      - key: acme-chat
+        googlechat:
+          webhook: {from_env: ACME_CHAT_WEBHOOK}
+    settings:
+      notify.channels: [acme-chat]
+    projects:
+      - key: shop
+        environments:
+          - key: prod
+            settings:
+              rules.host.disk.warn: 80
+            maintenance:
+              - schedule: sun 02:00-04:00
+                reason: backups
+            checks:
+              - key: homepage
+                http: {url: "https://shop.acme.de", keyword: Willkommen}
+              - key: nightly-backup
+                heartbeat: {period: 24h, grace: 1h}
+            hosts:
+              - key: web1
+                settings:
+                  agent.auto_update: true
+```
+
+Make a token in **Settings → API tokens**, for everything or for one
+customer, and then:
+
+```
+export LOTSE_HUB=https://lotse.example.com LOTSE_TOKEN=lotse_tok_…
+lotse export acme > lotse.yaml       # start from what the hub has
+lotse apply -f lotse.yaml --dry-run  # what would change, and who changed it last
+lotse apply -f lotse.yaml
+lotse apply -f lotse.yaml --prune --scope acme   # also delete what the file leaves out
+```
+
+Secrets are never in the file. `{from_env: NAME}` is read where `lotse
+apply` runs, such as a CI secret, and kept sealed by the hub; `{env: NAME}`
+and `{file: /run/secrets/name}` are read by the hub itself when it sends. An
+export writes a sealed secret as `{secret: <channel>}`, which apply leaves
+as it is. Hosts come from their agents and are never deleted; one named in
+the file before its agent enrolled gets a warning.
+
 ## Checking what you download
 
 Each release has `checksums.txt` with the SHA-256 of every archive, and
