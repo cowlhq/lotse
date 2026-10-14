@@ -219,7 +219,7 @@ The schema (excerpt; it grows with the milestones):
 | `notify.repeat` | `0` (off) | everything |
 | `rules.<rule>.enabled`, `.warn`, `.crit`, `.for`, `.recover` | per rule | per rule |
 | `ignore` | `false` | containers |
-| `retention.raw` / `.5m` / `.1h` | `48h` / `30d` / `365d` | global only |
+| `retention.raw` / `.5m` / `.1h` | `2d` / `30d` / `365d` | global only |
 | `deadman.url`, `deadman.interval` | empty / `1m` | global only |
 
 A value that is a list replaces the inherited list; it is not merged.
@@ -281,9 +281,11 @@ events             id, ts, subject_kind, subject_id, kind, data_json
                    disconnect, updates, apply runs)
 ```
 
-M9 adds `_5m` and `_1h` tables beside each sample table, holding the average
-and maximum of each column (for checks: share of successes and average and
-maximum latency).
+Beside each of the four sample tables are `_5m` and `_1h` tables (decision
+0021): per object and step, the average of each column under its own name,
+the maximum as `<column>_max`, and `n`, the number of readings. For checks,
+the average of `ok` is the share of runs that passed. `rollups` holds how far
+each of them is made (`name`, `upto`).
 
 **Alerting**
 
@@ -663,7 +665,8 @@ The milestones from the brief, with the changes the decisions make necessary
 7. **apply, export, labels.** With dry-run diff and scoped prune.
 8. **Read API.** API tokens, OpenAPI published, `lotse.sh/client`.
 9. **Retention and downsampling.** 48 h raw, 30 d of 5-minute values, 1 year of
-   hourly values.
+   hourly values; series read from the finest that reaches back far enough
+   ★, `lotse backup` ★.
 
 After each milestone `docker compose up` runs everything locally: hub, an agent
 that watches the Docker host, and a few demo containers with labels.

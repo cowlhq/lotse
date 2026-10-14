@@ -30,11 +30,23 @@ data stays in the volume `lotse_data`.
 `127.0.0.1:8080` in `compose.yml`, let Traefik or Caddy terminate TLS and
 forward to it, and set the hub's address in setup to the `https://` one.
 
-**Backups**: with SQLite, everything is in the volume `lotse_data`: stop the
-hub for a moment and copy it. `lotse backup` will take consistent copies
-while it runs, from milestone 9 on. With Postgres, back it up as you back up
-Postgres; keep `secret.key` from the volume either way, since it unseals
+**Backups**: with SQLite, everything is in the volume `lotse_data`.
+`lotse backup` takes a consistent copy while the hub runs:
+
+```sh
+docker compose -f /opt/lotse/compose.yml exec hub lotse backup /var/lib/lotse/backup-$(date +%F).db
+```
+
+The copy lands in the volume beside the database; copy it out from there.
+It does not write over a file that is there. To restore, stop the hub and
+put the copy in place of `lotse.db`. With Postgres, back it up as you back up
+Postgres. Keep `secret.key` from the volume either way, since it unseals
 what the hub keeps sealed.
+
+**Retention**: readings are kept as they came for 2 days, as 5-minute
+averages for 30 days and as hourly ones for a year; events and alerts for as
+long as the hourly ones. Change it in the hub's settings (`retention.raw`,
+`retention.5m`, `retention.1h`).
 
 ## Agents
 
