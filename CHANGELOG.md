@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.11](https://github.com/cowlhq/lotse/compare/v0.1.10...v0.1.11) (2026-10-14)
+
+
+### Features
+
+* **cli:** lotse backup copies a SQLite hub while it runs ([5ee123d](https://github.com/cowlhq/lotse/commit/5ee123d574c1b9211d28dcbf38688fff1e6154f9))
+* **config:** durations in days, and the retention settings ([bf64700](https://github.com/cowlhq/lotse/commit/bf64700710a47ff9aa803b93b08c5527bcf614b9))
+* **hub:** average readings every 5 minutes and every hour before deleting them ([063b0f1](https://github.com/cowlhq/lotse/commit/063b0f11f15d855472302afe868edd850e561e5d))
+* **web:** time ranges up to a year ([c03bbba](https://github.com/cowlhq/lotse/commit/c03bbbae69ca230e163241ebaf6d0e2b8b144879))
+
 ## [0.1.10](https://github.com/cowlhq/lotse/compare/v0.1.9...v0.1.10) (2026-10-14)
 
 
