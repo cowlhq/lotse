@@ -262,8 +262,11 @@ Secrets are never in the file. `{from_env: NAME}` is read where `lotse
 apply` runs, such as a CI secret, and kept sealed by the hub; `{env: NAME}`
 and `{file: /run/secrets/name}` are read by the hub itself when it sends. An
 export writes a sealed secret as `{secret: <channel>}`, which apply leaves
-as it is. Hosts come from their agents and are never deleted; one named in
-the file before its agent enrolled gets a warning.
+as it is. A host named in the file before its agent enrolled waits for it, with its
+settings in place: the machine of that name that enrolls in that
+environment becomes it, and no alert is raised while it waits. Hosts that
+enrolled are never deleted; `--prune` deletes only waiting ones the file no
+longer names.
 
 ## Checking what you download
 

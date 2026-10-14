@@ -58,7 +58,7 @@ export function Host({ id }: { id: number }) {
   const h = d.host;
   const subject = `host:${id}`;
   const problems = alerts.filter((a) => a.state !== "ok" && ((a.subject_kind === "host" && a.subject_id === id) || d.containers.some((c) => a.subject_kind === "container" && a.subject_id === c.id)));
-  const level = !h.online ? (h.agent_revoked ? "unknown" : "crit") : problems.some((a) => a.state === "crit") ? "crit" : problems.length ? "warn" : "ok";
+  const level = h.waiting ? "unknown" : !h.online ? (h.agent_revoked ? "unknown" : "crit") : problems.some((a) => a.state === "crit") ? "crit" : problems.length ? "warn" : "ok";
   const current = (key: string) => (d.latest as Record<string, number | null | undefined> | undefined)?.[key];
   const running = d.containers.filter((c) => c.state === "running" && c.gone_at == null).length;
 
@@ -78,7 +78,7 @@ export function Host({ id }: { id: number }) {
         facts={
           <Facts
             items={[
-              h.online ? t("status.online") : h.agent_revoked ? t("status.revoked") : t("rows.offlineSince", { time: ago(h.last_seen) }),
+              h.waiting ? t("status.waiting") : h.online ? t("status.online") : h.agent_revoked ? t("status.revoked") : t("rows.offlineSince", { time: ago(h.last_seen) }),
               h.platform || h.os,
               h.cpu_model ? `${h.cores} × ${h.cpu_model}` : t("host.cores", { count: h.cores }),
               bytes(h.mem_total),
@@ -109,6 +109,11 @@ export function Host({ id }: { id: number }) {
           <RangePicker value={seconds} onChange={setSeconds} />
         </div>
         <TabsContent value="overview" className="space-y-4">
+          {h.waiting && (
+            <Panel title={t("host.waitingTitle")}>
+              <p className="text-muted-foreground">{t("host.waitingHint", { name: h.name })}</p>
+            </Panel>
+          )}
           <div className="grid gap-4 lg:grid-cols-2">
             {charts.map((c) => (
               <Panel key={c.title} title={t(c.title)} right={<span className="text-foreground tabular-nums">{c.now(current)}</span>}>

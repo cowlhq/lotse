@@ -73,7 +73,8 @@
   "status": {
     "online": "online",
     "offline": "offline",
-    "revoked": "agent revoked"
+    "revoked": "agent revoked",
+    "waiting": "waiting for its agent"
   },
   "range": {
     "hours_one": "{{count}} hour",
@@ -125,7 +126,9 @@
     "moved": "Moved.",
     "running_one": "{{count}} running",
     "running_other": "{{count}} running",
-    "noContainers": "No containers."
+    "noContainers": "No containers.",
+    "waitingTitle": "Waiting for its agent",
+    "waitingHint": "{{name}} is named in lotse.yaml, and its settings are ready. Install the agent on the machine with its environment's command (Add host); a machine called {{name}} that enrolls there becomes this host."
   },
   "container": {
     "notFound": "There is no such container.",
