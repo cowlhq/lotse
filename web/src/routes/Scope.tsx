@@ -12,7 +12,7 @@ import { Empty, Page } from "@/components/shell/PageHeader";
 import { Facts, ObjectHeader, Panel } from "@/components/shell/Panel";
 import { PageTabs } from "@/components/shell/PageTabs";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { levelUnder } from "@/lib/status";
+import { levelUnder, isFiring } from "@/lib/status";
 import { Channels } from "@/components/Channels";
 import { Maintenance } from "@/components/Maintenance";
 import { AddAgent } from "@/components/AddAgent";
@@ -76,7 +76,7 @@ export function Scope({ id }: { id: number }) {
   const mine = (hosts.data ?? []).filter((h) => below(h.host.environment_id));
   const subject = `${scope.data.kind}:${id}`;
   const env = scope.data.kind === "environment";
-  const problems = alerts.filter((a) => a.state !== "ok" && (a.subject_path === scope.data.path || a.subject_path.startsWith(scope.data.path + "/")));
+  const problems = alerts.filter((a) => isFiring(a) && (a.subject_path === scope.data.path || a.subject_path.startsWith(scope.data.path + "/")));
 
   return (
     <Tabs defaultValue="overview" className="gap-0">

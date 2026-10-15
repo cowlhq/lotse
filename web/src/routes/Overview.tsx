@@ -51,22 +51,21 @@ export function Overview() {
   const where = (envID: number | null | undefined) => (envID ? byID.get(envID)?.path ?? "" : t("overview.unassigned"));
   const shownHosts = hosts.data.filter((h) => `${h.host.name} ${where(h.host.environment_id)}`.toLowerCase().includes(text));
   const shownChecks = (checks.data ?? []).filter((c) => `${c.name} ${c.path}`.toLowerCase().includes(text));
-  const problems = alerts.filter((a) => a.state !== "ok");
-  const fire = firing(problems);
-  const crit = fire.filter((a) => a.state === "crit").length;
+  const problems = firing(alerts);
+  const crit = problems.filter((a) => a.state === "crit").length;
 
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
-          <StatusIcon level={crit ? "crit" : fire.length ? "warn" : "ok"} size={20} />
+          <StatusIcon level={crit ? "crit" : problems.length ? "warn" : "ok"} size={20} />
           {hosts.data.length === 0 && (checks.data?.length ?? 0) === 0
             ? t("overview.welcome")
             : crit
               ? t("overview.critical", { count: crit })
-              : fire.length
-                ? t("overview.warnings", { count: fire.length })
+              : problems.length
+                ? t("overview.warnings", { count: problems.length })
                 : t("overview.allGood")}
         </h1>
         <div className="flex-1" />
