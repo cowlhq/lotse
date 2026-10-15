@@ -58,6 +58,18 @@ export function ago(ts: number | null | undefined, now = Date.now() / 1000): str
   return duration(Math.max(0, now - ts));
 }
 
+// Dates and times in the reader's own format.
+const fullDateTime = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+const timeOnly = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+const dayAndTime = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
 export function dateTime(ts: number): string {
-  return new Date(ts * 1000).toLocaleString();
+  return fullDateTime.format(ts * 1000);
+}
+
+// shortDateTime is the time alone for today, else the day and time, for
+// lists where the year goes without saying.
+export function shortDateTime(ts: number, now = new Date()): string {
+  const d = new Date(ts * 1000);
+  return d.toDateString() === now.toDateString() ? timeOnly.format(d) : dayAndTime.format(d);
 }
