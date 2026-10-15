@@ -22,6 +22,7 @@ commands:
   agent     run the agent: lotse agent --hub URL --token TOKEN
             or only enroll it: lotse agent enroll --hub URL --token TOKEN
   probe     check from another place: lotse probe --hub URL --token TOKEN --name fra
+            or only enroll it: lotse probe enroll --hub URL --token TOKEN --name fra
   start     run hub or agent in their newest installed version: lotse start hub|agent
   apply     send a lotse.yaml to the hub: lotse apply -f lotse.yaml [--dry-run] [--prune --scope acme]
   export    write a scope as lotse.yaml: lotse export [acme/shop]
