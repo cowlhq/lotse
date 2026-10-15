@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.12](https://github.com/cowlhq/lotse/compare/v0.1.11...v0.1.12) (2026-10-15)
+
+
+### Features
+
+* **web:** a calmer alert history, in the reader's date format ([f2a9c13](https://github.com/cowlhq/lotse/commit/f2a9c1348063b41b64dd8dc54f6db103abd1da7d))
+* **web:** segmented choices, and charts that read well over long ranges ([6e680e6](https://github.com/cowlhq/lotse/commit/6e680e66959bfaf1bc2f469cd59f24fba050bea3))
+* **web:** settings by name and in groups, with switches ([d00205f](https://github.com/cowlhq/lotse/commit/d00205f1dedb6ca24986cc15910d96be7dce5317))
+
+
+### Bug Fixes
+
+* **web:** headers, facts and tabs on phones ([030d828](https://github.com/cowlhq/lotse/commit/030d828416cba0199553a3cb03f4d475b053d59e))
+* **web:** only warnings and critical alerts are problems ([cda45ba](https://github.com/cowlhq/lotse/commit/cda45bad46efcfce9f3177870b6376f8f932551c))
+
 ## [0.1.11](https://github.com/cowlhq/lotse/compare/v0.1.10...v0.1.11) (2026-10-14)
 
 
