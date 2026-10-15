@@ -483,12 +483,22 @@
     "type": {
       "email": "Email",
       "googlechat": "Google Chat",
-      "webhook": "Webhook"
+      "webhook": "Webhook",
+      "slack": "Slack",
+      "discord": "Discord",
+      "telegram": "Telegram",
+      "ntfy": "ntfy",
+      "pushover": "Pushover"
     },
     "typeHint": {
       "email": "Sends alerts by email, through the mail server in the settings, or one of its own.",
       "googlechat": "Posts alerts to a Google Chat space, through the space's webhook.",
-      "webhook": "Posts alerts as JSON to an address, for anything else: a ticket system, a pager, a script."
+      "webhook": "Posts alerts as JSON to an address, for anything else: a ticket system, a pager, a script.",
+      "slack": "Posts alerts to a Slack channel, through an incoming webhook.",
+      "discord": "Posts alerts to a Discord channel, through its webhook.",
+      "telegram": "Sends alerts through a Telegram bot to a chat, a group or a channel.",
+      "ntfy": "Pushes alerts to phones through ntfy, on ntfy.sh or a server of your own. Critical ones come with the highest priority.",
+      "pushover": "Pushes alerts to phones through Pushover. Critical ones come with high priority, which sounds even in quiet hours."
     },
     "test": "Test",
     "testSent": "Sent. Check that it arrived.",
@@ -505,12 +515,27 @@
     "url": "Address",
     "urlHint": {
       "googlechat": "In the space: Apps & integrations, Webhooks.",
-      "webhook": "Receives a POST with the alerts as JSON."
+      "webhook": "Receives a POST with the alerts as JSON.",
+      "slack": "In Slack: an app with Incoming Webhooks, added to the channel.",
+      "discord": "In the channel's settings: Integrations, Webhooks."
     },
     "signingKey": "Signing key",
     "signingHint": "If set, X-Lotse-Signature carries the HMAC-SHA256 of the timestamp and the body, so the receiver can tell the message comes from the hub.",
     "saved": "Channel saved.",
-    "deleted": "Channel deleted."
+    "deleted": "Channel deleted.",
+    "botToken": "Bot token",
+    "botTokenHint": "From @BotFather, when the bot is made.",
+    "chatID": "Chat ID",
+    "chatIDHint": "The chat, group or channel the bot sends to; add the bot there first. Groups and channels start with -100.",
+    "topic": "Topic",
+    "topicHint": "Whoever knows the topic can read it: pick one that is hard to guess, and subscribe to it in the ntfy app.",
+    "server": "Server",
+    "accessToken": "Access token",
+    "accessTokenHint": "If the server asks for one.",
+    "pushoverUser": "User key",
+    "pushoverUserHint": "Yours, or a group's, from the Pushover dashboard.",
+    "pushoverToken": "Application token",
+    "pushoverTokenHint": "Make an application for lotse in Pushover; this is its API token."
   },
   "secret": {
     "mode": {
