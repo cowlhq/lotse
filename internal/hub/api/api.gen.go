@@ -395,17 +395,32 @@ func (e ChangeVia) Valid() bool {
 
 // Defines values for ChannelType.
 const (
+	ChannelTypeDiscord    ChannelType = "discord"
 	ChannelTypeEmail      ChannelType = "email"
 	ChannelTypeGooglechat ChannelType = "googlechat"
+	ChannelTypeNtfy       ChannelType = "ntfy"
+	ChannelTypePushover   ChannelType = "pushover"
+	ChannelTypeSlack      ChannelType = "slack"
+	ChannelTypeTelegram   ChannelType = "telegram"
 	ChannelTypeWebhook    ChannelType = "webhook"
 )
 
 // Valid indicates whether the value is a known member of the ChannelType enum.
 func (e ChannelType) Valid() bool {
 	switch e {
+	case ChannelTypeDiscord:
+		return true
 	case ChannelTypeEmail:
 		return true
 	case ChannelTypeGooglechat:
+		return true
+	case ChannelTypeNtfy:
+		return true
+	case ChannelTypePushover:
+		return true
+	case ChannelTypeSlack:
+		return true
+	case ChannelTypeTelegram:
 		return true
 	case ChannelTypeWebhook:
 		return true
@@ -416,17 +431,32 @@ func (e ChannelType) Valid() bool {
 
 // Defines values for ChannelInputType.
 const (
+	ChannelInputTypeDiscord    ChannelInputType = "discord"
 	ChannelInputTypeEmail      ChannelInputType = "email"
 	ChannelInputTypeGooglechat ChannelInputType = "googlechat"
+	ChannelInputTypeNtfy       ChannelInputType = "ntfy"
+	ChannelInputTypePushover   ChannelInputType = "pushover"
+	ChannelInputTypeSlack      ChannelInputType = "slack"
+	ChannelInputTypeTelegram   ChannelInputType = "telegram"
 	ChannelInputTypeWebhook    ChannelInputType = "webhook"
 )
 
 // Valid indicates whether the value is a known member of the ChannelInputType enum.
 func (e ChannelInputType) Valid() bool {
 	switch e {
+	case ChannelInputTypeDiscord:
+		return true
 	case ChannelInputTypeEmail:
 		return true
 	case ChannelInputTypeGooglechat:
+		return true
+	case ChannelInputTypeNtfy:
+		return true
+	case ChannelInputTypePushover:
+		return true
+	case ChannelInputTypeSlack:
+		return true
+	case ChannelInputTypeTelegram:
 		return true
 	case ChannelInputTypeWebhook:
 		return true
@@ -1096,10 +1126,10 @@ type Channel struct {
 	// ScopePath Empty for the global scope.
 	ScopePath string `json:"scope_path"`
 
-	// Secrets email: password, for its own mail server. googlechat: url, the webhook. webhook: url, and signing_key.
+	// Secrets email: password, for its own mail server. googlechat, slack and discord: url, the webhook. webhook: url, and signing_key. telegram: bot_token. ntfy: topic, and token if the server asks for one. pushover: token, the application's, and user, the user's or group's key.
 	Secrets map[string]SecretInfo `json:"secrets"`
 
-	// Spec email: to, a list of addresses, and smtp, a mail server of its own (host, port, username, from, tls). googlechat and webhook: nothing.
+	// Spec email: to, a list of addresses, and smtp, a mail server of its own (host, port, username, from, tls). telegram: chat_id. ntfy: server, if not https://ntfy.sh. The others: nothing.
 	Spec map[string]interface{} `json:"spec"`
 	Type ChannelType            `json:"type"`
 }

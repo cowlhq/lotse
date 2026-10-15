@@ -15,7 +15,7 @@ type Channel struct {
 	ScopePath string // "" for the global scope
 	Slug      string
 	Name      string
-	Type      string // email, googlechat, webhook
+	Type      string // email, googlechat, webhook, slack, discord, telegram, ntfy, pushover
 	// Spec is what is not secret, as JSON; its shape depends on Type.
 	Spec json.RawMessage
 	// Secrets holds the sealed secret fields, as the hub sealed them, and

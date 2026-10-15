@@ -1703,12 +1703,12 @@ export interface components {
             key: string;
             name: string;
             /** @enum {string} */
-            type: "email" | "googlechat" | "webhook";
-            /** @description email: to, a list of addresses, and smtp, a mail server of its own (host, port, username, from, tls). googlechat and webhook: nothing. */
+            type: "email" | "googlechat" | "webhook" | "slack" | "discord" | "telegram" | "ntfy" | "pushover";
+            /** @description email: to, a list of addresses, and smtp, a mail server of its own (host, port, username, from, tls). telegram: chat_id. ntfy: server, if not https://ntfy.sh. The others: nothing. */
             spec: {
                 [key: string]: unknown;
             };
-            /** @description email: password, for its own mail server. googlechat: url, the webhook. webhook: url, and signing_key. */
+            /** @description email: password, for its own mail server. googlechat, slack and discord: url, the webhook. webhook: url, and signing_key. telegram: bot_token. ntfy: topic, and token if the server asks for one. pushover: token, the application's, and user, the user's or group's key. */
             secrets: {
                 [key: string]: components["schemas"]["SecretInfo"];
             };
@@ -1719,7 +1719,7 @@ export interface components {
             key: string;
             name: string;
             /** @enum {string} */
-            type: "email" | "googlechat" | "webhook";
+            type: "email" | "googlechat" | "webhook" | "slack" | "discord" | "telegram" | "ntfy" | "pushover";
             spec: {
                 [key: string]: unknown;
             };

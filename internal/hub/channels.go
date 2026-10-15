@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -24,13 +25,28 @@ type channelSpec struct {
 	// mail server instead of the hub's.
 	To   []string     `json:"to,omitempty"`
 	SMTP *notify.SMTP `json:"smtp,omitempty"`
+	// Server is an ntfy channel's server, https://ntfy.sh unless set.
+	Server string `json:"server,omitempty"`
+	// ChatID is the Telegram chat a bot sends to.
+	ChatID string `json:"chat_id,omitempty"`
 }
+
+// channelTypes are the types of channel, as the API names them.
+var channelTypes = []string{"email", "googlechat", "webhook", "slack", "discord", "telegram", "ntfy", "pushover"}
+
+// defaultNtfy is where an ntfy channel publishes unless it says otherwise.
+const defaultNtfy = "https://ntfy.sh"
 
 // secretFields are the secrets each type of channel has.
 var secretFields = map[string][]string{
 	"email":      {"password"},
 	"googlechat": {"url"},
 	"webhook":    {"url", "signing_key"},
+	"slack":      {"url"},
+	"discord":    {"url"},
+	"telegram":   {"bot_token"},
+	"ntfy":       {"topic", "token"},
+	"pushover":   {"token", "user"},
 }
 
 // checkChannel normalizes what a channel is and says what is wrong with
@@ -54,24 +70,64 @@ func checkChannel(typ string, raw map[string]any, sec secrets) (json.RawMessage,
 		} else if sec.has("password") {
 			return nil, errors.New("a password needs a mail server of the channel's own")
 		}
-	case "googlechat", "webhook":
-		if spec.To != nil || spec.SMTP != nil {
+	case "googlechat", "webhook", "slack", "discord":
+		if spec.To != nil || spec.SMTP != nil || spec.Server != "" || spec.ChatID != "" {
 			return nil, fmt.Errorf("a %s channel has nothing but its secrets", typ)
 		}
 		spec = channelSpec{}
-		if !sec.has("url") {
-			return nil, errors.New("the channel needs its address, url")
+		if err := needSecrets(sec, "url"); err != nil {
+			return nil, err
 		}
-		if v, ok := sec.sealed["url"]; ok {
-			u, err := url.Parse(v)
-			if err != nil || u.Scheme != "https" && u.Scheme != "http" || u.Host == "" {
-				return nil, errors.New("url is not an http or https address")
-			}
+		if v, ok := sec.sealed["url"]; ok && !isHTTP(v) {
+			return nil, errors.New("url is not an http or https address")
+		}
+	case "telegram":
+		spec = channelSpec{ChatID: strings.TrimSpace(spec.ChatID)}
+		if spec.ChatID == "" {
+			return nil, errors.New("a telegram channel needs chat_id, the chat its bot sends to")
+		}
+		if err := needSecrets(sec, "bot_token"); err != nil {
+			return nil, err
+		}
+	case "ntfy":
+		spec = channelSpec{Server: strings.TrimSuffix(strings.TrimSpace(spec.Server), "/")}
+		if spec.Server == defaultNtfy {
+			spec.Server = ""
+		}
+		if spec.Server != "" && !isHTTP(spec.Server) {
+			return nil, errors.New("server is not an http or https address")
+		}
+		if err := needSecrets(sec, "topic"); err != nil {
+			return nil, err
+		}
+	case "pushover":
+		spec = channelSpec{}
+		if err := needSecrets(sec, "token", "user"); err != nil {
+			return nil, err
 		}
 	default:
-		return nil, errors.New("type is email, googlechat or webhook")
+		return nil, errors.New("type is one of " + strings.Join(channelTypes, ", "))
 	}
 	return json.Marshal(spec)
+}
+
+// needSecrets says which of a channel's required secrets are missing.
+func needSecrets(sec secrets, fields ...string) error {
+	var missing []string
+	for _, f := range fields {
+		if !sec.has(f) {
+			missing = append(missing, f)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("the channel needs %s", strings.Join(missing, " and "))
+	}
+	return nil
+}
+
+func isHTTP(v string) bool {
+	u, err := url.Parse(v)
+	return err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host != ""
 }
 
 func normalizeSMTP(s *notify.SMTP) {
@@ -112,19 +168,29 @@ func (h *hub) sender(ctx context.Context, c store.Channel) (notify.Sender, error
 		s := *server
 		s.Password = password
 		return notify.Email{Server: s, To: spec.To}, nil
-	case "googlechat", "webhook":
-		u, err := sec.get("url")
-		if err != nil {
+	}
+	// Every other type is its secrets, and a little spec.
+	v := map[string]string{}
+	for _, f := range secretFields[c.Type] {
+		if v[f], err = sec.get(f); err != nil {
 			return nil, err
 		}
-		if c.Type == "googlechat" {
-			return notify.GoogleChat{URL: u}, nil
-		}
-		key, err := sec.get("signing_key")
-		if err != nil {
-			return nil, err
-		}
-		return notify.Webhook{URL: u, SigningKey: key}, nil
+	}
+	switch c.Type {
+	case "googlechat":
+		return notify.GoogleChat{URL: v["url"]}, nil
+	case "webhook":
+		return notify.Webhook{URL: v["url"], SigningKey: v["signing_key"]}, nil
+	case "slack":
+		return notify.Slack{URL: v["url"]}, nil
+	case "discord":
+		return notify.Discord{URL: v["url"]}, nil
+	case "telegram":
+		return notify.Telegram{BotToken: v["bot_token"], ChatID: spec.ChatID}, nil
+	case "ntfy":
+		return notify.Ntfy{Server: cmp.Or(spec.Server, defaultNtfy), Topic: v["topic"], Token: v["token"]}, nil
+	case "pushover":
+		return notify.Pushover{Token: v["token"], User: v["user"]}, nil
 	}
 	return nil, fmt.Errorf("a channel of type %s", c.Type)
 }

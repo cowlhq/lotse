@@ -2077,18 +2077,22 @@ components:
           description: Empty for the global scope.
         key: { type: string, example: ops-mail }
         name: { type: string }
-        type: { type: string, enum: [email, googlechat, webhook] }
+        type: { type: string, enum: [email, googlechat, webhook, slack, discord, telegram, ntfy, pushover] }
         spec:
           type: object
           additionalProperties: true
           description: >
             email: to, a list of addresses, and smtp, a mail server of its own
-            (host, port, username, from, tls). googlechat and webhook: nothing.
+            (host, port, username, from, tls). telegram: chat_id. ntfy:
+            server, if not https://ntfy.sh. The others: nothing.
         secrets:
           type: object
           description: >
-            email: password, for its own mail server. googlechat: url, the
-            webhook. webhook: url, and signing_key.
+            email: password, for its own mail server. googlechat, slack and
+            discord: url, the webhook. webhook: url, and signing_key.
+            telegram: bot_token. ntfy: topic, and token if the server asks
+            for one. pushover: token, the application's, and user, the user's
+            or group's key.
           additionalProperties: { $ref: "#/components/schemas/SecretInfo" }
 
     ChannelInput:
@@ -2098,7 +2102,7 @@ components:
         scope_id: { type: integer, format: int64 }
         key: { type: string }
         name: { type: string }
-        type: { type: string, enum: [email, googlechat, webhook] }
+        type: { type: string, enum: [email, googlechat, webhook, slack, discord, telegram, ntfy, pushover] }
         spec: { type: object, additionalProperties: true }
         secrets:
           type: object

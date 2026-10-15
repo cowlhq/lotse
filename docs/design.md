@@ -257,7 +257,8 @@ checks        id, environment_id, container_id (null unless from a container),
               spec_json, ping_token_hash (heartbeats), created_at
 probes        id, slug, name, location, builtin, token_hash, version,
               last_seen, revoked_at
-channels      id, scope_id, slug, name, type (email|googlechat|webhook),
+channels      id, scope_id, slug, name, type (email|googlechat|webhook|
+              slack|discord|telegram|ntfy|pushover),
               spec_json, secret_sealed, secret_refs_json, created_at
 mail_server   spec_json, secret_sealed, secret_refs_json (one row)
 maintenance   id, subject_kind, subject_id, starts_at, ends_at, schedule,
@@ -489,6 +490,10 @@ UNKNOWN and `probe.silent` fires.
 - Notified on WARN, CRIT, escalation from WARN to CRIT, and recovery. With
   `notify.repeat`, a still-firing alert is sent again at that interval,
   until someone acknowledges it (decision 0017).
+- Channels are email, Slack, Discord, Google Chat, Telegram, ntfy, Pushover
+  and webhooks. Push services get critical alerts with their highest
+  priority short of an emergency. Each message stays within the service's
+  limit of length; what does not fit is counted, with the hub's address.
 - What comes for one channel within 30 seconds goes out as one message.
 - The channels are `notify.channels`, effective on the alert's object. This is
   how alerts are routed: for example, set it on customer X and X's alerts go to
