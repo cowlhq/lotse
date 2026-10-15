@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Loader2, Plus, RefreshCw } from "lucide-react";
+import { Loader2, Plus, RefreshCw } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getEnrollment, getHealth, listHosts, newEnrollment, NotFound } from "@/api";
+import { Command } from "@/components/Command";
 import { PageTabs } from "@/components/shell/PageTabs";
 import { StatusIcon } from "@/components/shell/Dot";
 import { Button } from "@/components/ui/button";
@@ -91,34 +92,6 @@ export function AgentBody({ envID, onDone }: { envID: number; onDone?: () => voi
           {t("agent.replace")}
         </Button>
       </div>
-    </div>
-  );
-}
-
-function Command({ text, hint }: { text: string; hint: string }) {
-  const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="space-y-2 pt-2">
-      <div className="relative">
-        <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/60 p-3 pr-12 font-mono text-mini leading-relaxed whitespace-pre-wrap break-all">
-          {text}
-        </pre>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="absolute top-2 right-2"
-          aria-label={t("agent.copy")}
-          onClick={() => {
-            navigator.clipboard?.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }}
-        >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-        </Button>
-      </div>
-      <p className="text-mini text-muted-foreground">{hint}</p>
     </div>
   );
 }
