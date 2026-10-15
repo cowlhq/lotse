@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.13](https://github.com/cowlhq/lotse/compare/v0.1.12...v0.1.13) (2026-10-15)
+
+
+### Bug Fixes
+
+* **probe:** Stop waits for running checks, and test hubs stop theirs ([dce770a](https://github.com/cowlhq/lotse/commit/dce770af0ffb79f0312b02da9ca181ed787c3101))
+* **web:** alert rules fit a phone ([d6626dc](https://github.com/cowlhq/lotse/commit/d6626dce24b5e1b32eb01b196d6e777db8ba128e))
+
 ## [0.1.12](https://github.com/cowlhq/lotse/compare/v0.1.11...v0.1.12) (2026-10-15)
 
 
