@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.14](https://github.com/cowlhq/lotse/compare/v0.1.13...v0.1.14) (2026-10-15)
+
+
+### Bug Fixes
+
+* **web:** an alert's rule in words ([f8507ca](https://github.com/cowlhq/lotse/commit/f8507ca1924534c68938bd43936f76cc02862828))
+* **web:** tell environments apart, and keep names whole in search ([efe162b](https://github.com/cowlhq/lotse/commit/efe162b92fb274db77d01e73e0fb3fdd5c6b5c54))
+
 ## [0.1.13](https://github.com/cowlhq/lotse/compare/v0.1.12...v0.1.13) (2026-10-15)
 
 
