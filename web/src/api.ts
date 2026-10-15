@@ -7,6 +7,7 @@ export type Health = Schemas["Health"];
 export type Host = Schemas["Host"];
 export type HostSummary = Schemas["HostSummary"];
 export type HostDetail = Schemas["HostDetail"];
+export type SystemUnit = Schemas["SystemUnit"];
 export type HostReading = Schemas["HostReading"];
 export type Filesystem = Schemas["Filesystem"];
 export type Container = Schemas["Container"];
