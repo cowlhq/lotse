@@ -1,4 +1,5 @@
-// Package probe runs checks from outside (design 8.3): HTTP, TLS and TCP.
+// Package probe runs checks from outside (design 8.3): HTTP, TLS, TCP and
+// DNS, and, on the hub only, domains' expiry.
 // The hub runs them itself, and so do probes in other places.
 package probe
 
@@ -15,6 +16,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"lotse.sh/internal/version"
@@ -50,6 +52,13 @@ type Heartbeat struct {
 	Period string `json:"period"`
 	Grace  string `json:"grace"`
 }
+
+// Types are the checks a probe runs, which it tells the hub when it
+// connects.
+var Types = []string{"http", "tls", "tcp", "dns"}
+
+// HubTypes are the checks only the hub's own probe runs.
+var HubTypes = []string{"domain"}
 
 // Result is how one run went.
 type Result struct {
@@ -98,6 +107,24 @@ func Normalize(typ string, spec json.RawMessage) (json.RawMessage, error) {
 		} else {
 			v = s
 		}
+	case "dns":
+		var s DNS
+		if err := dec.Decode(&s); err != nil {
+			return nil, fmt.Errorf("dns: %w", err)
+		}
+		if err := s.normalize(); err != nil {
+			return nil, err
+		}
+		v = s
+	case "domain":
+		var s Domain
+		if err := dec.Decode(&s); err != nil {
+			return nil, fmt.Errorf("domain: %w", err)
+		}
+		if err := s.normalize(); err != nil {
+			return nil, err
+		}
+		v = s
 	case "heartbeat":
 		var s Heartbeat
 		if err := dec.Decode(&s); err != nil {
@@ -140,6 +167,11 @@ func statusRange(s string) (lo, hi int, err error) {
 type Runner struct {
 	// TLSConfig is for tests, to trust their own certificates.
 	TLSConfig *tls.Config
+	// RDAPBootstrap is where the list of registries is; tests change it.
+	RDAPBootstrap string
+
+	rdapOnce sync.Once
+	rdap     *rdap
 }
 
 const maxBody = 1 << 20
@@ -163,6 +195,14 @@ func (r *Runner) Run(ctx context.Context, typ string, spec json.RawMessage, time
 		var s TCP
 		json.Unmarshal(spec, &s)
 		res = r.tcp(ctx, s)
+	case "dns":
+		var s DNS
+		json.Unmarshal(spec, &s)
+		res = r.dns(ctx, s)
+	case "domain":
+		var s Domain
+		json.Unmarshal(spec, &s)
+		res = r.domain(ctx, s)
 	default:
 		return Result{Error: fmt.Sprintf("a probe does not run %s checks", typ)}
 	}
