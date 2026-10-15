@@ -61,8 +61,8 @@ export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChang
             {scopes.data!.map((s) => (
               <CommandItem key={s.id} value={`scope ${s.path} ${s.name}`} onSelect={() => go("/scopes/$id", { id: String(s.id) })}>
                 <Folder />
-                <span className="flex-1 truncate">{s.name}</span>
-                <span className="text-xs text-muted-foreground">{s.path}</span>
+                <span className="max-w-[60%] shrink-0 truncate">{s.name}</span>
+                <span className="min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">{s.path}</span>
                 <Dot level={levelUnder(alerts, s.path)} />
               </CommandItem>
             ))}
@@ -73,8 +73,8 @@ export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChang
             {hosts.data!.map(({ host }) => (
               <CommandItem key={host.id} value={`host ${host.name} ${host.hostname}`} onSelect={() => go("/hosts/$id", { id: String(host.id) })}>
                 <Server />
-                <span className="flex-1 truncate">{host.name}</span>
-                <span className="text-xs text-muted-foreground">{host.environment_id ? byID.get(host.environment_id)?.path : ""}</span>
+                <span className="max-w-[60%] shrink-0 truncate">{host.name}</span>
+                <span className="min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">{host.environment_id ? byID.get(host.environment_id)?.path : ""}</span>
                 <Dot level={host.online ? levelOfSubject(alerts, "host", host.id) : "crit"} />
               </CommandItem>
             ))}
@@ -85,8 +85,9 @@ export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChang
             {checks.data!.map((c) => (
               <CommandItem key={c.id} value={`check ${c.path} ${c.name}`} onSelect={() => go("/checks/$id", { id: String(c.id) })}>
                 <Activity />
-                <span className="flex-1 truncate">{c.name}</span>
-                <span className="text-xs text-muted-foreground">{c.path}</span>
+                <span className="max-w-[60%] shrink-0 truncate">{c.name}</span>
+                {/* The name is there already; the path says where. */}
+                <span className="min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">{c.path.slice(0, c.path.lastIndexOf("/"))}</span>
                 <Dot level={c.state === "down" ? "crit" : c.state === "up" ? "ok" : "unknown"} />
               </CommandItem>
             ))}
