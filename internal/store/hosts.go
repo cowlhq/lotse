@@ -29,6 +29,10 @@ type Host struct {
 	LastSeen      int64  `json:"last_seen"`
 	// EnvironmentID is nil until the host is put into an environment.
 	EnvironmentID *int64 `json:"environment_id"`
+	// System is what the agent last said of the machine's services and
+	// restarts (protocol.System) as JSON, or empty. It is not part of the
+	// history of changes.
+	System string `json:"-"`
 }
 
 // waitingPrefix marks the machine ID of a host that lotse.yaml named before
@@ -82,7 +86,8 @@ func (s *Store) DeleteWaitingHost(ctx context.Context, actor Actor, id int64) er
 }
 
 const hostColumns = `id, machine_id, name, hostname, os, platform, kernel, arch, cpu_model,
-	cores, mem_total, boot_time, agent_version, docker_version, first_seen, last_seen, environment_id`
+	cores, mem_total, boot_time, agent_version, docker_version, first_seen, last_seen, environment_id,
+	COALESCE(system_json, '')`
 
 func scanHost(row interface{ Scan(...any) error }) (Host, error) {
 	var h Host
@@ -93,7 +98,14 @@ func scanHost(row interface{ Scan(...any) error }) (Host, error) {
 func hostDest(h *Host) []any {
 	return []any{&h.ID, &h.MachineID, &h.Name, &h.Hostname, &h.OS, &h.Platform, &h.Kernel,
 		&h.Arch, &h.CPUModel, &h.Cores, &h.MemTotal, &h.BootTime, &h.AgentVersion,
-		&h.DockerVersion, &h.FirstSeen, &h.LastSeen, &h.EnvironmentID}
+		&h.DockerVersion, &h.FirstSeen, &h.LastSeen, &h.EnvironmentID, &h.System}
+}
+
+// SetHostSystem keeps what an agent says of its machine's services and
+// restarts.
+func (s *Store) SetHostSystem(ctx context.Context, id int64, system string) error {
+	_, err := s.exec(ctx, `UPDATE hosts SET system_json = ? WHERE id = ?`, system, id)
+	return err
 }
 
 // UpdateHost records what an agent says about its machine when it

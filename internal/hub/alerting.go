@@ -196,6 +196,7 @@ func (h *hub) readings(t *tree, in inputs, now time.Time) []reading {
 		if !ok || s.SwapTotal != nil && *s.SwapTotal > 0 {
 			metric("host.swap", swap)
 		}
+		out = append(out, h.systemReadings(t, x, fresh[x.ID], grace)...)
 	}
 	for _, f := range in.filesystems {
 		x, known := t.hosts[f.HostID]

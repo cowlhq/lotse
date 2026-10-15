@@ -118,6 +118,44 @@ var keys = []Key{
 		Check:       isBool,
 	},
 	{
+		Name:        "host.services",
+		Type:        "services",
+		Description: "systemd services that must run, such as nginx.service: one that does not raises host.service.",
+		Default:     json.RawMessage(`[]`),
+		On:          []string{"host"},
+		Check: func(v json.RawMessage) error {
+			var list []string
+			if json.Unmarshal(v, &list) != nil {
+				return fmt.Errorf("a list of services such as [\"nginx.service\"]")
+			}
+			for _, s := range list {
+				if s == "" || strings.ContainsAny(s, " /") {
+					return fmt.Errorf("%q is not the name of a unit", s)
+				}
+			}
+			return nil
+		},
+	},
+	{
+		Name:        "host.ignore_units",
+		Type:        "services",
+		Description: "systemd units whose failing does not matter here, such as systemd-networkd-wait-online.service.",
+		Default:     json.RawMessage(`[]`),
+		On:          []string{"host"},
+		Check: func(v json.RawMessage) error {
+			var list []string
+			if json.Unmarshal(v, &list) != nil {
+				return fmt.Errorf("a list of units such as [\"systemd-networkd-wait-online.service\"]")
+			}
+			for _, s := range list {
+				if s == "" || strings.ContainsAny(s, " /") {
+					return fmt.Errorf("%q is not the name of a unit", s)
+				}
+			}
+			return nil
+		},
+	},
+	{
 		Name:        "notify.channels",
 		Type:        "channels",
 		Description: "Where alerts go: the keys of channels defined here or further up.",

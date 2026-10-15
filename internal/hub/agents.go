@@ -275,6 +275,8 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case m.Type == protocol.TypeHost && m.Host != nil:
 			h.hostSample(host.ID, *m.Host)
+		case m.Type == protocol.TypeSystem && m.System != nil:
+			err = h.hostSystem(ctx, host.ID, *m.System)
 		case m.Type == protocol.TypeContainers && m.Containers != nil:
 			err = h.containerList(ctx, host.ID, *m.Containers, ids)
 		case m.Type == protocol.TypeContainerEvent && m.ContainerEvent != nil:
@@ -317,6 +319,8 @@ func (h *hub) retime(log *slog.Logger, hostID int64, clock *clockEstimate, m *pr
 		m.ContainerEvent.TS += offset
 	case m.ContainerStats != nil:
 		m.ContainerStats.TS += offset
+	case m.System != nil:
+		m.System.TS += offset
 	}
 }
 

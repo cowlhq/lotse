@@ -109,6 +109,9 @@ func (s apiServer) GetHost(ctx context.Context, req api.GetHostRequestObject) (a
 		return nil, err
 	}
 	out := api.HostDetail{Host: s.toHost(ctx, h), Filesystems: []api.Filesystem{}, Containers: []api.Container{}}
+	if sys, ok := systemOf(h); ok {
+		out.System = toSystem(sys)
+	}
 	latest, err := s.db.LatestHostSample(ctx, h.ID)
 	if err != nil {
 		return nil, err
@@ -286,8 +289,16 @@ func (s apiServer) toHost(ctx context.Context, h store.Host) api.Host {
 		MemTotal: h.MemTotal, BootTime: h.BootTime, AgentVersion: h.AgentVersion,
 		DockerVersion: h.DockerVersion, FirstSeen: h.FirstSeen, LastSeen: h.LastSeen,
 		Online: s.agents.connected(h.ID), EnvironmentId: h.EnvironmentID,
-		ClockOffset: nonZero(s.clocks.get(h.ID)),
+		ClockOffset:    nonZero(s.clocks.get(h.ID)),
+		RebootRequired: rebootRequired(h),
 	}
+}
+
+func rebootRequired(h store.Host) *bool {
+	if s, ok := systemOf(h); ok && s.RebootRequired {
+		return &s.RebootRequired
+	}
+	return nil
 }
 
 func nonZero(v int64) *int64 {

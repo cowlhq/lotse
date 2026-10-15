@@ -637,6 +637,7 @@ const (
 	Duration  ConfigValueType = "duration"
 	Level     ConfigValueType = "level"
 	Probes    ConfigValueType = "probes"
+	Services  ConfigValueType = "services"
 	Threshold ConfigValueType = "threshold"
 	Url       ConfigValueType = "url"
 	Window    ConfigValueType = "window"
@@ -654,6 +655,8 @@ func (e ConfigValueType) Valid() bool {
 	case Level:
 		return true
 	case Probes:
+		return true
+	case Services:
 		return true
 	case Threshold:
 		return true
@@ -1458,6 +1461,9 @@ type Host struct {
 	Os       string `json:"os"`
 	Platform string `json:"platform"`
 
+	// RebootRequired Whether updates wait for a restart, as its agent says.
+	RebootRequired *bool `json:"reboot_required,omitempty"`
+
 	// Waiting Named in lotse.yaml, it waits for its agent to enroll.
 	Waiting bool `json:"waiting"`
 }
@@ -1469,6 +1475,9 @@ type HostDetail struct {
 	Filesystems []Filesystem `json:"filesystems"`
 	Host        Host         `json:"host"`
 	Latest      *HostReading `json:"latest,omitempty"`
+
+	// System What its agent last said of its services and restarts.
+	System *HostSystem `json:"system,omitempty"`
 }
 
 // HostReading defines model for HostReading.
@@ -1499,6 +1508,19 @@ type HostSummary struct {
 	Disk   *float64     `json:"disk,omitempty"`
 	Host   Host         `json:"host"`
 	Latest *HostReading `json:"latest,omitempty"`
+}
+
+// HostSystem What its agent last said of its services and restarts.
+type HostSystem struct {
+	RebootReason   *string `json:"reboot_reason,omitempty"`
+	RebootRequired bool    `json:"reboot_required"`
+
+	// Systemd Whether the agent could ask systemd; units are empty otherwise.
+	Systemd bool  `json:"systemd"`
+	Ts      int64 `json:"ts"`
+
+	// Units Its services, and units of other kinds that failed.
+	Units []SystemUnit `json:"units"`
 }
 
 // MailServer defines model for MailServer.
@@ -1710,6 +1732,18 @@ type Status struct {
 
 // StatusLevel The worst firing alert, or ok.
 type StatusLevel string
+
+// SystemUnit A systemd unit and its state.
+type SystemUnit struct {
+	// Active Example: active
+	Active string `json:"active"`
+
+	// Name Example: nginx.service
+	Name string `json:"name"`
+
+	// Sub Example: running
+	Sub string `json:"sub"`
+}
 
 // TestResult defines model for TestResult.
 type TestResult struct {

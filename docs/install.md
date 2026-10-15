@@ -70,6 +70,15 @@ enroll again.
 machine's `/` mounted read-only at `/host` and the Docker socket; the command
 in the UI has both.
 
+Besides the readings, the agent asks systemd which units failed and which
+services run, over D-Bus as `systemctl` would (a container agent through
+`/host/run/dbus/system_bus_socket`), and notes when updates wait for a
+restart, on Debian and Ubuntu (`/run/reboot-required`) and NixOS (a kernel
+other than the one booted). A failed unit warns, unless `host.ignore_units`
+names it (some fail on every VM, such as
+`systemd-networkd-wait-online.service`); services that must run go in the
+host's setting `host.services`, such as `[nginx.service]`.
+
 ### A Docker socket proxy
 
 The agent only reads from Docker: the version, the list of containers, each

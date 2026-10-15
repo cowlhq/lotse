@@ -1583,7 +1583,7 @@ components:
       required: [key, type, description, value, overrides]
       properties:
         key: { type: string, example: agent.interval.host }
-        type: { type: string, enum: [duration, bool, window, probes, channels, threshold, level, url] }
+        type: { type: string, enum: [duration, bool, window, probes, channels, services, threshold, level, url] }
         description: { type: string }
         value:
           description: The effective value.
@@ -1773,6 +1773,9 @@ components:
           format: int64
           nullable: true
           description: Its environment; null until it is put into one.
+        reboot_required:
+          type: boolean
+          description: Whether updates wait for a restart, as its agent says.
         clock_offset:
           type: integer
           format: int64
@@ -1836,6 +1839,32 @@ components:
           type: array
           description: Its containers, those still there first.
           items: { $ref: "#/components/schemas/Container" }
+        system: { $ref: "#/components/schemas/HostSystem" }
+
+    HostSystem:
+      type: object
+      description: What its agent last said of its services and restarts.
+      required: [ts, systemd, units, reboot_required]
+      properties:
+        ts: { type: integer, format: int64 }
+        systemd:
+          type: boolean
+          description: Whether the agent could ask systemd; units are empty otherwise.
+        units:
+          type: array
+          description: Its services, and units of other kinds that failed.
+          items: { $ref: "#/components/schemas/SystemUnit" }
+        reboot_required: { type: boolean }
+        reboot_reason: { type: string }
+
+    SystemUnit:
+      type: object
+      description: A systemd unit and its state.
+      required: [name, active, sub]
+      properties:
+        name: { type: string, example: nginx.service }
+        active: { type: string, example: active }
+        sub: { type: string, example: running }
 
     Filesystem:
       type: object
