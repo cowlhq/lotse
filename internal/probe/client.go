@@ -62,7 +62,11 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	if err := cfg.check(); err != nil {
 		return err
 	}
-	log.Info("lotse probe starting", "version", version.Version, "hub", cfg.Hub, "probe", cfg.Slug)
+	args := []any{"version", version.Version, "hub", cfg.Hub}
+	if cfg.Slug != "" {
+		args = append(args, "probe", cfg.Slug)
+	}
+	log.Info("lotse probe starting", args...)
 	sched := &Scheduler{Runner: &Runner{}}
 	defer sched.Stop()
 	wait := time.Second
@@ -91,15 +95,33 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	}
 }
 
+// Enroll enrolls the probe with its token and keeps the credential, so
+// that Run needs no token (the install script). Enrolling again under the
+// same name takes over that probe, its checks and history, even if it was
+// revoked: whoever holds the probe token may.
+func Enroll(ctx context.Context, cfg Config, log *slog.Logger) error {
+	if err := cfg.check(); err != nil {
+		return err
+	}
+	if cfg.Token == "" {
+		return errors.New("no probe token given")
+	}
+	_, err := enroll(ctx, cfg, log)
+	return err
+}
+
 func credential(ctx context.Context, cfg Config, log *slog.Logger) (string, error) {
-	path := filepath.Join(cfg.DataDir, "probe.json")
 	var st probeState
-	if b, err := os.ReadFile(path); err == nil && json.Unmarshal(b, &st) == nil && st.Credential != "" {
+	if b, err := os.ReadFile(filepath.Join(cfg.DataDir, "probe.json")); err == nil && json.Unmarshal(b, &st) == nil && st.Credential != "" {
 		return st.Credential, nil
 	}
 	if cfg.Token == "" {
 		return "", errors.New("not enrolled yet, and no probe token given")
 	}
+	return enroll(ctx, cfg, log)
+}
+
+func enroll(ctx context.Context, cfg Config, log *slog.Logger) (string, error) {
 	body, _ := json.Marshal(protocol.ProbeEnrollRequest{Token: cfg.Token, Slug: cfg.Slug, Name: cfg.Name, Location: cfg.Location})
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimSuffix(cfg.Hub, "/")+protocol.ProbeEnrollPath, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -121,7 +143,7 @@ func credential(ctx context.Context, cfg Config, log *slog.Logger) (string, erro
 	if err := os.MkdirAll(cfg.DataDir, 0o700); err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(path, b, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(cfg.DataDir, "probe.json"), b, 0o600); err != nil {
 		return "", err
 	}
 	log.Info("enrolled", "probe", cfg.Slug)

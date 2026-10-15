@@ -11,6 +11,10 @@ import (
 )
 
 func probeCommand(ctx context.Context, args []string, log *slog.Logger) error {
+	enroll := len(args) > 0 && args[0] == "enroll"
+	if enroll {
+		args = args[1:]
+	}
 	flags := flag.NewFlagSet("lotse probe", flag.ExitOnError)
 	var cfg probe.Config
 	flags.StringVar(&cfg.Hub, "hub", os.Getenv("LOTSE_HUB"), "the hub's address (or LOTSE_HUB)")
@@ -21,5 +25,8 @@ func probeCommand(ctx context.Context, args []string, log *slog.Logger) error {
 	flags.BoolVar(&cfg.Insecure, "insecure", os.Getenv("LOTSE_INSECURE") == "true", "allow plain HTTP to a hub on another machine")
 	flags.Parse(args)
 	cfg.Name = cfg.Slug
+	if enroll {
+		return probe.Enroll(ctx, cfg, log)
+	}
 	return probe.Run(ctx, cfg, log)
 }

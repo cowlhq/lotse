@@ -222,6 +222,48 @@ func TestExternalProbe(t *testing.T) {
 	waitFor(t, "fra to be gone", func() bool { return len(h.probes.all()) == 0 })
 }
 
+// Enroll alone keeps the credential; enrolling again under the same name,
+// as running the install script again does, takes over the probe, even a
+// revoked one. Run then needs no token.
+func TestProbeEnrollOnly(t *testing.T) {
+	h, server := newTestHub(t)
+	status, body := do(t, server, "POST", "/api/probes/enrollment", "")
+	if status != http.StatusOK {
+		t.Fatalf("probe token: %d %s", status, body)
+	}
+	var e api.Enrollment
+	json.Unmarshal([]byte(body), &e)
+	dir := t.TempDir()
+	log := slog.New(slog.DiscardHandler)
+	cfg := probe.Config{Hub: server.URL, Token: e.Token, Slug: "fra", Name: "fra", DataDir: dir}
+	if err := probe.Enroll(t.Context(), probe.Config{Hub: server.URL, Slug: "fra", DataDir: dir}, log); err == nil {
+		t.Error("enrolled without a token")
+	}
+	if err := probe.Enroll(t.Context(), cfg, log); err != nil {
+		t.Fatal(err)
+	}
+	var probes []api.Probe
+	getJSON(t, server, "/api/probes", &probes)
+	if len(probes) != 2 {
+		t.Fatalf("probes: %+v", probes)
+	}
+	if status, _ := do(t, server, "DELETE", fmt.Sprintf("/api/probes/%d", probes[1].Id), ""); status != http.StatusNoContent {
+		t.Fatalf("revoke: %d", status)
+	}
+	if err := probe.Enroll(t.Context(), cfg, log); err != nil {
+		t.Fatalf("enrolling again: %v", err)
+	}
+	getJSON(t, server, "/api/probes", &probes)
+	if len(probes) != 2 || (probes[1].Revoked != nil && *probes[1].Revoked) {
+		t.Errorf("after enrolling again: %+v", probes)
+	}
+
+	ctx, stop := context.WithCancel(t.Context())
+	defer stop()
+	go probe.Run(ctx, probe.Config{Hub: server.URL, DataDir: dir}, log)
+	waitFor(t, "the probe to connect", func() bool { return len(h.probes.all()) == 1 })
+}
+
 // A probe runs the types of check it said it runs; one from before it
 // could say, the old ones. Domains are the hub's own.
 func TestCheckTypesPerProbe(t *testing.T) {
