@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { getConfig, setSetting, type ConfigValue } from "@/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -52,7 +52,52 @@ export function Config({ subject, part }: { subject: string; part?: "general" | 
         <div className="space-y-4">
           <p className="text-muted-foreground">{t("config.rulesDescription")}</p>
           <Panel title={t("config.rules")} flush>
-            <Table className="[&_td:first-child]:pl-4 [&_th:first-child]:pl-4">
+            {/* On a phone, a rule is a line with its switch and its values
+                named below; from md on, a table. */}
+            <ul className="divide-y md:hidden">
+              {[...rules].map(([name, f]) => (
+                <li key={name} className={`space-y-2 px-4 py-3 ${f.enabled?.value ? "" : "text-muted-foreground"}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{t(`alert.titles.${name}`)}</p>
+                      <p className="text-mini text-muted-foreground">{t(`rules.${name}`)}</p>
+                    </div>
+                    {f.enabled && <Cell subject={subject} value={f.enabled} />}
+                  </div>
+                  <dl className="flex flex-wrap gap-x-4 gap-y-1 text-mini">
+                    {f.level ? (
+                      <Fact label={t("config.level")}>
+                        <Cell subject={subject} value={f.level} />
+                      </Fact>
+                    ) : (
+                      <>
+                        {f.warn && (
+                          <Fact label={t("config.warning")}>
+                            <Cell subject={subject} value={f.warn} unit={unitOf(f.warn)} />
+                          </Fact>
+                        )}
+                        {f.crit && (
+                          <Fact label={t("config.critical")}>
+                            <Cell subject={subject} value={f.crit} unit={unitOf(f.crit)} />
+                          </Fact>
+                        )}
+                      </>
+                    )}
+                    {f.for && (
+                      <Fact label={t("config.for")}>
+                        <Cell subject={subject} value={f.for} />
+                      </Fact>
+                    )}
+                    {f.recover && (
+                      <Fact label={t("config.recover")}>
+                        <Cell subject={subject} value={f.recover} />
+                      </Fact>
+                    )}
+                  </dl>
+                </li>
+              ))}
+            </ul>
+            <Table className="max-md:hidden [&_td:first-child]:pl-4 [&_th:first-child]:pl-4">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("config.rule")}</TableHead>
@@ -91,6 +136,16 @@ export function Config({ subject, part }: { subject: string; part?: "general" | 
         </div>
       )}
     </>
+  );
+}
+
+// Fact is one named value of a rule, on a phone.
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-foreground">{children}</dd>
+    </div>
   );
 }
 

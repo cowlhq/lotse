@@ -284,7 +284,8 @@
     "levels": {
       "crit": "always critical",
       "warn": "always a warning"
-    }
+    },
+    "level": "Level"
   },
   "settings": {
     "title": "Settings",
