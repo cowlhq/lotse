@@ -21,10 +21,11 @@ export function Panel({ title, count, right, children, flush = false }: { title?
 export function Facts({ items }: { items: (ReactNode | false | null | undefined)[] }) {
   const shown = items.filter(Boolean);
   return (
-    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground sm:gap-x-2">
       {shown.map((x, i) => (
         <span key={i} className="flex items-center gap-2">
-          {i > 0 && <span className="text-muted-foreground/50">·</span>}
+          {/* On a phone the facts wrap, and a dot would begin a line. */}
+          {i > 0 && <span className="hidden text-muted-foreground/50 sm:inline">·</span>}
           {x}
         </span>
       ))}
@@ -38,11 +39,10 @@ export function ObjectHeader({ icon, title, facts, actions, above }: { icon: Rea
   return (
     <div className="mx-auto w-full max-w-7xl space-y-1.5 px-4 pt-6 md:px-6">
       {above && <div className="text-muted-foreground">{above}</div>}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-3">
         {icon}
-        <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">{title}</h1>
-        <div className="flex-1" />
-        {actions && <div className="flex items-center gap-1">{actions}</div>}
+        <h1 className="min-w-0 flex-1 truncate text-2xl font-semibold tracking-tight">{title}</h1>
+        {actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}
       </div>
       {facts}
     </div>

@@ -41,19 +41,20 @@ export function GettingStarted({ scopes, hosts, checks }: { scopes: Scope[]; hos
       </header>
       <ol>
         {steps.map((s, i) => (
-          <li key={s.key} className="flex items-center gap-4 border-b px-4 py-3 last:border-b-0">
+          <li key={s.key} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-3 last:border-b-0">
             <span
               className={`flex size-6 shrink-0 items-center justify-center rounded-full text-mini font-semibold ${s.done ? "text-white" : s.key === next ? "bg-brand text-white" : "bg-muted text-muted-foreground"}`}
               style={s.done ? { background: "var(--ok)" } : undefined}
             >
               {s.done ? <Check className="size-3.5" /> : i + 1}
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-48">
               <p className={s.done ? "text-muted-foreground line-through decoration-muted-foreground/40" : "font-medium"}>{t(`start.${s.key}.title`)}</p>
               {!s.done && <p className="text-mini text-muted-foreground">{t(`start.${s.key}.hint`)}</p>}
             </div>
+            {/* On a phone the action goes under its text, in line with it. */}
             {!s.done && s.key === next && (s.key === "notify" ? (
-              <Button size="sm" render={<Link to="/settings" search={{ tab: "notifications" }} />}>
+              <Button size="sm" className="ml-10 sm:ml-0" render={<Link to="/settings" search={{ tab: "notifications" }} />}>
                 {t("start.notify.action")}
               </Button>
             ) : (
