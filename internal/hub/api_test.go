@@ -74,6 +74,8 @@ func newEmptyHub(t *testing.T) (*hub, *httptest.Server) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Checks the hub's own probe runs end with the test.
+	t.Cleanup(h.builtinProbe.Stop)
 	go h.writer.run(t.Context())
 	server := httptest.NewServer(h.routes())
 	t.Cleanup(server.Close)

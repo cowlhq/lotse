@@ -30,6 +30,7 @@ type Scheduler struct {
 
 	mu      sync.Mutex
 	running map[int64]running
+	loops   sync.WaitGroup
 }
 
 type running struct {
@@ -61,12 +62,15 @@ func (s *Scheduler) Set(ctx context.Context, list []Assignment) {
 		}
 		cctx, cancel := context.WithCancel(ctx)
 		s.running[id] = running{a: a, stop: cancel}
-		go s.loop(cctx, a)
+		s.loops.Go(func() { s.loop(cctx, a) })
 	}
 }
 
-// Stop stops everything.
-func (s *Scheduler) Stop() { s.Set(context.Background(), nil) }
+// Stop stops everything, and returns when no check runs any more.
+func (s *Scheduler) Stop() {
+	s.Set(context.Background(), nil)
+	s.loops.Wait()
+}
 
 func (s *Scheduler) loop(ctx context.Context, a Assignment) {
 	// A floor against a busy loop; settings keep checks at 10 s or more.
