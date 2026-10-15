@@ -16,7 +16,17 @@ import { slugify } from "@/lib/slug";
 import { useMe } from "@/lib/useMe";
 
 type Type = Channel["type"];
-const types: Type[] = ["email", "googlechat", "webhook"];
+const types: Type[] = ["email", "slack", "discord", "telegram", "ntfy", "pushover", "googlechat", "webhook"];
+
+// hooks are the types that are nothing but a webhook's address.
+const hooks: Type[] = ["googlechat", "webhook", "slack", "discord"];
+
+const hookPlaceholder: Partial<Record<Type, string>> = {
+  googlechat: "https://chat.googleapis.com/v1/spaces/…",
+  slack: "https://hooks.slack.com/services/…",
+  discord: "https://discord.com/api/webhooks/…",
+  webhook: "https://example.com/hooks/lotse",
+};
 
 // Channels are where alerts go, defined on a scope: those of this scope,
 // and those from above that can be used here. notify.channels names them.
@@ -70,7 +80,7 @@ function ChannelRow({ channel: c }: { channel: Channel }) {
     mutationFn: () => deleteChannel(c.id),
     onSuccess: () => (client.invalidateQueries({ queryKey: ["channels"] }), toast.success(t("channel.deleted"))),
   });
-  const spec = c.spec as { to?: string[]; smtp?: { host: string } };
+  const spec = c.spec as { to?: string[]; smtp?: { host: string }; server?: string; chat_id?: string };
   return (
     <li className="space-y-1 py-2">
       <div className="flex items-center justify-between gap-4">
@@ -80,6 +90,7 @@ function ChannelRow({ channel: c }: { channel: Channel }) {
             {t(`channel.type.${c.type}`)}
             {spec.to && <> · {spec.to.join(", ")}</>}
             {spec.smtp && <> · {spec.smtp.host}</>}
+            {spec.server && <> · {spec.server}</>}
           </span>
         </span>
         {isAdmin && (
@@ -129,12 +140,14 @@ type SMTPDraft = { host: string; port: string; username: string; from: string; t
 function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: Channel; onDone: () => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
-  const spec = (channel?.spec ?? {}) as { to?: string[]; smtp?: { host: string; port: number; username?: string; from: string; tls: SMTPDraft["tls"] } };
+  const spec = (channel?.spec ?? {}) as { to?: string[]; smtp?: { host: string; port: number; username?: string; from: string; tls: SMTPDraft["tls"] }; server?: string; chat_id?: string };
   const [type, setType] = useState<Type>(channel?.type ?? "email");
   const [name, setName] = useState(channel?.name ?? "");
   const [key, setKey] = useState(channel?.key ?? "");
   const [to, setTo] = useState((spec.to ?? []).join(", "));
   const [ownServer, setOwnServer] = useState(!!spec.smtp);
+  const [ntfyServer, setNtfyServer] = useState(spec.server ?? "");
+  const [chatID, setChatID] = useState(spec.chat_id ?? "");
   const [smtp, setSMTP] = useState<SMTPDraft>({
     host: spec.smtp?.host ?? "",
     port: spec.smtp ? String(spec.smtp.port) : "587",
@@ -153,6 +166,8 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
         out.to = to.split(/[\s,;]+/).filter(Boolean);
         if (ownServer) out.smtp = { host: smtp.host.trim(), port: Number(smtp.port) || 0, username: smtp.username.trim() || undefined, from: smtp.from.trim(), tls: smtp.tls };
       }
+      if (type === "ntfy" && ntfyServer.trim()) out.server = ntfyServer.trim();
+      if (type === "telegram") out.chat_id = chatID.trim();
       const sec: Record<string, SecretInput> = {};
       for (const [field, d] of Object.entries(secrets)) {
         const x = secretInput(d);
@@ -192,7 +207,7 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
         <DialogDescription>{t(`channel.typeHint.${type}`)}</DialogDescription>
       </DialogHeader>
       {!channel && (
-        <ToggleGroup value={[type]} onValueChange={(v: string[]) => v[0] && setType(v[0] as Type)} variant="segmented" size="sm">
+        <ToggleGroup value={[type]} onValueChange={(v: string[]) => v[0] && setType(v[0] as Type)} variant="segmented" size="sm" className="grid w-full grid-cols-2 sm:grid-cols-4">
           {types.map((k) => (
             <ToggleGroupItem key={k} value={k}>
               {t(`channel.type.${k}`)}
@@ -234,7 +249,7 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
           )}
         </>
       )}
-      {type !== "email" && (
+      {hooks.includes(type) && (
         <SecretField
           id="channel-url"
           label={t("channel.url")}
@@ -242,8 +257,34 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
           info={channel?.secrets.url}
           draft={draft("url")}
           onChange={setDraft("url")}
-          placeholder={type === "googlechat" ? "https://chat.googleapis.com/v1/spaces/…" : "https://example.com/hooks/lotse"}
+          placeholder={hookPlaceholder[type]}
         />
+      )}
+      {type === "telegram" && (
+        <>
+          <SecretField id="channel-bot" label={t("channel.botToken")} hint={t("channel.botTokenHint")} info={channel?.secrets.bot_token} draft={draft("bot_token")} onChange={setDraft("bot_token")} placeholder="123456:ABC-…" />
+          <div className="space-y-1.5">
+            <Label htmlFor="channel-chat">{t("channel.chatID")}</Label>
+            <Input id="channel-chat" value={chatID} onChange={(e) => setChatID(e.target.value)} placeholder="-1001234567890" autoComplete="off" />
+            <p className="text-xs text-muted-foreground">{t("channel.chatIDHint")}</p>
+          </div>
+        </>
+      )}
+      {type === "ntfy" && (
+        <>
+          <SecretField id="channel-topic" label={t("channel.topic")} hint={t("channel.topicHint")} info={channel?.secrets.topic} draft={draft("topic")} onChange={setDraft("topic")} placeholder="lotse-ops-7f3k2" />
+          <div className="space-y-1.5">
+            <Label htmlFor="channel-server">{t("channel.server")}</Label>
+            <Input id="channel-server" value={ntfyServer} onChange={(e) => setNtfyServer(e.target.value)} placeholder="https://ntfy.sh" autoComplete="off" />
+          </div>
+          <SecretField id="channel-token" label={t("channel.accessToken")} hint={t("channel.accessTokenHint")} info={channel?.secrets.token} draft={draft("token")} onChange={setDraft("token")} placeholder={t("check.optional")} />
+        </>
+      )}
+      {type === "pushover" && (
+        <>
+          <SecretField id="channel-user" label={t("channel.pushoverUser")} hint={t("channel.pushoverUserHint")} info={channel?.secrets.user} draft={draft("user")} onChange={setDraft("user")} />
+          <SecretField id="channel-app" label={t("channel.pushoverToken")} hint={t("channel.pushoverTokenHint")} info={channel?.secrets.token} draft={draft("token")} onChange={setDraft("token")} />
+        </>
       )}
       {type === "webhook" && (
         <SecretField id="channel-signing" label={t("channel.signingKey")} hint={t("channel.signingHint")} info={channel?.secrets.signing_key} draft={draft("signing_key")} onChange={setDraft("signing_key")} placeholder={t("check.optional")} />
