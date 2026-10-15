@@ -1,43 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { CircleAlert, CircleCheck, CircleHelp, TriangleAlert, Wrench } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { acknowledgeAlert, listAlertHistory, listAlerts, type Alert, type AlertState } from "@/api";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { listAlertHistory, listAlerts, type Alert, type AlertState } from "@/api";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ago, dateTime } from "@/lib/format";
+import { dateTime, shortDateTime } from "@/lib/format";
 import { alertTitle, subjectName } from "@/lib/alerts";
 import { levelColor } from "@/lib/status";
 import { StatusIcon } from "@/components/shell/Dot";
 import { Panel } from "@/components/shell/Panel";
 import { useLive } from "@/lib/live";
-import { chrome, status } from "@/lib/palette";
-import { useMe } from "@/lib/useMe";
-
-type State = AlertState["state"];
-
-const look: Record<State, { color: string; Icon: typeof CircleAlert }> = {
-  crit: { color: status.critical, Icon: CircleAlert },
-  warn: { color: status.warning, Icon: TriangleAlert },
-  unknown: { color: chrome.muted, Icon: CircleHelp },
-  ok: { color: status.good, Icon: CircleCheck },
-};
-
-// AlertBadge names a state in words, with an icon; the color only backs
-// them up.
-export function AlertBadge({ state }: { state: State }) {
-  const { t } = useTranslation();
-  const { color, Icon } = look[state];
-  return (
-    <span className="inline-flex items-center gap-1.5 font-medium whitespace-nowrap" style={{ color: state === "unknown" ? undefined : color }}>
-      <Icon className="size-4" style={{ color }} />
-      {t(`alert.state.${state}`)}
-    </span>
-  );
-}
 
 // value writes a rule's value in its unit.
 export function value(v: number | undefined, unit: AlertState["unit"]): string {
@@ -78,107 +50,6 @@ export function useAlerts(subject?: string) {
   return useQuery({ queryKey: ["alerts", subject ?? "all"], queryFn: () => listAlerts(subject), refetchInterval: 60_000 });
 }
 
-// AlertList shows what fires now. Without anything to show, it shows
-// nothing, unless it is the alerts page.
-export function AlertList({ subject, always = false }: { subject?: string; always?: boolean }) {
-  const { t } = useTranslation();
-  const alerts = useAlerts(subject);
-  const list = alerts.data ?? [];
-  if (!always && list.length === 0) return null;
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("alert.firing")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {list.length === 0 ? (
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CircleCheck className="size-4" style={{ color: status.good }} />
-            {alerts.isPending ? "…" : t("alert.allGood")}
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("alert.stateTitle")}</TableHead>
-                <TableHead>{t("alert.rule")}</TableHead>
-                <TableHead>{t("alert.subject")}</TableHead>
-                <TableHead className="text-right">{t("alert.value")}</TableHead>
-                <TableHead>{t("alert.since")}</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((a) => (
-                <Row key={`${a.rule}|${a.subject_kind}|${a.subject_id}|${a.instance}`} alert={a} />
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Row({ alert: a }: { alert: AlertState }) {
-  const { t } = useTranslation();
-  const { isAdmin } = useMe();
-  const client = useQueryClient();
-  const ack = useMutation({
-    mutationFn: () => acknowledgeAlert(a.alert_id),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["alerts"] }),
-  });
-  const firing = a.state === "crit" || a.state === "warn";
-  return (
-    <TableRow>
-      <TableCell>
-        {a.state === "ok" && a.pending ? (
-          <span className="text-muted-foreground">{t("alert.pending", { state: t(`alert.state.${a.pending}`) })}</span>
-        ) : (
-          <AlertBadge state={a.state} />
-        )}
-      </TableCell>
-      <TableCell>
-        <Link to="/alerts/$id" params={{ id: String(a.alert_id) }} className="font-mono text-xs hover:underline" title={a.description}>
-          {a.rule}
-        </Link>
-        {a.reason && <p className="text-xs text-muted-foreground">{a.reason}</p>}
-      </TableCell>
-      <TableCell>
-        <SubjectLink kind={a.subject_kind} id={a.subject_id} path={a.subject_path} />
-        {a.instance && <span className="ml-1 font-mono text-xs text-muted-foreground">{a.instance}</span>}
-      </TableCell>
-      <TableCell className="text-right tabular-nums whitespace-nowrap">
-        {value(a.value, a.unit)}
-        {a.threshold != null && <span className="text-muted-foreground"> / {value(a.threshold, a.unit)}</span>}
-      </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
-        <span title={dateTime(a.since)}>{ago(a.since)}</span>
-        {a.in_maintenance && (
-          <span className="ml-2 inline-flex items-center gap-1" title={t("alert.inMaintenance")}>
-            <Wrench className="size-3.5" />
-            {t("alert.maintenance")}
-          </span>
-        )}
-      </TableCell>
-      <TableCell className="text-right">
-        {a.acked_by ? (
-          <span className="text-xs text-muted-foreground" title={a.acked_at ? dateTime(a.acked_at) : undefined}>
-            {t("alert.ackedBy", { who: a.acked_by })}
-          </span>
-        ) : (
-          isAdmin &&
-          firing && (
-            <Button size="sm" variant="outline" disabled={ack.isPending} onClick={() => ack.mutate()}>
-              {t("alert.acknowledge")}
-            </Button>
-          )
-        )}
-      </TableCell>
-    </TableRow>
-  );
-}
-
 // AlertHistory lists the transitions of alerts, newest first, over the last
 // days: alerts are kept longer than readings.
 export function AlertHistory({ subject, always = false }: { subject?: string; always?: boolean }) {
@@ -191,17 +62,20 @@ export function AlertHistory({ subject, always = false }: { subject?: string; al
       return listAlertHistory({ from: to - days * 86400, to }, subject);
     },
   });
-  const list = history.data ?? [];
+  // Between OK and unknown nothing was wrong: readings were missing, which
+  // an alert of its own says, such as a silent agent.
+  const quiet = (s: Alert["from"]) => s === "ok" || s === "unknown";
+  const list = (history.data ?? []).filter((a) => !(quiet(a.from) && quiet(a.to)));
   if (subject && !always && list.length === 0) return null;
   return (
     <Panel
       title={t("alert.history")}
       flush
       right={
-        <ToggleGroup value={[String(days)]} onValueChange={(v: string[]) => v[0] && setDays(Number(v[0]))} variant="outline" size="sm">
+        <ToggleGroup value={[String(days)]} onValueChange={(v: string[]) => v[0] && setDays(Number(v[0]))} variant="segmented" size="sm">
           {[1, 7, 30].map((d) => (
-            <ToggleGroupItem key={d} value={String(d)}>
-              {t("range.days", { count: d })}
+            <ToggleGroupItem key={d} value={String(d)} aria-label={t("range.days", { count: d })} title={t("range.days", { count: d })}>
+              {t("range.short.days", { count: d })}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -225,22 +99,26 @@ function Transition({ alert: a, showSubject }: { alert: Alert; showSubject: bool
   const { name } = subjectName(a);
   return (
     <li>
-      <Link to="/alerts/$id" params={{ id: String(a.id) }} className="flex items-center gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent/60">
-        <StatusIcon level={a.to === "ok" ? "ok" : a.to} />
-        <span className="w-20 shrink-0 font-medium" style={{ color: a.to === "ok" ? "var(--ok)" : a.to === "unknown" ? undefined : levelColor[a.to] }}>
+      <Link to="/alerts/$id" params={{ id: String(a.id) }} className="flex items-start gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-accent/60 sm:items-center">
+        <span className="mt-0.5 sm:mt-0">
+          <StatusIcon level={a.to === "ok" ? "ok" : a.to} />
+        </span>
+        <span className="hidden w-16 shrink-0 font-medium sm:inline" style={{ color: a.to === "ok" ? "var(--ok)" : a.to === "unknown" ? undefined : levelColor[a.to] }}>
           {t(`alert.state.${a.to}`)}
         </span>
-        <span className="min-w-0 flex-1 truncate">
+        <span className="min-w-0 flex-1 sm:truncate">
           <span className="font-medium">{alertTitle(t, a)}</span>
           {showSubject && <span> {name}</span>}
           {a.instance && <span className="font-mono text-mini"> {a.instance}</span>}
-          <span className="text-muted-foreground">
-            {a.value != null && a.unit && <> · {value(a.value, a.unit)}</>}
-            {a.reason && <> · {a.reason}</>}
+          <span className="block text-muted-foreground sm:inline">
+            {/* The reason says the value in words; without one, the value. */}
+            {a.reason ? <span className="sm:before:content-['_·_']">{a.reason}</span> : a.value != null && a.unit && <span className="sm:before:content-['_·_']">{value(a.value, a.unit)}</span>}
             {a.in_maintenance && <> · {t("alert.maintenance")}</>}
           </span>
         </span>
-        <span className="shrink-0 text-mini whitespace-nowrap tabular-nums text-muted-foreground">{dateTime(a.at)}</span>
+        <span className="shrink-0 text-mini whitespace-nowrap tabular-nums text-muted-foreground" title={dateTime(a.at)}>
+          {shortDateTime(a.at)}
+        </span>
       </Link>
     </li>
   );
