@@ -490,8 +490,11 @@ type Host struct {
 	AgentVersion string `json:"agent_version"`
 	Arch         string `json:"arch"`
 	BootTime     int64  `json:"boot_time"`
-	Cores        int    `json:"cores"`
-	CpuModel     string `json:"cpu_model"`
+
+	// ClockOffset How many seconds its machine's clock is behind the hub's, negative when ahead; only when off by more than 30 seconds. Its readings are moved to the hub's time.
+	ClockOffset *int64 `json:"clock_offset,omitempty"`
+	Cores       int    `json:"cores"`
+	CpuModel    string `json:"cpu_model"`
 
 	// DockerVersion Empty when the agent cannot reach Docker.
 	DockerVersion string `json:"docker_version"`

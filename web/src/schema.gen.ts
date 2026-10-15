@@ -1419,6 +1419,11 @@ export interface components {
              * @description Its environment; null until it is put into one.
              */
             environment_id?: number | null;
+            /**
+             * Format: int64
+             * @description How many seconds its machine's clock is behind the hub's, negative when ahead; only when off by more than 30 seconds. Its readings are moved to the hub's time.
+             */
+            clock_offset?: number;
         };
         HostReading: {
             /** Format: int64 */

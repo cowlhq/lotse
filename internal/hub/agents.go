@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
@@ -262,12 +263,14 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	ids := containerIDs{}
+	clock := &clockEstimate{}
 	for {
 		var m protocol.Message
 		if err := wsjson.Read(ctx, conn, &m); err != nil {
 			log.Info("agent disconnected", "reason", disconnectReason(err))
 			return
 		}
+		h.retime(log, host.ID, clock, &m)
 		var err error
 		switch {
 		case m.Type == protocol.TypeHost && m.Host != nil:
@@ -286,6 +289,34 @@ func (h *hub) connectAgent(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Error("cannot save what the agent sent", "type", m.Type, "err", err)
 		}
+	}
+}
+
+// retime moves what an agent sends to the hub's time, if its clock is off.
+// Host readings, which come at a steady pace, tell by how much.
+func (h *hub) retime(log *slog.Logger, hostID int64, clock *clockEstimate, m *protocol.Message) {
+	if m.Type == protocol.TypeHost && m.Host != nil {
+		if offset, settled := clock.observe(m.Host.TS, time.Now().Unix()); settled && h.clocks.set(hostID, offset) {
+			if offset == 0 {
+				log.Info("the agent's clock is right again")
+			} else {
+				log.Warn("the agent's clock is off; its readings are moved to the hub's time", "behind_seconds", offset)
+			}
+		}
+	}
+	offset := h.clocks.get(hostID)
+	if offset == 0 {
+		return
+	}
+	switch {
+	case m.Host != nil:
+		m.Host.TS += offset
+	case m.Containers != nil:
+		m.Containers.TS += offset
+	case m.ContainerEvent != nil:
+		m.ContainerEvent.TS += offset
+	case m.ContainerStats != nil:
+		m.ContainerStats.TS += offset
 	}
 }
 

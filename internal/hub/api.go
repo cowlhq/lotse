@@ -286,7 +286,15 @@ func (s apiServer) toHost(ctx context.Context, h store.Host) api.Host {
 		MemTotal: h.MemTotal, BootTime: h.BootTime, AgentVersion: h.AgentVersion,
 		DockerVersion: h.DockerVersion, FirstSeen: h.FirstSeen, LastSeen: h.LastSeen,
 		Online: s.agents.connected(h.ID), EnvironmentId: h.EnvironmentID,
+		ClockOffset: nonZero(s.clocks.get(h.ID)),
 	}
+}
+
+func nonZero(v int64) *int64 {
+	if v == 0 {
+		return nil
+	}
+	return &v
 }
 
 func toHostReading(x *store.HostSample) *api.HostReading {

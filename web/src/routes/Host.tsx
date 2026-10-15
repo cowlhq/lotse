@@ -86,6 +86,13 @@ export function Host({ id }: { id: number }) {
               d.latest?.uptime != null && t("host.upFor", { time: duration(d.latest.uptime) }),
               `${t("host.agent")} ${h.agent_version}`,
               h.docker_version && `Docker ${h.docker_version}`,
+              // A clock that is off is the machine's to fix; the hub moves
+              // its readings meanwhile.
+              h.clock_offset != null && (
+                <span style={{ color: "var(--warn)" }} title={t("host.clockHint")}>
+                  {t(h.clock_offset > 0 ? "host.clockBehind" : "host.clockAhead", { time: duration(Math.abs(h.clock_offset)) })}
+                </span>
+              ),
             ]}
           />
         }

@@ -109,7 +109,10 @@
     "running_other": "{{count}} running",
     "noContainers": "No containers.",
     "waitingTitle": "Waiting for its agent",
-    "waitingHint": "{{name}} is named in lotse.yaml, and its settings are ready. Install the agent on the machine with its environment's command (Add host); a machine called {{name}} that enrolls there becomes this host."
+    "waitingHint": "{{name}} is named in lotse.yaml, and its settings are ready. Install the agent on the machine with its environment's command (Add host); a machine called {{name}} that enrolls there becomes this host.",
+    "clockBehind": "clock {{time}} behind",
+    "clockAhead": "clock {{time}} ahead",
+    "clockHint": "This machine's clock is off. Its readings are moved to the hub's time; set the clock right, with NTP, such as systemd-timesyncd or chrony."
   },
   "container": {
     "notFound": "There is no such container.",
