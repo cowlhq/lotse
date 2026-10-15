@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type Kind = Check["type"];
-const kinds: Kind[] = ["http", "tls", "tcp", "heartbeat"];
+const kinds: Kind[] = ["http", "tls", "tcp", "dns", "domain", "heartbeat"];
+const recordTypes = ["A", "AAAA", "CNAME", "MX", "NS", "TXT"];
 
 // AddCheck adds a check to an environment: its kind, a name, and what to
 // look at.
@@ -37,14 +38,16 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
   const navigate = useNavigate();
   const [kind, setKind] = useState<Kind>("http");
   const [name, setName] = useState("");
-  const [f, setF] = useState<Record<string, string>>({ period: "24h", grace: "1h" });
+  const [f, setF] = useState<Record<string, string>>({ period: "24h", grace: "1h", type: "A" });
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
 
-  const spec = (): Record<string, string> => {
+  const spec = (): Record<string, unknown> => {
     const pick = (...keys: string[]) => Object.fromEntries(keys.filter((k) => f[k]).map((k) => [k, f[k].trim()]));
     if (kind === "http") return pick("url", "keyword", "status");
     if (kind === "tls") return pick("address", "server_name");
     if (kind === "tcp") return pick("address");
+    if (kind === "dns") return { ...pick("name", "type", "server"), expect: (f.expect ?? "").split(/[\s,]+/).filter(Boolean) };
+    if (kind === "domain") return pick("domain");
     return pick("period", "grace");
   };
   // A name from what is checked, until one is typed.
@@ -54,6 +57,8 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
     } catch {
       /* not a URL yet */
     }
+    if (kind === "dns") return f.name ? `${f.name} ${f.type}` : "";
+    if (kind === "domain") return f.domain ?? "";
     return f.address ?? "";
   })();
   const save = useMutation({
@@ -86,7 +91,7 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
         <DialogTitle>{t("check.add")}</DialogTitle>
         <DialogDescription>{t(`check.kindHint.${kind}`)}</DialogDescription>
       </DialogHeader>
-      <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as Kind)} variant="segmented" size="sm">
+      <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as Kind)} variant="segmented" size="sm" className="grid w-full grid-cols-3 sm:grid-cols-6">
         {kinds.map((k) => (
           <ToggleGroupItem key={k} value={k}>
             {t(`check.kind.${k}`)}
@@ -101,6 +106,24 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
         </>
       )}
       {(kind === "tls" || kind === "tcp") && field("address", t("check.address"), kind === "tls" ? "mail.example.com:465" : "db.internal:5432")}
+      {kind === "dns" && (
+        <>
+          {field("name", t("check.dnsName"), "shop.example.com")}
+          <div className="space-y-1.5">
+            <Label>{t("check.recordType")}</Label>
+            <ToggleGroup value={[f.type]} onValueChange={(v: string[]) => v[0] && setF({ ...f, type: v[0] })} variant="segmented" size="sm">
+              {recordTypes.map((x) => (
+                <ToggleGroupItem key={x} value={x}>
+                  {x}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          {field("expect", t("check.expect"), t("check.optional"), t("check.expectHint"))}
+          {field("server", t("check.resolver"), t("check.optional"), t("check.resolverHint"))}
+        </>
+      )}
+      {kind === "domain" && field("domain", t("check.domain"), "example.com", t("check.domainHint"))}
       {kind === "heartbeat" && (
         <div className="grid grid-cols-2 gap-3">
           {field("period", t("check.period"), "24h", t("check.periodHint"))}

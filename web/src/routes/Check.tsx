@@ -128,7 +128,13 @@ export function Check({ id }: { id: number }) {
               <div className="grid gap-4 sm:grid-cols-3">
                 <Stat label={t("check.uptime")} value={percent(uptime, uptime != null && uptime < 99.995 && uptime > 0.005 ? 2 : 0)} />
                 <Stat label={t("check.latency")} value={c.latency_ms != null ? `${Math.round(c.latency_ms)} ms` : "–"} />
-                <Stat label={t("check.cert")} value={days != null ? t("check.days", { count: days }) : "–"} tone={days != null && days < 14 ? "var(--warn)" : undefined} />
+                {/* A domain check keeps its registration's end where others keep
+                    a certificate's. */}
+                <Stat
+                  label={c.type === "domain" ? t("check.domainExpires") : t("check.cert")}
+                  value={days != null ? t("check.days", { count: days }) : "–"}
+                  tone={days != null && days < (c.type === "domain" ? 30 : 14) ? "var(--warn)" : undefined}
+                />
               </div>
               <Panel title={t("table.last24h")}>
                 <UptimeBar checkID={id} slices={96} />
