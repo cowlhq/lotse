@@ -76,7 +76,12 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 			wait = time.Second
 		}
 		d := wait/2 + rand.N(wait/2+1)
-		log.Warn("not connected to the hub", "err", err, "retry_in", d.Round(100*time.Millisecond))
+		reason, planned := protocol.Disconnected(err)
+		level := slog.LevelWarn
+		if planned {
+			level = slog.LevelInfo
+		}
+		log.Log(ctx, level, "not connected to the hub", "reason", reason, "retry_in", d.Round(100*time.Millisecond))
 		select {
 		case <-ctx.Done():
 			return nil
