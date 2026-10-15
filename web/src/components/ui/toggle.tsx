@@ -11,6 +11,9 @@ const toggleVariants = cva(
       variant: {
         default: "bg-transparent",
         outline: "border border-input bg-transparent hover:bg-muted",
+        // One of a few choices side by side, on a shared track (lotse).
+        segmented:
+          "bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-xs dark:aria-pressed:bg-input/70",
       },
       size: {
         default:
@@ -19,6 +22,7 @@ const toggleVariants = cva(
         lg: "h-10 min-w-10 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
       },
     },
+    compoundVariants: [{ variant: "segmented", size: "sm", class: "h-7 min-w-7 rounded-[5px] px-2.5" }],
     defaultVariants: {
       variant: "default",
       size: "default",

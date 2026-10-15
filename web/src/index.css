@@ -190,3 +190,17 @@
 .u-legend th {
   font-weight: 500;
 }
+/* A short line in the series' color instead of uPlot's box. */
+.u-legend .u-marker {
+  width: 12px !important;
+  height: 0 !important;
+  margin-right: 6px !important;
+  border-width: 2px 0 0 0 !important;
+  border-radius: 1px;
+  vertical-align: middle;
+  background: none !important;
+}
+.u-legend .u-value {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}

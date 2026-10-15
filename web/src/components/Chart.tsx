@@ -41,10 +41,44 @@ function plotted(data: Series | undefined, lines: Line[]): uPlot.AlignedData {
 }
 
 // xRange runs to now, or to the last reading if live readings ran past it.
+// It begins with the first reading when there is nothing in the range's
+// first tenth, so that a week of a host added yesterday is not an empty
+// chart with a line at its end.
 function xRange(data: Series | undefined, range: { from: number; to: number }) {
+  const first = data?.time[0];
   const last = data?.time[data.time.length - 1] ?? 0;
-  return { min: range.from, max: Math.max(range.to, last) };
+  const max = Math.max(range.to, last);
+  const min = first != null && first > range.from + (max - range.from) / 10 ? first : range.from;
+  return { min, max };
 }
+
+// lastValue is the newest reading of a line, which the legend shows while
+// the cursor is not on the plot.
+function lastValue(values: uPlot.AlignedData[number]) {
+  for (let i = values.length - 1; i >= 0; i--) {
+    const v = values[i];
+    if (v != null) return v as number;
+  }
+  return null;
+}
+
+// Times on the axis, in the reader's own format: hours and minutes within a
+// day, the weekday with them over a few days, and dates beyond.
+const day = 86400;
+const hourMinute = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+const weekdayTime = new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+const date = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
+
+function timeTicks(u: uPlot, vals: number[], _axis: number, _space: number, incr: number) {
+  const { min = 0, max = 0 } = u.scales.x;
+  const f = incr >= day ? date : max - min > day ? weekdayTime : hourMinute;
+  return vals.map((v) => f.format(v * 1000));
+}
+
+// Events are drawn up to these ranges; beyond, there are too many to read.
+// Those that mean trouble stay longer than the rest.
+const eventsUpTo = 6 * 3600;
+const badEventsUpTo = 2 * day;
 
 // Chart draws a time series with uPlot: one y-axis, at most three lines in
 // the palette's fixed order, a crosshair whose values show in the legend,
@@ -77,7 +111,15 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
         y: { range: (_u, _min, dataMax) => [0, max ?? (dataMax > 0 ? dataMax * 1.1 : 1)] },
       },
       axes: [
-        { font: "12px 'Fira Sans', system-ui, sans-serif", stroke: css(chrome.muted), grid: { stroke: css(chrome.grid), width: 1 }, ticks: { stroke: css(chrome.axis), width: 1 } },
+        {
+          font: "12px 'Fira Sans', system-ui, sans-serif",
+          stroke: css(chrome.muted),
+          grid: { stroke: css(chrome.grid), width: 1 },
+          ticks: { stroke: css(chrome.axis), width: 1 },
+          values: timeTicks,
+          space: 64,
+          size: 32,
+        },
         {
           font: "12px 'Fira Sans', system-ui, sans-serif",
           stroke: css(chrome.muted),
@@ -103,7 +145,7 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
           // Dots while there are only a few readings, which lines alone
           // would not show.
           points: { show: (u: uPlot) => u.data[0].length <= 30, size: 5 },
-          value: (_u: uPlot, v: number | null) => format(v),
+          value: (u: uPlot, v: number | null, sidx: number, idx: number | null) => format(idx == null ? lastValue(u.data[sidx]) : v),
         })),
       ],
       hooks: {
@@ -114,8 +156,10 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
             ctx.lineWidth = 1;
             ctx.setLineDash([3, 3]);
             const { min = 0, max = 0 } = u.scales.x;
+            const span = max - min;
             for (const e of eventsRef.current) {
               if (e.ts < min || e.ts > max) continue;
+              if (span > (badEvents.includes(e.kind) ? badEventsUpTo : eventsUpTo)) continue;
               const x = Math.round(u.valToPos(e.ts, "x", true));
               ctx.strokeStyle = css(badEvents.includes(e.kind) ? status.critical : chrome.muted);
               ctx.beginPath();
@@ -145,6 +189,9 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
     if (!p) return;
     p.setData(plotted(data, lines));
     p.setScale("x", xRange(data, range));
+    // The legend shows the newest values again, unless the cursor is on
+    // the plot.
+    if (p.cursor.idx == null) p.setLegend({ idx: null as unknown as number });
   }, [data, lines, range, events]);
 
   const empty = data !== undefined && lines.every((l) => (data.columns[l.key] ?? []).every((v) => v == null));

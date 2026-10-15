@@ -125,7 +125,7 @@ function Add({ subject, onDone }: { subject: string; onDone: () => void }) {
         save.mutate();
       }}
     >
-      <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as typeof kind)} variant="outline" size="sm">
+      <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as typeof kind)} variant="segmented" size="sm">
         <ToggleGroupItem value="once">{t("maintenance.once")}</ToggleGroupItem>
         <ToggleGroupItem value="schedule">{t("maintenance.schedule")}</ToggleGroupItem>
       </ToggleGroup>

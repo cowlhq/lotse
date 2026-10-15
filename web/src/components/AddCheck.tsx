@@ -86,7 +86,7 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
         <DialogTitle>{t("check.add")}</DialogTitle>
         <DialogDescription>{t(`check.kindHint.${kind}`)}</DialogDescription>
       </DialogHeader>
-      <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as Kind)} variant="outline" size="sm">
+      <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as Kind)} variant="segmented" size="sm">
         {kinds.map((k) => (
           <ToggleGroupItem key={k} value={k}>
             {t(`check.kind.${k}`)}
