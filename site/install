@@ -2,21 +2,27 @@
 # Installs lotse on a Linux machine: https://lotse.sh
 #
 #   curl -fsSL https://lotse.sh/install | sudo sh -s -- agent --hub URL --token TOKEN
+#   curl -fsSL https://lotse.sh/install | sudo sh -s -- probe --hub URL --token TOKEN --name fra
 #   curl -fsSL https://lotse.sh/install | sudo sh -s -- hub
 #
 # agent  installs the agent as the service lotse-agent: the binary from the
 #        release, its checksum checked, in /usr/local/bin; it runs as user
 #        lotse, in group docker, and may write only to /var/lib/lotse. It
 #        enrolls once with the token, which is not kept.
+# probe  installs a probe, which runs checks from this place, as the service
+#        lotse-probe, the same way: user lotse, /var/lib/lotse, enrolled once.
 # hub    runs the hub with docker compose in /opt/lotse and prints the setup
 #        link.
 #
-# Running it again updates what it installed; the agent's credential and the
-# hub's data stay. An agent whose credential the hub revoked enrolls again,
-# if the token is given.
+# Running it again updates what it installed; credentials and the hub's data
+# stay. An agent whose credential the hub revoked enrolls again, if the token
+# is given; a probe given the token enrolls again under its name and keeps
+# its checks and history. Probes are updated only this way (decision 0009).
 #
-# Options: --version X.Y.Z (default: the latest release), --insecure (agent:
-# allow a plain http hub on another machine), --port N (hub, default 8080).
+# Options: --version X.Y.Z (default: the latest release), --insecure (agent,
+# probe: allow a plain http hub on another machine), --name NAME and
+# --location TEXT (probe; the name defaults to this machine's), --port N
+# (hub, default 8080).
 # LOTSE_RELEASE_URL downloads from a mirror instead of GitHub.
 set -eu
 
@@ -31,6 +37,7 @@ have() { command -v "$1" >/dev/null 2>&1; }
 
 usage() {
 	say "usage: install agent --hub URL --token TOKEN [--insecure] [--version X.Y.Z]"
+	say "       install probe --hub URL --token TOKEN [--name NAME] [--location TEXT] [--insecure] [--version X.Y.Z]"
 	say "       install hub [--port N] [--version X.Y.Z]"
 	exit 2
 }
@@ -38,7 +45,7 @@ usage() {
 [ $# -ge 1 ] || usage
 mode=$1
 shift
-hub="" token="" insecure="" version="" port=8080
+hub="" token="" insecure="" version="" port=8080 name="" location=""
 while [ $# -gt 0 ]; do
 	case $1 in
 	--hub) hub=${2:-}; shift 2 ;;
@@ -46,6 +53,8 @@ while [ $# -gt 0 ]; do
 	--insecure) insecure=1; shift ;;
 	--version) version=${2:-}; shift 2 ;;
 	--port) port=${2:-}; shift 2 ;;
+	--name) name=${2:-}; shift 2 ;;
+	--location) location=${2:-}; shift 2 ;;
 	*) usage ;;
 	esac
 done
@@ -74,18 +83,21 @@ latest() {
 	case $tag in v[0-9]*) printf '%s' "${tag#v}" ;; *) fail "cannot find the latest release" ;; esac
 }
 
-install_agent() {
+# install_binary puts the release's binary in /usr/local/bin, its checksum
+# (and with minisign, its signature) checked, and makes the user lotse and
+# /var/lib/lotse. $1 is agent or probe, for the messages.
+install_binary() {
 	[ -n "$hub" ] || fail "--hub is needed: the hub's address"
 	case $(uname -m) in
 	x86_64 | amd64) arch=amd64 ;;
 	aarch64 | arm64) arch=arm64 ;;
 	*) fail "lotse is built for amd64 and arm64, not $(uname -m)" ;;
 	esac
-	have systemctl || fail "this installs a systemd service, and systemctl is missing; run the agent as a container instead (docker run, under Add agent)"
+	have systemctl || fail "this installs a systemd service, and systemctl is missing; run the $1 as a container instead (docker run, under Add $1)"
 	# NixOS describes services and users in its configuration; /etc/systemd
 	# is not for writing there.
-	[ ! -e /etc/NIXOS ] || fail "on NixOS, run the agent as a container (docker run or compose, under Add agent); a NixOS module is planned"
-	[ -w /etc/systemd/system ] || fail "/etc/systemd/system cannot be written to; run the agent as a container instead (docker run, under Add agent)"
+	[ ! -e /etc/NIXOS ] || fail "on NixOS, run the $1 as a container (docker run, under Add $1); a NixOS module is planned"
+	[ -w /etc/systemd/system ] || fail "/etc/systemd/system cannot be written to; run the $1 as a container instead (docker run, under Add $1)"
 	[ -n "$version" ] || version=$(latest)
 	base=${LOTSE_RELEASE_URL:-https://github.com/$REPO/releases/download/v$version}
 	file=lotse_${version}_linux_$arch.tar.gz
@@ -124,15 +136,19 @@ install_agent() {
 			adduser -S -D -H -h /var/lib/lotse -s /sbin/nologin lotse
 		fi
 	fi
+	mkdir -p /var/lib/lotse
+	chown lotse:lotse /var/lib/lotse
+	chmod 0700 /var/lib/lotse
+}
+
+install_agent() {
+	install_binary agent
 	groups=
 	if getent group docker >/dev/null 2>&1; then
 		groups="SupplementaryGroups=docker"
 	else
 		say "Docker is not installed: the agent watches the machine only, and Docker once it is there and lotse-agent is restarted."
 	fi
-	mkdir -p /var/lib/lotse
-	chown lotse:lotse /var/lib/lotse
-	chmod 0700 /var/lib/lotse
 
 	flags=
 	[ -z "$insecure" ] || flags=--insecure
@@ -181,6 +197,60 @@ EOF
 	systemctl enable lotse-agent >/dev/null 2>&1
 	systemctl restart lotse-agent
 	say "lotse agent $version is running as lotse-agent; this machine shows up in lotse within seconds."
+}
+
+install_probe() {
+	# The name checks know the probe by (check.probes), such as fra:
+	# lowercase letters, digits and dashes.
+	[ -n "$name" ] || name=$(hostname -s 2>/dev/null || hostname)
+	name=$(printf '%s' "$name" | tr 'A-Z_. ' 'a-z---' | tr -cd 'a-z0-9-')
+	[ -n "$name" ] && [ "$name" != hub ] || fail "--name is needed: the probe's short name, such as fra"
+	install_binary probe
+
+	flags=
+	[ -z "$insecure" ] || flags=--insecure
+	if [ -n "$token" ]; then
+		say "Enrolling with the hub as $name"
+		# As for the agent: the token goes in through the environment and is
+		# not kept.
+		LOTSE_TOKEN=$token LOTSE_PROBE_LOCATION=$location /usr/local/bin/lotse probe enroll --hub "$hub" --name "$name" --data-dir /var/lib/lotse $flags ||
+			fail "enrolling failed"
+		chown -R lotse:lotse /var/lib/lotse
+	elif [ ! -f /var/lib/lotse/probe.json ]; then
+		fail "--token is needed to enroll: the probe token, under Settings, Probes, Add probe"
+	fi
+	# The probe runs the binary itself, not through the starter: probes are
+	# not updated over the air (decision 0009), but by running this again.
+	cat >/etc/systemd/system/lotse-probe.service <<EOF
+[Unit]
+Description=lotse probe
+Documentation=https://lotse.sh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=lotse
+Group=lotse
+Environment=LOTSE_HUB=$hub
+Environment=LOTSE_DATA_DIR=/var/lib/lotse
+Environment=LOTSE_INSECURE=${insecure:+true}
+ExecStart=/usr/local/bin/lotse probe
+Restart=always
+RestartSec=5
+# Checks from outside; writes only its own directory.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/lotse
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+	systemctl daemon-reload
+	systemctl enable lotse-probe >/dev/null 2>&1
+	systemctl restart lotse-probe
+	say "lotse probe $version is running as lotse-probe; it shows up as $name under Settings, Probes."
 }
 
 install_hub() {
@@ -249,6 +319,7 @@ EOF
 
 case $mode in
 agent) install_agent ;;
+probe) install_probe ;;
 hub) install_hub ;;
 *) usage ;;
 esac
