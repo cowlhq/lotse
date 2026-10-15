@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -46,26 +47,7 @@ func TestClockEstimate(t *testing.T) {
 // hub's time, and its host says how far off it is.
 func TestClockBehind(t *testing.T) {
 	h, server := newTestHub(t)
-	token := enrollmentToken(t, h)
-	status, body := do(t, server, "POST", protocol.EnrollPath, `{"token":"`+token+`","hostname":"web1","machine_id":"m1"}`)
-	var e protocol.EnrollResponse
-	json.Unmarshal([]byte(body), &e)
-	if status != http.StatusOK {
-		t.Fatalf("enroll: %d %s", status, body)
-	}
-	conn, _, err := websocket.Dial(t.Context(), "ws"+strings.TrimPrefix(server.URL, "http")+protocol.ConnectPath, &websocket.DialOptions{
-		Subprotocols: protocol.Subprotocols(),
-		HTTPHeader:   http.Header{"Authorization": {"Bearer " + e.Credential}},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.CloseNow()
-	wsjson.Write(t.Context(), conn, protocol.Message{Type: protocol.TypeHello, Hello: &protocol.Hello{Hostname: "web1", MachineID: "m1"}})
-	var welcome protocol.Message
-	if err := wsjson.Read(t.Context(), conn, &welcome); err != nil {
-		t.Fatal(err)
-	}
+	conn := rawAgent(t, h, server)
 	cpu := 10.0
 	for i := range 6 {
 		ts := time.Now().Unix() - 600 + int64(i)
@@ -87,4 +69,31 @@ func TestClockBehind(t *testing.T) {
 	if host.Host.ClockOffset == nil || *host.Host.ClockOffset < 595 {
 		t.Errorf("clock offset: %v", host.Host.ClockOffset)
 	}
+}
+
+// rawAgent enrolls a machine m1 called web1 and speaks for its agent:
+// hello, and the hub's welcome read.
+func rawAgent(t *testing.T, h *hub, server *httptest.Server) *websocket.Conn {
+	t.Helper()
+	token := enrollmentToken(t, h)
+	status, body := do(t, server, "POST", protocol.EnrollPath, `{"token":"`+token+`","hostname":"web1","machine_id":"m1"}`)
+	var e protocol.EnrollResponse
+	json.Unmarshal([]byte(body), &e)
+	if status != http.StatusOK {
+		t.Fatalf("enroll: %d %s", status, body)
+	}
+	conn, _, err := websocket.Dial(t.Context(), "ws"+strings.TrimPrefix(server.URL, "http")+protocol.ConnectPath, &websocket.DialOptions{
+		Subprotocols: protocol.Subprotocols(),
+		HTTPHeader:   http.Header{"Authorization": {"Bearer " + e.Credential}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { conn.CloseNow() })
+	wsjson.Write(t.Context(), conn, protocol.Message{Type: protocol.TypeHello, Hello: &protocol.Hello{Hostname: "web1", MachineID: "m1"}})
+	var welcome protocol.Message
+	if err := wsjson.Read(t.Context(), conn, &welcome); err != nil {
+		t.Fatal(err)
+	}
+	return conn
 }

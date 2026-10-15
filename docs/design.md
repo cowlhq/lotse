@@ -376,6 +376,7 @@ Agent → hub:
 | `containers` | on connect, on any change, every 5 min | full inventory: ID, name, image, compose project and service, state, health, restarts, started, labels |
 | `container_event` | as Docker reports it | ID, action (start, die, oom, health_status, …), exit code |
 | `container_stats` | every interval | CPU, memory, network per container |
+| `system` | every minute | systemd's services, and units of other kinds that failed, asked over D-Bus; whether updates wait for a restart (`/run/reboot-required` on Debian and Ubuntu, a new kernel on NixOS) |
 
 Samples sent from the buffer after a reconnect carry their original
 timestamps. A machine whose clock is off would put its readings at the
@@ -464,7 +465,11 @@ overridable like any setting:
 | `container.unhealthy` | health check `unhealthy` | CRIT after 2 min |
 | `container.restarting` | restarts | CRIT at ≥ 3 in 10 min |
 | `check.down` | runs in a row that failed on most of the check's probes | CRIT at 2 |
+| `host.unit` | a systemd unit failed | WARN |
+| `host.service` | a service named in `host.services` does not run | CRIT after 2 min |
+| `host.reboot` | updates wait for a restart | WARN after 24 h |
 | `check.cert` | certificate expires (any https check, any tls check) | WARN < 14 d, CRIT < 7 d |
+| `check.domain` | domain registration expires | WARN < 30 d, CRIT < 7 d |
 | `check.heartbeat` | no ping within period + grace | CRIT |
 | `probe.silent` | an external probe is gone | WARN after 2 min, routed via global |
 

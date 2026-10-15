@@ -228,10 +228,11 @@ type hub struct {
 	db     *store.Store
 	agents agents
 	// clocks are how far agents' clocks are off.
-	clocks clocks
-	pings  pingGate
-	live   live
-	writer *writer
+	clocks  clocks
+	pings   pingGate
+	systems systems
+	live    live
+	writer  *writer
 	// How often agents read their machine and its containers.
 	hostInterval, containerInterval time.Duration
 	// checkInterval, if set, overrides every check's interval (in tests).

@@ -1261,7 +1261,7 @@ export interface components {
             /** @example agent.interval.host */
             key: string;
             /** @enum {string} */
-            type: "duration" | "bool" | "window" | "probes" | "channels" | "threshold" | "level" | "url";
+            type: "duration" | "bool" | "window" | "probes" | "channels" | "services" | "threshold" | "level" | "url";
             description: string;
             /** @description The effective value. */
             value: unknown;
@@ -1419,6 +1419,8 @@ export interface components {
              * @description Its environment; null until it is put into one.
              */
             environment_id?: number | null;
+            /** @description Whether updates wait for a restart, as its agent says. */
+            reboot_required?: boolean;
             /**
              * Format: int64
              * @description How many seconds its machine's clock is behind the hub's, negative when ahead; only when off by more than 30 seconds. Its readings are moved to the hub's time.
@@ -1480,6 +1482,27 @@ export interface components {
             filesystems: components["schemas"]["Filesystem"][];
             /** @description Its containers, those still there first. */
             containers: components["schemas"]["Container"][];
+            system?: components["schemas"]["HostSystem"];
+        };
+        /** @description What its agent last said of its services and restarts. */
+        HostSystem: {
+            /** Format: int64 */
+            ts: number;
+            /** @description Whether the agent could ask systemd; units are empty otherwise. */
+            systemd: boolean;
+            /** @description Its services, and units of other kinds that failed. */
+            units: components["schemas"]["SystemUnit"][];
+            reboot_required: boolean;
+            reboot_reason?: string;
+        };
+        /** @description A systemd unit and its state. */
+        SystemUnit: {
+            /** @example nginx.service */
+            name: string;
+            /** @example active */
+            active: string;
+            /** @example running */
+            sub: string;
         };
         Filesystem: {
             /** Format: int64 */
