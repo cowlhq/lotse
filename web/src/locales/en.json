@@ -1,6 +1,5 @@
 {
   "app": {
-    "name": "lotse",
     "unreachable": "The hub does not answer.",
     "unreachableTitle": "The hub does not answer"
   },
@@ -36,39 +35,20 @@
     }
   },
   "overview": {
-    "empty": "No hosts yet. Start an agent, and its machine appears here.",
-    "containers": "{{running}} of {{total}} containers up",
-    "unhealthy_one": "{{count}} container unhealthy",
-    "unhealthy_other": "{{count}} containers unhealthy",
-    "title": "Overview",
-    "start": "Nothing here yet. Create an environment, then add an agent to it.",
-    "noHosts": "No hosts yet.",
     "unassigned": "Not in an environment",
     "noHostsAdd": "No hosts yet. Add an agent to a machine, and it shows up here.",
-    "attention": "Needs attention",
     "allGood": "All systems operational",
     "critical_one": "{{count}} critical problem",
     "critical_other": "{{count}} critical problems",
     "warnings_one": "{{count}} warning",
     "warnings_other": "{{count}} warnings",
-    "andWarnings_one": "and {{count}} warning",
-    "andWarnings_other": "and {{count}} warnings",
-    "live": "Updated live.",
-    "hostsOnline": "Hosts online",
-    "checksUp": "Checks up",
-    "containersRunning": "Containers",
-    "emptyEnvironment": "Nothing here yet.",
-    "addSomething": "Add a host or a check",
     "welcome": "Welcome to lotse",
-    "welcomeHint": "Start with an environment, such as your shop's production. Then add machines and checks to it.",
     "hostCount_one": "{{count}} host",
     "hostCount_other": "{{count}} hosts",
     "checkCount_one": "{{count}} check",
     "checkCount_other": "{{count}} checks",
     "noHostsYet": "No hosts yet. Add one with + Add.",
-    "noChecksYet": "No checks yet. Add one with + Add.",
-    "filterScope": "Show",
-    "everything": "Everything"
+    "noChecksYet": "No checks yet. Add one with + Add."
   },
   "status": {
     "online": "online",
@@ -113,15 +93,9 @@
   },
   "host": {
     "notFound": "There is no such host.",
-    "platform": "Platform",
-    "kernel": "Kernel",
     "cpu": "CPU",
     "memory": "Memory",
-    "uptime": "Up for",
     "agent": "Agent",
-    "docker": "Docker",
-    "noDocker": "not reachable",
-    "lastSeen": "Last heard from",
     "filesystems": "Filesystems",
     "containers": "Containers",
     "cores_one": "{{count}} core",
@@ -148,7 +122,6 @@
     "restartCount_one": "{{count}} restart",
     "restartCount_other": "{{count}} restarts",
     "upFor": "up for {{time}}",
-    "events": "Events",
     "ignored": "ignored"
   },
   "event": {
@@ -209,11 +182,6 @@
     "cancel": "Cancel",
     "delete": "Delete environment",
     "deleteConfirm": "Delete this environment? Its history stays.",
-    "children": {
-      "customer": "Projects",
-      "project": "Environments",
-      "environment": "Environments"
-    },
     "childCount": {
       "customer_one": "{{count}} project",
       "customer_other": "{{count}} projects",
@@ -340,7 +308,6 @@
     "copy": "Copy",
     "revoke": "Revoke agent",
     "revokeConfirm": "Revoke this host's agent? It is disconnected now and can only come back by enrolling again.",
-    "revokeHint": "Disconnects the agent and revokes its credential. History and readings stay. Running the install command again, with a current token, brings it back.",
     "revoked": "Agent revoked.",
     "waiting": "Waiting for the machine to connect…",
     "arrived": "{{name}} is connected.",
@@ -371,7 +338,6 @@
     "hubManual": "This hub does not run under the starter, so it cannot update itself; pull the newer image."
   },
   "check": {
-    "title": "Checks",
     "add": "Add check",
     "create": "Add",
     "none": "No checks yet.",
@@ -414,11 +380,7 @@
     "namePlaceholder": "Shop homepage",
     "since": "for {{time}}",
     "uptime": "Uptime",
-    "certExpires_one": "certificate expires in {{count}} day",
-    "certExpires_other": "certificate expires in {{count}} days",
     "byProbe": "By probe",
-    "probe": "Probe",
-    "when": "When",
     "pingTitle": "Ping",
     "lastPing": "Last ping {{time}} ago.",
     "noPing": "No ping yet.",
@@ -426,8 +388,6 @@
     "pingAdminOnly": "Only admins see the ping URL.",
     "delete": "Delete check",
     "deleteConfirm": "Delete this check and its results? Its history stays.",
-    "daysShort_one": "{{count}} d",
-    "daysShort_other": "{{count}} d",
     "deleted": "Check deleted.",
     "created": "{{name}} added. Its first run comes in a moment."
   },
@@ -477,15 +437,11 @@
     "history": "Alert history",
     "noHistory": "Nothing happened in this time.",
     "notFound": "There is no such alert.",
-    "what": "What happened",
     "went": "{{from}} → {{to}}, {{time}}",
     "measured": "Measured {{value}}",
     "threshold": "threshold {{value}}",
     "now": "Now",
     "why": "The rule as it applied",
-    "setting": "Setting",
-    "settingValue": "Value",
-    "settingFrom": "From",
     "notifications": "Notifications",
     "noNotifications": "Nothing was sent: notify.channels names no channel here.",
     "status": {
@@ -623,15 +579,12 @@
     "nothingFound": "Nothing found.",
     "pages": "Pages",
     "actions": "Actions",
-    "status": "Status",
     "alerts": "Alerts",
     "hosts": "Hosts",
     "checks": "Checks",
     "settings": "Settings",
     "environments": "Environments",
-    "noEnvironments": "No environments yet.",
     "updateAvailable": "A new version is available",
-    "theme": "Theme",
     "themeSystem": "System",
     "themeLight": "Light",
     "themeDark": "Dark",
@@ -650,16 +603,10 @@
   },
   "rows": {
     "offlineSince": "offline for {{time}}",
-    "containers": "{{running}}/{{total}} containers",
     "lastPing": "last ping {{time}} ago",
     "noPing": "no ping yet",
     "filter": "Filter…",
-    "noMatch": "Nothing matches.",
-    "noHosts": "No hosts yet.",
-    "noChecks": "No checks yet."
-  },
-  "incident": {
-    "on": "on {{name}}"
+    "noMatch": "Nothing matches."
   },
   "uptime": {
     "noData": "no runs"
@@ -692,8 +639,7 @@
     "now": "at once",
     "setHere": "Set here",
     "reset": "Use inherited",
-    "from": "Inherited from {{name}}",
-    "default": "Default"
+    "from": "Inherited from {{name}}"
   },
   "why": {
     "enabled": "On",
