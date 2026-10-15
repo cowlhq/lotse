@@ -59,6 +59,13 @@ type ProbeCheck struct {
 	Timeout  int             `json:"timeout"`
 }
 
+// ChecksHeader is where a probe lists the types of check it runs, such as
+// http,tls,tcp,dns, when it connects. A probe that does not, from before
+// there was a header, runs LegacyChecks.
+const ChecksHeader = "X-Lotse-Checks"
+
+var LegacyChecks = []string{"http", "tls", "tcp"}
+
 // CheckResult is one run of a check by a probe.
 type CheckResult struct {
 	CheckID      int64   `json:"check_id"`

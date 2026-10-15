@@ -1651,7 +1651,7 @@ components:
           type: string
           description: Its key in the environment; made from the name if missing.
         name: { type: string }
-        type: { type: string, enum: [http, tls, tcp, heartbeat] }
+        type: { type: string, enum: [http, tls, tcp, dns, domain, heartbeat] }
         spec:
           type: object
           additionalProperties: true
@@ -1671,7 +1671,7 @@ components:
           type: string
           description: The stable key, such as acme/shop/prod/homepage.
         name: { type: string }
-        type: { type: string, enum: [http, tls, tcp, heartbeat] }
+        type: { type: string, enum: [http, tls, tcp, dns, domain, heartbeat] }
         spec:
           type: object
           additionalProperties: true

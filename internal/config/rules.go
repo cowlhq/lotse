@@ -53,6 +53,7 @@ var Rules = []Rule{
 	{Name: "container.restarting", On: "container", Unit: "count", Description: "A container stopped this many times in 10 minutes.", Crit: num(3), Margin: 1, Recover: 10 * time.Minute, Enabled: true},
 	{Name: "check.down", On: "check", Unit: "count", Description: "A check failed this many runs in a row, on most of its probes.", Crit: num(2), Enabled: true},
 	{Name: "check.cert", On: "check", Unit: "days", Below: true, Description: "A certificate expires in fewer days than this.", Warn: num(14), Crit: num(7), Enabled: true},
+	{Name: "check.domain", On: "check", Unit: "days", Below: true, Description: "A domain's registration expires in fewer days than this.", Warn: num(30), Crit: num(7), Enabled: true},
 	{Name: "check.heartbeat", On: "check", Description: "A heartbeat did not come in time, or said its job failed.", Level: "crit", Enabled: true},
 	{Name: "probe.silent", On: "probe", Description: "An external probe is gone.", Level: "warn", For: 2 * time.Minute, Enabled: true},
 	{Name: "channel.failing", On: "channel", Description: "A channel cannot send notifications.", Level: "crit", Enabled: true},

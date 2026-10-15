@@ -46,6 +46,9 @@ type resultAt struct {
 	r  probe.Result
 }
 
+// domainEvery is how often a domain's expiry is looked up.
+const domainEvery = 6 * time.Hour
+
 // reassign works out which probe runs which check, and tells them all.
 func (h *hub) reassign(ctx context.Context) {
 	checks, err := h.db.Checks(ctx, 0)
@@ -86,8 +89,13 @@ func (h *hub) reassign(ctx context.Context) {
 		if h.checkInterval > 0 {
 			a.Interval = h.checkInterval
 		}
+		if c.Type == "domain" && h.checkInterval == 0 {
+			// Registries answer slowly, and dates change seldom: a few
+			// times a day is often enough, and polite.
+			a.Interval, a.Timeout = max(a.Interval, domainEvery), max(a.Timeout, 30*time.Second)
+		}
 		for _, p := range probes {
-			if p.RevokedAt != nil || !(slices.Contains(names, "all") || slices.Contains(names, p.Slug)) {
+			if p.RevokedAt != nil || !(slices.Contains(names, "all") || slices.Contains(names, p.Slug)) || !h.probes.runs(p.ID, c.Type) {
 				continue
 			}
 			a.probes = append(a.probes, p.ID)

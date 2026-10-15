@@ -488,6 +488,8 @@ func (e CheckState) Valid() bool {
 
 // Defines values for CheckType.
 const (
+	CheckTypeDns       CheckType = "dns"
+	CheckTypeDomain    CheckType = "domain"
 	CheckTypeHeartbeat CheckType = "heartbeat"
 	CheckTypeHttp      CheckType = "http"
 	CheckTypeTcp       CheckType = "tcp"
@@ -497,6 +499,10 @@ const (
 // Valid indicates whether the value is a known member of the CheckType enum.
 func (e CheckType) Valid() bool {
 	switch e {
+	case CheckTypeDns:
+		return true
+	case CheckTypeDomain:
+		return true
 	case CheckTypeHeartbeat:
 		return true
 	case CheckTypeHttp:
@@ -533,6 +539,8 @@ func (e CheckDetailState) Valid() bool {
 
 // Defines values for CheckDetailType.
 const (
+	CheckDetailTypeDns       CheckDetailType = "dns"
+	CheckDetailTypeDomain    CheckDetailType = "domain"
 	CheckDetailTypeHeartbeat CheckDetailType = "heartbeat"
 	CheckDetailTypeHttp      CheckDetailType = "http"
 	CheckDetailTypeTcp       CheckDetailType = "tcp"
@@ -542,6 +550,10 @@ const (
 // Valid indicates whether the value is a known member of the CheckDetailType enum.
 func (e CheckDetailType) Valid() bool {
 	switch e {
+	case CheckDetailTypeDns:
+		return true
+	case CheckDetailTypeDomain:
+		return true
 	case CheckDetailTypeHeartbeat:
 		return true
 	case CheckDetailTypeHttp:
@@ -557,6 +569,8 @@ func (e CheckDetailType) Valid() bool {
 
 // Defines values for CheckInputType.
 const (
+	CheckInputTypeDns       CheckInputType = "dns"
+	CheckInputTypeDomain    CheckInputType = "domain"
 	CheckInputTypeHeartbeat CheckInputType = "heartbeat"
 	CheckInputTypeHttp      CheckInputType = "http"
 	CheckInputTypeTcp       CheckInputType = "tcp"
@@ -566,6 +580,10 @@ const (
 // Valid indicates whether the value is a known member of the CheckInputType enum.
 func (e CheckInputType) Valid() bool {
 	switch e {
+	case CheckInputTypeDns:
+		return true
+	case CheckInputTypeDomain:
+		return true
 	case CheckInputTypeHeartbeat:
 		return true
 	case CheckInputTypeHttp:

@@ -221,3 +221,49 @@ func TestExternalProbe(t *testing.T) {
 	}
 	waitFor(t, "fra to be gone", func() bool { return len(h.probes.all()) == 0 })
 }
+
+// A probe runs the types of check it said it runs; one from before it
+// could say, the old ones. Domains are the hub's own.
+func TestCheckTypesPerProbe(t *testing.T) {
+	var p probeConns
+	p.add(nil, 7, []string{"http", "tls", "tcp", "dns"})
+	for _, c := range []struct {
+		id   int64
+		typ  string
+		runs bool
+	}{
+		{7, "dns", true}, {7, "domain", false}, {8, "http", true}, {8, "dns", false},
+		{store.BuiltinProbe, "dns", true}, {store.BuiltinProbe, "domain", true},
+	} {
+		if got := p.runs(c.id, c.typ); got != c.runs {
+			t.Errorf("probe %d runs %s: %v", c.id, c.typ, got)
+		}
+	}
+}
+
+// A domain's expiry, looked up by the hub's own probe.
+func TestDomainCheck(t *testing.T) {
+	var registry *httptest.Server
+	registry = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/dns.json" {
+			fmt.Fprintf(w, `{"services":[[["com"],["%s/"]]]}`, registry.URL)
+			return
+		}
+		fmt.Fprintf(w, `{"events":[{"eventAction":"expiration","eventDate":%q}]}`, time.Now().Add(5*24*time.Hour).UTC().Format(time.RFC3339))
+	}))
+	defer registry.Close()
+	h, server := newTestHub(t)
+	h.builtinProbe.Runner.RDAPBootstrap = registry.URL + "/dns.json"
+	h.checkInterval = 200 * time.Millisecond
+	env := testEnvironment(t, h)
+	status, body := do(t, server, "POST", "/api/checks", fmt.Sprintf(`{"environment_id":%d,"name":"Domain","type":"domain","spec":{"domain":"Example.com."}}`, env.ID))
+	if status != http.StatusCreated {
+		t.Fatalf("create: %d %s", status, body)
+	}
+	var c api.Check
+	json.Unmarshal([]byte(body), &c)
+	waitFor(t, "the expiry", func() bool {
+		d := getCheck(t, server, c.Id)
+		return d.State == "up" && d.CertNotAfter != nil
+	})
+}

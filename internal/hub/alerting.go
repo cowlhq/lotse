@@ -257,17 +257,24 @@ func (h *hub) readings(t *tree, in inputs, now time.Time) []reading {
 			down.skip, down.reason = grace, "no probe has a recent result"
 		}
 		out = append(out, down)
-		if hasCert(c) {
-			cert := reading{rule: rule("check.cert"), kind: "check", id: c.ID}
+		if hasCert(c) || c.Type == "domain" {
+			name, what := "check.cert", "the certificate"
+			if c.Type == "domain" {
+				// A domain's check keeps its registration's end where
+				// others keep a certificate's.
+				name, what = "check.domain", "the domain"
+			}
+			cert := reading{rule: rule(name), kind: "check", id: c.ID}
 			switch {
 			case st.certNotAfter > 0:
 				cert.value = ptr(time.Unix(st.certNotAfter, 0).Sub(now).Hours() / 24)
-				cert.reason = "the certificate expires " + time.Unix(st.certNotAfter, 0).Format("2006-01-02")
+				cert.reason = what + " expires " + time.Unix(st.certNotAfter, 0).Format("2006-01-02")
 			case !st.fresh:
 				cert.skip = grace
 			default:
-				// It ran, but saw no certificate, as when it cannot connect;
-				// check.down covers that.
+				// It ran, but saw no certificate, as when it cannot connect,
+				// or no date, from a registry that publishes none;
+				// check.down covers the first.
 				continue
 			}
 			out = append(out, cert)

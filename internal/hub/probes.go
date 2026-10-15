@@ -26,6 +26,8 @@ type wsWriter = *websocket.Conn
 type probeConns struct {
 	mu   sync.Mutex
 	conn map[*websocket.Conn]int64
+	// types are the checks each connected probe runs.
+	types map[int64][]string
 }
 
 type probeConn struct {
@@ -33,13 +35,33 @@ type probeConn struct {
 	probeID int64
 }
 
-func (p *probeConns) add(c *websocket.Conn, id int64) {
+func (p *probeConns) add(c *websocket.Conn, id int64, types []string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.conn == nil {
-		p.conn = map[*websocket.Conn]int64{}
+		p.conn, p.types = map[*websocket.Conn]int64{}, map[int64][]string{}
 	}
 	p.conn[c] = id
+	p.types[id] = types
+}
+
+// runs says whether a probe runs checks of a type. The hub's own runs all
+// there are; another, those it said it runs, or, until it said, those
+// every probe runs.
+func (p *probeConns) runs(id int64, typ string) bool {
+	if id == store.BuiltinProbe {
+		return true
+	}
+	if slices.Contains(probe.HubTypes, typ) {
+		return false
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	types, ok := p.types[id]
+	if !ok {
+		types = protocol.LegacyChecks
+	}
+	return slices.Contains(types, typ)
 }
 
 func (p *probeConns) remove(c *websocket.Conn) {
@@ -111,6 +133,10 @@ func (h *hub) enrollProbe(w http.ResponseWriter, r *http.Request) {
 func (h *hub) connectProbe(w http.ResponseWriter, r *http.Request) {
 	token, _ := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	version := r.Header.Get("X-Lotse-Version")
+	types := protocol.LegacyChecks
+	if h := r.Header.Get(protocol.ChecksHeader); h != "" {
+		types = strings.Split(h, ",")
+	}
 	p, err := h.db.ProbeByCredential(r.Context(), auth.HashToken(token), version, time.Now().Unix())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "this probe's credential is not accepted")
@@ -129,7 +155,7 @@ func (h *hub) connectProbe(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := context.WithoutCancel(r.Context())
 	log := h.log.With("probe", p.Slug)
-	h.probes.add(conn, p.ID)
+	h.probes.add(conn, p.ID, types)
 	log.Info("probe connected", "version", version)
 	defer func() {
 		h.probes.remove(conn)

@@ -1311,7 +1311,7 @@ export interface components {
             slug?: string;
             name: string;
             /** @enum {string} */
-            type: "http" | "tls" | "tcp" | "heartbeat";
+            type: "http" | "tls" | "tcp" | "dns" | "domain" | "heartbeat";
             /** @description http: url, keyword, status (such as 200-299); tls: address (host:port), server_name; tcp: address; heartbeat: period, grace (such as 24h and 1h). */
             spec: {
                 [key: string]: unknown;
@@ -1327,7 +1327,7 @@ export interface components {
             path: string;
             name: string;
             /** @enum {string} */
-            type: "http" | "tls" | "tcp" | "heartbeat";
+            type: "http" | "tls" | "tcp" | "dns" | "domain" | "heartbeat";
             spec: {
                 [key: string]: unknown;
             };
