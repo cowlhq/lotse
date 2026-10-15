@@ -227,6 +227,8 @@ type hub struct {
 	// db is nil during the database step of setup.
 	db     *store.Store
 	agents agents
+	// clocks are how far agents' clocks are off.
+	clocks clocks
 	live   live
 	writer *writer
 	// How often agents read their machine and its containers.

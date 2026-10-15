@@ -1773,6 +1773,13 @@ components:
           format: int64
           nullable: true
           description: Its environment; null until it is put into one.
+        clock_offset:
+          type: integer
+          format: int64
+          description: >-
+            How many seconds its machine's clock is behind the hub's, negative
+            when ahead; only when off by more than 30 seconds. Its readings are
+            moved to the hub's time.
 
     HostReading:
       type: object

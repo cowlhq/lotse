@@ -377,7 +377,10 @@ Agent → hub:
 | `container_stats` | every interval | CPU, memory, network per container |
 
 Samples sent from the buffer after a reconnect carry their original
-timestamps.
+timestamps. A machine whose clock is off would put its readings at the
+wrong time: the hub compares when host readings arrive with their stamps,
+and once the last five agree on an offset of more than 30 s, it moves what
+that agent sends to its own time and shows the offset on the host.
 
 Hub → agent:
 
