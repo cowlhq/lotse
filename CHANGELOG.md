@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.15](https://github.com/cowlhq/lotse/compare/v0.1.14...v0.1.15) (2026-10-15)
+
+
+### Features
+
+* **hub:** readings from a machine whose clock is off land at the hub's time ([4bc0cc6](https://github.com/cowlhq/lotse/commit/4bc0cc6d85dedf364b8993d327c377825efa79ce))
+
+
+### Bug Fixes
+
+* agents and probes say plainly why they lost the hub, and a restart is no warning ([d5b677d](https://github.com/cowlhq/lotse/commit/d5b677d1a628b15529f609ea642f97d7a8166e50))
+* **hub:** a heartbeat pinged in a loop is slowed down ([c08bc38](https://github.com/cowlhq/lotse/commit/c08bc3858cf7ad48d699522bac2fb85c3c38dca5))
+
 ## [0.1.14](https://github.com/cowlhq/lotse/compare/v0.1.13...v0.1.14) (2026-10-15)
 
 
