@@ -4,7 +4,7 @@ import { Ban, FolderInput, MoreHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { getHost, getSeries, listEvents, listScopes, NotFound, revokeAgent, setHostEnvironment, updateHost, type Container, type Host as HostData, type HostDetail, type Series } from "@/api";
+import { getConfig, getHost, getSeries, listEvents, listScopes, NotFound, revokeAgent, setHostEnvironment, updateHost, type Container, type Host as HostData, type HostDetail, type Series, type SystemUnit } from "@/api";
 import { AlertBell } from "@/components/AlertBell";
 import { AlertHistory, useAlerts } from "@/components/Alerts";
 import { Chart, type Line } from "@/components/Chart";
@@ -86,6 +86,11 @@ export function Host({ id }: { id: number }) {
               d.latest?.uptime != null && t("host.upFor", { time: duration(d.latest.uptime) }),
               `${t("host.agent")} ${h.agent_version}`,
               h.docker_version && `Docker ${h.docker_version}`,
+              d.system?.reboot_required && (
+                <span style={{ color: "var(--warn)" }} title={d.system.reboot_reason}>
+                  {t("host.rebootRequired")}
+                </span>
+              ),
               // A clock that is off is the machine's to fix; the hub moves
               // its readings meanwhile.
               h.clock_offset != null && (
@@ -130,6 +135,7 @@ export function Host({ id }: { id: number }) {
             ))}
           </div>
           <Filesystems detail={d} />
+          <Services hostID={id} detail={d} />
         </TabsContent>
         <TabsContent value="containers">
           <Panel title={t("host.containers")} right={t("host.running", { count: running })} flush>
@@ -346,6 +352,58 @@ function Filesystems({ detail }: { detail: HostDetail }) {
           );
         })}
       </ul>
+    </Panel>
+  );
+}
+
+// Services are the machine's systemd units as its agent sees them: those
+// that failed and those that must run first, the rest on request.
+function Services({ hostID, detail }: { hostID: number; detail: HostDetail }) {
+  const { t } = useTranslation();
+  const [all, setAll] = useState(false);
+  const config = useQuery({ queryKey: ["config", `host:${hostID}`], queryFn: () => getConfig(`host:${hostID}`) });
+  const sys = detail.system;
+  if (!sys?.systemd) return null;
+  const setting = (key: string) => new Set((config.data?.find((v) => v.key === key)?.value as string[] | undefined) ?? []);
+  const must = setting("host.services");
+  const ignored = setting("host.ignore_units");
+  const services = sys.units.filter((u) => u.name.endsWith(".service"));
+  const active = services.filter((u) => u.active === "active").length;
+  const failed = sys.units.filter((u) => u.active === "failed").length;
+  const bad = (u: SystemUnit) => (u.active === "failed" && !ignored.has(u.name)) || (must.has(u.name) && u.active !== "active");
+  const missing = [...must].filter((name) => !sys.units.some((u) => u.name === name)).map((name): SystemUnit => ({ name, active: "missing", sub: "" }));
+  const shown = all ? [...missing, ...sys.units] : [...missing, ...sys.units.filter((u) => bad(u) || must.has(u.name) || u.active === "failed")];
+  shown.sort((a, b) => Number(!bad(a) && a.active !== "missing") - Number(!bad(b) && b.active !== "missing") || a.name.localeCompare(b.name));
+  return (
+    <Panel
+      title={t("host.services")}
+      right={
+        <>
+          <span className="tabular-nums">{failed ? t("host.servicesFailed", { active, failed }) : t("host.servicesActive", { active })}</span>
+          <Button variant="ghost" size="xs" onClick={() => setAll(!all)}>
+            {all ? t("host.servicesFew") : t("host.servicesAll")}
+          </Button>
+        </>
+      }
+      flush
+    >
+      {shown.length === 0 ? (
+        <p className="px-4 py-3 text-muted-foreground">{t("host.servicesFine")}</p>
+      ) : (
+        <ul className={all ? "max-h-96 overflow-y-auto" : undefined}>
+          {shown.map((u) => (
+            <li key={u.name} className="flex items-center gap-3 border-b px-4 py-2 last:border-b-0">
+              <StatusIcon level={bad(u) || u.active === "missing" ? (must.has(u.name) ? "crit" : "warn") : u.active === "active" ? "ok" : "unknown"} />
+              <span className="min-w-0 flex-1 truncate font-mono text-mini">{u.name}</span>
+              {must.has(u.name) && <span className="text-mini text-muted-foreground">{t("host.mustRun")}</span>}
+              {ignored.has(u.name) && <span className="text-mini text-muted-foreground">{t("host.ignored")}</span>}
+              <span className="w-36 text-right text-mini text-muted-foreground">
+                {u.active === "missing" ? t("host.unitMissing") : u.sub ? `${u.active} (${u.sub})` : u.active}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 }

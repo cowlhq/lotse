@@ -112,7 +112,17 @@
     "waitingHint": "{{name}} is named in lotse.yaml, and its settings are ready. Install the agent on the machine with its environment's command (Add host); a machine called {{name}} that enrolls there becomes this host.",
     "clockBehind": "clock {{time}} behind",
     "clockAhead": "clock {{time}} ahead",
-    "clockHint": "This machine's clock is off. Its readings are moved to the hub's time; set the clock right, with NTP, such as systemd-timesyncd or chrony."
+    "clockHint": "This machine's clock is off. Its readings are moved to the hub's time; set the clock right, with NTP, such as systemd-timesyncd or chrony.",
+    "services": "Services",
+    "servicesAll": "Show all",
+    "servicesFew": "Show fewer",
+    "servicesFine": "No unit failed, and those that must run do.",
+    "mustRun": "must run",
+    "unitMissing": "not there",
+    "rebootRequired": "restart needed",
+    "ignored": "ignored",
+    "servicesActive": "{{active}} active",
+    "servicesFailed": "{{active}} active, {{failed}} failed"
   },
   "container": {
     "notFound": "There is no such container.",
@@ -265,7 +275,8 @@
       "notify": "Notifications",
       "deadman": "Dead man's switch",
       "retention": "Keeping readings",
-      "other": "Other"
+      "other": "Other",
+      "host": "Host"
     },
     "keys": {
       "agent.interval.host": "Host readings every",
@@ -282,7 +293,9 @@
       "deadman.interval": "Call every",
       "retention.raw": "Raw readings",
       "retention.5m": "5-minute averages",
-      "retention.1h": "Hourly averages"
+      "retention.1h": "Hourly averages",
+      "host.services": "Services that must run",
+      "host.ignore_units": "Units to ignore"
     },
     "levels": {
       "crit": "always critical",
@@ -436,7 +449,10 @@
     "check.heartbeat": "A heartbeat did not come in time, or said its job failed.",
     "probe.silent": "An external probe is gone.",
     "channel.failing": "A channel cannot send notifications.",
-    "check.domain": "A domain's registration expires in fewer days than this."
+    "check.domain": "A domain's registration expires in fewer days than this.",
+    "host.unit": "A systemd unit failed.",
+    "host.service": "A service in host.services does not run.",
+    "host.reboot": "Updates have waited this long for a restart."
   },
   "alert": {
     "title": "Alerts",
@@ -486,7 +502,10 @@
       "check.heartbeat": "Heartbeat missed",
       "probe.silent": "Probe offline",
       "channel.failing": "Channel cannot send",
-      "check.domain": "Domain expiring"
+      "check.domain": "Domain expiring",
+      "host.unit": "Unit failed",
+      "host.service": "Service not running",
+      "host.reboot": "Restart needed"
     },
     "sinceAgo": "for {{time}}"
   },

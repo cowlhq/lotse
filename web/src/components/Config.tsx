@@ -153,12 +153,13 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 // none is not left out: the last group takes the rest.
 const groups: { key: string; match: (key: string) => boolean }[] = [
   { key: "agent", match: (k) => k.startsWith("agent.") },
+  { key: "host", match: (k) => k.startsWith("host.") },
   { key: "containers", match: (k) => k === "ignore" },
   { key: "checks", match: (k) => k.startsWith("check.") },
   { key: "notify", match: (k) => k.startsWith("notify.") },
   { key: "deadman", match: (k) => k.startsWith("deadman.") },
   { key: "retention", match: (k) => k.startsWith("retention.") },
-  { key: "other", match: (k) => !/^(agent\.|check\.|notify\.|deadman\.|retention\.|ignore$)/.test(k) },
+  { key: "other", match: (k) => !/^(agent\.|host\.|check\.|notify\.|deadman\.|retention\.|ignore$)/.test(k) },
 ];
 
 // unitOf reads a threshold's unit from its description: "… (percent), or off."
@@ -226,7 +227,7 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
             save.mutate(parse(v.type, text));
           }}
         >
-          <Input value={text} onChange={(e) => setText(e.target.value)} className={v.type === "url" || v.type === "channels" ? "h-8 w-64" : "h-8 w-28"} autoFocus />
+          <Input value={text} onChange={(e) => setText(e.target.value)} className={v.type === "url" || v.type === "channels" || v.type === "services" ? "h-8 w-64" : "h-8 w-28"} autoFocus />
           <Button type="submit" size="sm" disabled={save.isPending}>
             {t("tree.save")}
           </Button>
@@ -339,7 +340,7 @@ function Cell({ subject, value: v, unit }: { subject: string; value: ConfigValue
 // otherwise.
 function parse(type: ConfigValue["type"], text: string): unknown {
   const trimmed = text.trim();
-  if (type === "probes" || type === "channels") {
+  if (type === "probes" || type === "channels" || type === "services") {
     const names = trimmed.split(/[\s,]+/).filter(Boolean);
     return type === "probes" && names.length === 1 && names[0] === "all" ? "all" : names;
   }
