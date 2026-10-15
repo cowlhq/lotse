@@ -6,6 +6,7 @@ require (
 	aead.dev/minisign v0.3.0
 	github.com/coder/websocket v1.8.15
 	github.com/containerd/errdefs v1.0.0
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/moby/moby/api v1.56.1
 	github.com/moby/moby/client v0.6.2

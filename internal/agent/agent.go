@@ -161,6 +161,7 @@ func Run(ctx context.Context, cfg Config, log *slog.Logger) error {
 	log.Info("lotse agent starting", "version", version.Version, "hub", cfg.Hub, "root", cfg.Root)
 
 	go a.sampleHost(ctx)
+	go a.sampleSystem(ctx)
 	go a.docker.watch(ctx)
 	go a.docker.sampleStats(ctx, func() time.Duration { return a.interval(&a.containerInterval) }, a.containersWake)
 
