@@ -144,6 +144,7 @@ const (
 	TypeHost   = "host"
 	// Containers is the full list of the machine's containers: after
 	// connecting, and every few minutes as a safety net for missed events.
+	TypeSystem         = "system"
 	TypeContainers     = "containers"
 	TypeContainerEvent = "container_event"
 	TypeContainerStats = "container_stats"
@@ -164,6 +165,7 @@ type Message struct {
 	Result *CheckResult  `json:"result,omitempty"`
 	Host   *HostSample   `json:"host,omitempty"`
 
+	System         *System         `json:"system,omitempty"`
 	Containers     *ContainerList  `json:"containers,omitempty"`
 	ContainerEvent *ContainerEvent `json:"container_event,omitempty"`
 	ContainerStats *ContainerStats `json:"container_stats,omitempty"`
@@ -248,6 +250,29 @@ type Filesystem struct {
 	Total       int64  `json:"total"`
 	InodesUsed  *int64 `json:"inodes_used,omitempty"`
 	InodesTotal *int64 `json:"inodes_total,omitempty"`
+}
+
+// System is what an agent knows of its machine's services, and whether
+// the machine needs a restart. It comes every minute.
+type System struct {
+	TS int64 `json:"ts"`
+	// Systemd says whether the agent could ask systemd. Units are then the
+	// machine's services, and units of other kinds that failed.
+	Systemd bool   `json:"systemd"`
+	Units   []Unit `json:"units,omitempty"`
+	// RebootRequired is set when updates wait for a restart, as Debian and
+	// Ubuntu note it, or as NixOS shows it by a new kernel.
+	RebootRequired bool `json:"reboot_required,omitempty"`
+	// RebootReason says why, such as the packages that asked for it.
+	RebootReason string `json:"reboot_reason,omitempty"`
+}
+
+// Unit is a systemd unit and its state, such as active (running) or
+// failed (failed).
+type Unit struct {
+	Name   string `json:"name"`
+	Active string `json:"active"`
+	Sub    string `json:"sub,omitempty"`
 }
 
 // Container is a container as Docker describes it. The hub decides from its
