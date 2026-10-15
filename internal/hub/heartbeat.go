@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"lotse.sh/internal/auth"
@@ -19,12 +20,64 @@ import (
 
 const heartbeatEvery = 30 * time.Second
 
+// pingGate keeps a heartbeat that is pinged in a loop, by a job gone wrong,
+// from writing to the database each time: a few pings at once, then one a
+// second (pingBurst, pingRate).
+type pingGate struct {
+	mu   sync.Mutex
+	seen map[string]pingAllowance
+}
+
+type pingAllowance struct {
+	left float64
+	at   time.Time
+}
+
+const (
+	pingBurst = 5
+	pingRate  = 1 // per second
+)
+
+// allow says whether a ping for a token may go on now.
+func (g *pingGate) allow(token string, now time.Time) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.seen == nil {
+		g.seen = map[string]pingAllowance{}
+	}
+	a, ok := g.seen[token]
+	if !ok {
+		a = pingAllowance{left: pingBurst, at: now}
+	}
+	a.left = min(pingBurst, a.left+now.Sub(a.at).Seconds()*pingRate)
+	a.at = now
+	allowed := a.left >= 1
+	if allowed {
+		a.left--
+	}
+	g.seen[token] = a
+	// Tokens that have their whole allowance back are forgotten.
+	if len(g.seen) > 1000 {
+		for k, x := range g.seen {
+			if x.left+now.Sub(x.at).Seconds()*pingRate >= pingBurst {
+				delete(g.seen, k)
+			}
+		}
+	}
+	return allowed
+}
+
 // ping takes a heartbeat's ping, by GET, POST or HEAD, without a login:
 // the token in the address is the secret.
 func (h *hub) ping(w http.ResponseWriter, r *http.Request) {
 	token, failed := strings.CutSuffix(r.PathValue("token"), "/fail")
 	if rest := r.PathValue("rest"); rest == "fail" {
 		failed = true
+	}
+	if !h.pings.allow(token, time.Now()) {
+		w.Header().Set("Retry-After", "1")
+		http.Error(w, "too many pings; one a second is enough", http.StatusTooManyRequests)
+		return
 	}
 	c, err := h.db.Ping(r.Context(), auth.HashToken(token), time.Now().Unix())
 	if errors.Is(err, store.ErrNotFound) {

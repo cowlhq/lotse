@@ -157,7 +157,8 @@ period and the grace, the check goes down.
 backup.sh && curl -fsS https://lotse.example.com/ping/<token> || curl -fsS https://lotse.example.com/ping/<token>/fail
 ```
 
-The URL is the secret; the check's page shows it to admins.
+The URL is the secret; the check's page shows it to admins. A few calls at
+once go through; after that, one a second, and the rest get 429.
 
 ## Alerts
 

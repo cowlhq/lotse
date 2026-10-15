@@ -229,6 +229,7 @@ type hub struct {
 	agents agents
 	// clocks are how far agents' clocks are off.
 	clocks clocks
+	pings  pingGate
 	live   live
 	writer *writer
 	// How often agents read their machine and its containers.
