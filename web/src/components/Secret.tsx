@@ -44,7 +44,7 @@ export function SecretField({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={id}>{label}</Label>
-        <ToggleGroup value={[draft.mode]} onValueChange={(v: string[]) => v[0] && onChange({ mode: v[0] as SecretDraft["mode"], text: "" })} variant="outline" size="sm">
+        <ToggleGroup value={[draft.mode]} onValueChange={(v: string[]) => v[0] && onChange({ mode: v[0] as SecretDraft["mode"], text: "" })} variant="segmented" size="sm">
           {(["value", "env", "file"] as const).map((m) => (
             <ToggleGroupItem key={m} value={m} className="text-xs">
               {t(`secret.mode.${m}`)}

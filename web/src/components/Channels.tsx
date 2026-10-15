@@ -192,7 +192,7 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
         <DialogDescription>{t(`channel.typeHint.${type}`)}</DialogDescription>
       </DialogHeader>
       {!channel && (
-        <ToggleGroup value={[type]} onValueChange={(v: string[]) => v[0] && setType(v[0] as Type)} variant="outline" size="sm">
+        <ToggleGroup value={[type]} onValueChange={(v: string[]) => v[0] && setType(v[0] as Type)} variant="segmented" size="sm">
           {types.map((k) => (
             <ToggleGroupItem key={k} value={k}>
               {t(`channel.type.${k}`)}
@@ -267,7 +267,7 @@ export function TLSPicker({ value, onChange }: { value: SMTPDraft["tls"]; onChan
   return (
     <div className="space-y-1.5">
       <Label>{t("mail.tls")}</Label>
-      <ToggleGroup value={[value]} onValueChange={(v: string[]) => v[0] && onChange(v[0] as SMTPDraft["tls"])} variant="outline" size="sm">
+      <ToggleGroup value={[value]} onValueChange={(v: string[]) => v[0] && onChange(v[0] as SMTPDraft["tls"])} variant="segmented" size="sm">
         {(["starttls", "tls", "none"] as const).map((m) => (
           <ToggleGroupItem key={m} value={m}>
             {t(`mail.tlsMode.${m}`)}

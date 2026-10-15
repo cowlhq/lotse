@@ -114,7 +114,7 @@ function NewTokenForm() {
       </div>
       <div className="space-y-1.5">
         <Label>{t("token.what")}</Label>
-        <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as Token["kind"])} variant="outline" size="sm">
+        <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as Token["kind"])} variant="segmented" size="sm">
           <ToggleGroupItem value="apply">{t("token.kind.apply")}</ToggleGroupItem>
           <ToggleGroupItem value="read">{t("token.kind.read")}</ToggleGroupItem>
         </ToggleGroup>

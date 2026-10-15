@@ -16,7 +16,7 @@ export function RangePicker({ value, onChange }: { value: RangeSeconds; onChange
     <ToggleGroup
       value={[String(value)]}
       onValueChange={(v: string[]) => v[0] && onChange(Number(v[0]) as RangeSeconds)}
-      variant="outline"
+      variant="segmented"
       size="sm"
     >
       {ranges.map((r) => (
