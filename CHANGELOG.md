@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.16](https://github.com/cowlhq/lotse/compare/v0.1.15...v0.1.16) (2026-10-15)
+
+
+### Features
+
+* **agent:** systemd's units over D-Bus, and whether a restart is needed ([fc7373d](https://github.com/cowlhq/lotse/commit/fc7373d8aae3ecc4f301d0094bdd0808b05028a8))
+* **hub:** channels of the new types, in the API and in lotse.yaml ([675ece8](https://github.com/cowlhq/lotse/commit/675ece809ad47aea8208abc7ecbabc86554750b6))
+* **hub:** DNS and domain checks, given to the probes that run them ([28a9117](https://github.com/cowlhq/lotse/commit/28a91179678ae190423de771a5bb87de77d79ec1))
+* **hub:** failed units, services that must run and pending restarts raise alerts ([0a217a4](https://github.com/cowlhq/lotse/commit/0a217a444bf445e35b4b39905a8fbe871aa30597))
+* **notify:** Slack, Discord, Telegram, ntfy and Pushover ([b0bfd74](https://github.com/cowlhq/lotse/commit/b0bfd74e71736a7c7ef5efa6f5b7ef033776f5a5))
+* **probe:** DNS checks, and domains' expiry over RDAP ([0abaff8](https://github.com/cowlhq/lotse/commit/0abaff8aecaeb2d8bb7ec87e0dbb4f14cecba88e))
+* **web:** DNS and domain checks in the interface ([17be297](https://github.com/cowlhq/lotse/commit/17be2979ac90927e7b6e93d0866e5c7c5d6a7176))
+* **web:** services and restarts on the host page ([f53d0ee](https://github.com/cowlhq/lotse/commit/f53d0eea0189ef7846e39772ead356ca8803134d))
+* **web:** the new channels in the interface ([2711ef5](https://github.com/cowlhq/lotse/commit/2711ef5bd79331201f04c300a8f0512976205c18))
+
 ## [0.1.15](https://github.com/cowlhq/lotse/compare/v0.1.14...v0.1.15) (2026-10-15)
 
 
