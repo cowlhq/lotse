@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"go.yaml.in/yaml/v3"
@@ -113,6 +114,11 @@ type Channel struct {
 	Email      *Email      `yaml:"email,omitempty" json:"email,omitempty"`
 	GoogleChat *GoogleChat `yaml:"googlechat,omitempty" json:"googlechat,omitempty"`
 	Webhook    *Webhook    `yaml:"webhook,omitempty" json:"webhook,omitempty"`
+	Slack      *Hook       `yaml:"slack,omitempty" json:"slack,omitempty"`
+	Discord    *Hook       `yaml:"discord,omitempty" json:"discord,omitempty"`
+	Telegram   *Telegram   `yaml:"telegram,omitempty" json:"telegram,omitempty"`
+	Ntfy       *Ntfy       `yaml:"ntfy,omitempty" json:"ntfy,omitempty"`
+	Pushover   *Pushover   `yaml:"pushover,omitempty" json:"pushover,omitempty"`
 }
 
 type Email struct {
@@ -137,6 +143,28 @@ type GoogleChat struct {
 type Webhook struct {
 	URL        *Secret `yaml:"url" json:"url"`
 	SigningKey *Secret `yaml:"signing_key,omitempty" json:"signing_key,omitempty"`
+}
+
+// Hook is a Slack or Discord channel: its incoming webhook.
+type Hook struct {
+	Webhook *Secret `yaml:"webhook" json:"webhook"`
+}
+
+type Telegram struct {
+	ChatID   string  `yaml:"chat_id" json:"chat_id"`
+	BotToken *Secret `yaml:"bot_token" json:"bot_token"`
+}
+
+type Ntfy struct {
+	// Server is https://ntfy.sh unless set.
+	Server string  `yaml:"server,omitempty" json:"server,omitempty"`
+	Topic  *Secret `yaml:"topic" json:"topic"`
+	Token  *Secret `yaml:"token,omitempty" json:"token,omitempty"`
+}
+
+type Pushover struct {
+	Token *Secret `yaml:"token" json:"token"`
+	User  *Secret `yaml:"user" json:"user"`
 }
 
 // Secret is where a secret comes from: exactly one of these.
@@ -208,20 +236,8 @@ func (d *Document) ResolveFromEnv(getenv func(string) string) error {
 func (d *Document) EachSecret(f func(*Secret)) {
 	each := func(list []Channel) {
 		for i := range list {
-			c := &list[i]
-			if c.Email != nil && c.Email.SMTP != nil && c.Email.SMTP.Password != nil {
-				f(c.Email.SMTP.Password)
-			}
-			if c.GoogleChat != nil && c.GoogleChat.Webhook != nil {
-				f(c.GoogleChat.Webhook)
-			}
-			if c.Webhook != nil {
-				if c.Webhook.URL != nil {
-					f(c.Webhook.URL)
-				}
-				if c.Webhook.SigningKey != nil {
-					f(c.Webhook.SigningKey)
-				}
+			for _, s := range list[i].secrets() {
+				f(s)
 			}
 		}
 	}
@@ -237,6 +253,35 @@ func (d *Document) EachSecret(f func(*Secret)) {
 			}
 		}
 	}
+}
+
+// secrets are a channel's secrets, of whichever type it is.
+func (c *Channel) secrets() []*Secret {
+	var all []*Secret
+	if c.Email != nil && c.Email.SMTP != nil {
+		all = append(all, c.Email.SMTP.Password)
+	}
+	if c.GoogleChat != nil {
+		all = append(all, c.GoogleChat.Webhook)
+	}
+	if c.Webhook != nil {
+		all = append(all, c.Webhook.URL, c.Webhook.SigningKey)
+	}
+	for _, h := range []*Hook{c.Slack, c.Discord} {
+		if h != nil {
+			all = append(all, h.Webhook)
+		}
+	}
+	if c.Telegram != nil {
+		all = append(all, c.Telegram.BotToken)
+	}
+	if c.Ntfy != nil {
+		all = append(all, c.Ntfy.Topic, c.Ntfy.Token)
+	}
+	if c.Pushover != nil {
+		all = append(all, c.Pushover.Token, c.Pushover.User)
+	}
+	return slices.DeleteFunc(all, func(s *Secret) bool { return s == nil })
 }
 
 // ScopeRef names a scope by its key, and optionally its name.

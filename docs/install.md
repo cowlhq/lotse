@@ -169,9 +169,16 @@ certificate that expires, a heartbeat that did not come. To be told:
 1. **Settings → Mail server**, for email: host, port, sender, and the login.
    STARTTLS is the default; `TLS` for port 465.
 2. **Add a channel**, in Settings for everything, or on a customer, project
-   or environment for what is in it: email (recipients), Google Chat (the
-   space's webhook, under Apps & integrations → Webhooks) or a webhook.
-   **Test** sends a test message.
+   or environment for what is in it, and **Test** sends a test message:
+   - **Email**: recipients.
+   - **Slack**, **Discord**, **Google Chat**: the channel's or space's
+     webhook.
+   - **Telegram**: a bot's token from @BotFather, and the chat it sends to.
+   - **ntfy**: a topic on ntfy.sh, or on a server of your own, to push to
+     phones. The topic is a secret; pick one that is hard to guess.
+   - **Pushover**: your user key and an application's token. Critical
+     alerts sound even in quiet hours.
+   - **Webhook**: any address, which gets the alerts as JSON.
 3. Set **`notify.channels`** to the channels' keys, where alerts should go
    to them: globally for all, on a customer for theirs. The nearest setting
    wins, so customer X's alerts can go to X's space and nowhere else.
@@ -269,6 +276,20 @@ lotse export acme > lotse.yaml       # start from what the hub has
 lotse apply -f lotse.yaml --dry-run  # what would change, and who changed it last
 lotse apply -f lotse.yaml
 lotse apply -f lotse.yaml --prune --scope acme   # also delete what the file leaves out
+```
+
+Other channels take their secrets the same way:
+
+```yaml
+channels:
+  - key: ops-phone
+    ntfy: {topic: {from_env: NTFY_TOPIC}}          # server: https://ntfy.example.com
+  - key: ops-telegram
+    telegram: {chat_id: "-1001234567890", bot_token: {env: TELEGRAM_BOT}}
+  - key: ops-slack
+    slack: {webhook: {from_env: SLACK_WEBHOOK}}    # discord: the same
+  - key: oncall
+    pushover: {user: {env: PUSHOVER_USER}, token: {env: PUSHOVER_APP}}
 ```
 
 Secrets are never in the file. `{from_env: NAME}` is read where `lotse

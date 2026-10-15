@@ -484,40 +484,60 @@ func sameSecretSets(a, b secrets) bool {
 // channelOf reads a channel of the document: its type, its spec as the
 // hub checks it, and its secrets by field.
 func channelOf(c apply.Channel) (string, map[string]any, map[string]*apply.Secret, error) {
-	n := 0
-	for _, set := range []bool{c.Email != nil, c.GoogleChat != nil, c.Webhook != nil} {
-		if set {
-			n++
+	secrets := map[string]*apply.Secret{}
+	keep := func(field string, s *apply.Secret) {
+		if s != nil {
+			secrets[field] = s
 		}
 	}
-	if n != 1 {
-		return "", nil, nil, errors.New("exactly one of email, googlechat and webhook")
-	}
-	secrets := map[string]*apply.Secret{}
-	switch {
-	case c.Email != nil:
-		raw := map[string]any{"to": c.Email.To}
+	var typ string
+	raw := map[string]any{}
+	n := 0
+	if c.Email != nil {
+		n, typ = n+1, "email"
+		raw["to"] = c.Email.To
 		if s := c.Email.SMTP; s != nil {
 			raw["smtp"] = map[string]any{"host": s.Host, "port": s.Port, "username": s.Username, "from": s.From, "tls": s.TLS}
-			if s.Password != nil {
-				secrets["password"] = s.Password
-			}
+			keep("password", s.Password)
 		}
-		return "email", raw, secrets, nil
-	case c.GoogleChat != nil:
-		if c.GoogleChat.Webhook != nil {
-			secrets["url"] = c.GoogleChat.Webhook
-		}
-		return "googlechat", map[string]any{}, secrets, nil
-	default:
-		if c.Webhook.URL != nil {
-			secrets["url"] = c.Webhook.URL
-		}
-		if c.Webhook.SigningKey != nil {
-			secrets["signing_key"] = c.Webhook.SigningKey
-		}
-		return "webhook", map[string]any{}, secrets, nil
 	}
+	if c.GoogleChat != nil {
+		n, typ = n+1, "googlechat"
+		keep("url", c.GoogleChat.Webhook)
+	}
+	if c.Webhook != nil {
+		n, typ = n+1, "webhook"
+		keep("url", c.Webhook.URL)
+		keep("signing_key", c.Webhook.SigningKey)
+	}
+	if c.Slack != nil {
+		n, typ = n+1, "slack"
+		keep("url", c.Slack.Webhook)
+	}
+	if c.Discord != nil {
+		n, typ = n+1, "discord"
+		keep("url", c.Discord.Webhook)
+	}
+	if c.Telegram != nil {
+		n, typ = n+1, "telegram"
+		raw["chat_id"] = c.Telegram.ChatID
+		keep("bot_token", c.Telegram.BotToken)
+	}
+	if c.Ntfy != nil {
+		n, typ = n+1, "ntfy"
+		raw["server"] = c.Ntfy.Server
+		keep("topic", c.Ntfy.Topic)
+		keep("token", c.Ntfy.Token)
+	}
+	if c.Pushover != nil {
+		n, typ = n+1, "pushover"
+		keep("token", c.Pushover.Token)
+		keep("user", c.Pushover.User)
+	}
+	if n != 1 {
+		return "", nil, nil, errors.New("exactly one of " + strings.Join(channelTypes, ", "))
+	}
+	return typ, raw, secrets, nil
 }
 
 // windows makes the maintenance that comes back on a subject what the

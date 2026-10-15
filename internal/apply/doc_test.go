@@ -89,3 +89,33 @@ func TestResolveFromEnv(t *testing.T) {
 		t.Errorf("a secret in the YAML:\n%s", out)
 	}
 }
+
+// The channels of every type, as docs/install.md shows them, read, and their
+// secrets found.
+func TestChannelTypes(t *testing.T) {
+	d, err := Parse([]byte(`
+channels:
+  - key: ops-phone
+    ntfy: {topic: {from_env: NTFY_TOPIC}}
+  - key: ops-telegram
+    telegram: {chat_id: "-1001234567890", bot_token: {env: TELEGRAM_BOT}}
+  - key: ops-slack
+    slack: {webhook: {from_env: SLACK_WEBHOOK}}
+  - key: ops-discord
+    discord: {webhook: {from_env: DISCORD_WEBHOOK}}
+  - key: oncall
+    pushover: {user: {env: PUSHOVER_USER}, token: {env: PUSHOVER_APP}}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	d.EachSecret(func(*Secret) { n++ })
+	if n != 6 || d.Channels[1].Telegram.ChatID != "-1001234567890" {
+		t.Errorf("%d secrets, %+v", n, d.Channels[1].Telegram)
+	}
+	env := map[string]string{"NTFY_TOPIC": "t", "SLACK_WEBHOOK": "s", "DISCORD_WEBHOOK": "d"}
+	if err := d.ResolveFromEnv(func(k string) string { return env[k] }); err != nil || d.Channels[0].Ntfy.Topic.Value != "t" {
+		t.Errorf("from_env: %v", err)
+	}
+}

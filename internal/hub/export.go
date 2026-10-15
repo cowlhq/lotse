@@ -196,6 +196,16 @@ func (h *hub) exportChannel(c store.Channel) apply.Channel {
 		out.GoogleChat = &apply.GoogleChat{Webhook: secret("url")}
 	case "webhook":
 		out.Webhook = &apply.Webhook{URL: secret("url"), SigningKey: secret("signing_key")}
+	case "slack":
+		out.Slack = &apply.Hook{Webhook: secret("url")}
+	case "discord":
+		out.Discord = &apply.Hook{Webhook: secret("url")}
+	case "telegram":
+		out.Telegram = &apply.Telegram{ChatID: spec.ChatID, BotToken: secret("bot_token")}
+	case "ntfy":
+		out.Ntfy = &apply.Ntfy{Server: spec.Server, Topic: secret("topic"), Token: secret("token")}
+	case "pushover":
+		out.Pushover = &apply.Pushover{Token: secret("token"), User: secret("user")}
 	}
 	return out
 }
