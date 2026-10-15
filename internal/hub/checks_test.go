@@ -125,6 +125,16 @@ func TestHeartbeat(t *testing.T) {
 	if status, _ := do(t, server, "GET", "/ping/not-a-token", ""); status != http.StatusNotFound {
 		t.Errorf("a wrong token: %d", status)
 	}
+	// Pinged in a loop: a few go through, then they are turned away.
+	limited := 0
+	for range 20 {
+		if status, _ := do(t, server, "GET", path, ""); status == http.StatusTooManyRequests {
+			limited++
+		}
+	}
+	if limited == 0 || limited == 20 {
+		t.Errorf("20 pings at once, %d turned away", limited)
+	}
 
 	// No ping in period and grace: down.
 	created := time.Now().Add(-26 * time.Hour).Unix()
