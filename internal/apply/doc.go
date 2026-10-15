@@ -67,6 +67,8 @@ type Check struct {
 	HTTP        map[string]any `yaml:"http,omitempty" json:"http,omitempty"`
 	TLS         map[string]any `yaml:"tls,omitempty" json:"tls,omitempty"`
 	TCP         map[string]any `yaml:"tcp,omitempty" json:"tcp,omitempty"`
+	DNS         map[string]any `yaml:"dns,omitempty" json:"dns,omitempty"`
+	Domain      map[string]any `yaml:"domain,omitempty" json:"domain,omitempty"`
 	Heartbeat   map[string]any `yaml:"heartbeat,omitempty" json:"heartbeat,omitempty"`
 	Settings    Settings       `yaml:"settings,omitempty" json:"settings,omitempty"`
 	Maintenance []Window       `yaml:"maintenance,omitempty" json:"maintenance,omitempty"`
@@ -78,14 +80,14 @@ func (c Check) Type() (string, map[string]any, error) {
 	var typ string
 	var spec map[string]any
 	n := 0
-	for t, s := range map[string]map[string]any{"http": c.HTTP, "tls": c.TLS, "tcp": c.TCP, "heartbeat": c.Heartbeat} {
+	for t, s := range map[string]map[string]any{"http": c.HTTP, "tls": c.TLS, "tcp": c.TCP, "dns": c.DNS, "domain": c.Domain, "heartbeat": c.Heartbeat} {
 		if s != nil {
 			typ, spec = t, s
 			n++
 		}
 	}
 	if n != 1 {
-		return "", nil, fmt.Errorf("check %s: exactly one of http, tls, tcp and heartbeat", c.Key)
+		return "", nil, fmt.Errorf("check %s: exactly one of http, tls, tcp, dns, domain and heartbeat", c.Key)
 	}
 	return typ, spec, nil
 }

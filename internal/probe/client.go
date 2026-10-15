@@ -137,7 +137,11 @@ func connect(ctx context.Context, cfg Config, sched *Scheduler, log *slog.Logger
 	defer cancel()
 	conn, res, err := websocket.Dial(dialCtx, strings.TrimSuffix(cfg.Hub, "/")+protocol.ProbeConnectPath, &websocket.DialOptions{
 		Subprotocols: protocol.Subprotocols(),
-		HTTPHeader:   http.Header{"Authorization": {"Bearer " + cred}, "X-Lotse-Version": {version.Version}},
+		HTTPHeader: http.Header{
+			"Authorization":       {"Bearer " + cred},
+			"X-Lotse-Version":     {version.Version},
+			protocol.ChecksHeader: {strings.Join(Types, ",")},
+		},
 	})
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusUnauthorized {

@@ -477,10 +477,18 @@ disabled and can be enabled at any level.
   https the certificate's expiry is recorded with every run.
 - **TLS:** handshake to `host:port`, expiry.
 - **TCP:** connect to `host:port`.
+- **DNS:** a name's A, AAAA, CNAME, MX, NS or TXT records, optionally
+  through a given resolver; with `expect`, values that must be among them.
+- **Domain:** a registration's expiry, from its registry over RDAP (the
+  server found through IANA's list). Only the hub runs it, every 6 hours;
+  `check.domain` warns at 30 days and is critical at 7. Registries that
+  publish no date, such as DENIC for .de, give none, and nothing fires.
 - **Heartbeat:** `GET|POST|HEAD /ping/<token>` reports success,
   `/ping/<token>/fail` reports failure. Settings: period and grace.
 
-A check runs on the probes in `check.probes` (default: all). It counts as down
+A check runs on the probes in `check.probes` (default: all) that run its
+type: a probe says which types it runs when it connects (`X-Lotse-Checks`);
+one too old to say runs HTTP, TLS and TCP. It counts as down
 when the majority of the probes that are online see it failing. With a single
 probe, that probe decides. If none of its probes is online, the check is
 UNKNOWN and `probe.silent` fires.

@@ -130,7 +130,8 @@ sudo rm -r /var/lib/lotse && sudo userdel lotse
 
 ## Probes
 
-Checks (HTTP, TLS, TCP) run on the hub's own probe. A probe in another
+Checks (HTTP, TLS, TCP, DNS, and a domain's expiry) run on the hub's own
+probe. A probe in another
 place checks from outside as well, so that the hub's network or a down
 machine does not decide alone: a check is down when most of the probes that
 run it see it fail. **Settings → Probes → Add probe** shows the command:
@@ -261,6 +262,10 @@ customers:
                 http: {url: "https://shop.acme.de", keyword: Willkommen}
               - key: nightly-backup
                 heartbeat: {period: 24h, grace: 1h}
+              - key: shop-dns
+                dns: {name: shop.acme.de, type: A, expect: [203.0.113.10]}
+              - key: domain
+                domain: {domain: acme.com}
             hosts:
               - key: web1
                 settings:

@@ -119,3 +119,14 @@ channels:
 		t.Errorf("from_env: %v", err)
 	}
 }
+
+func TestCheckTypes(t *testing.T) {
+	for _, c := range []Check{
+		{Key: "dns", DNS: map[string]any{"name": "shop.acme.de"}},
+		{Key: "domain", Domain: map[string]any{"domain": "acme.com"}},
+	} {
+		if typ, _, err := c.Type(); err != nil || typ != c.Key {
+			t.Errorf("%s: %s, %v", c.Key, typ, err)
+		}
+	}
+}

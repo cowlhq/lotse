@@ -60,3 +60,48 @@ func TestChannelTypesMigration(t *testing.T) {
 		t.Errorf("%d channels after going back", n)
 	}
 }
+
+// Migration 13 makes the checks table anew; the results stay.
+func TestCheckTypesMigration(t *testing.T) {
+	ctx := t.Context()
+	s, err := open(filepath.Join(t.TempDir(), "lotse.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	files, _ := fs.Sub(migrations, "migrations/sqlite")
+	provider, err := goose.NewProvider(goose.DialectSQLite3, s.writer, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := provider.UpTo(ctx, 12); err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range []string{
+		`INSERT INTO scopes (id, parent_id, kind, slug, name, path, created_at) VALUES (2, 1, 'customer', 'acme', 'ACME', 'acme', 1)`,
+		`INSERT INTO checks (id, environment_id, slug, path, name, type, spec_json, created_at) VALUES (3, 2, 'home', 'acme/home', 'Home', 'http', '{}', 1)`,
+		`INSERT INTO check_results (check_id, probe_id, ts, ok) VALUES (3, 1, 100, 1)`,
+	} {
+		if _, err := s.writer.ExecContext(ctx, q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	s.writer.QueryRowContext(ctx, `SELECT count(*) FROM check_results WHERE check_id = 3`).Scan(&n)
+	if n != 1 {
+		t.Errorf("%d results after the migration", n)
+	}
+	if _, err := s.writer.ExecContext(ctx, `INSERT INTO checks (environment_id, slug, path, name, type, spec_json, created_at) VALUES (2, 'dns', 'acme/dns', 'DNS', 'dns', '{}', 1)`); err != nil {
+		t.Errorf("a dns check: %v", err)
+	}
+	if _, err := provider.DownTo(ctx, 12); err != nil {
+		t.Fatal(err)
+	}
+	s.writer.QueryRowContext(ctx, `SELECT count(*) FROM checks`).Scan(&n)
+	if n != 1 {
+		t.Errorf("%d checks after going back", n)
+	}
+}

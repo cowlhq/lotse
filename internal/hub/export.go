@@ -101,6 +101,10 @@ func (h *hub) exportDocument(ctx context.Context, path string) (apply.Document, 
 				out.TLS = spec
 			case "tcp":
 				out.TCP = spec
+			case "dns":
+				out.DNS = spec
+			case "domain":
+				out.Domain = spec
 			case "heartbeat":
 				out.Heartbeat = spec
 			}

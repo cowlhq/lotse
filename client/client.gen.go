@@ -238,6 +238,8 @@ func (e CheckState) Valid() bool {
 
 // Defines values for CheckType.
 const (
+	Dns       CheckType = "dns"
+	Domain    CheckType = "domain"
 	Heartbeat CheckType = "heartbeat"
 	Http      CheckType = "http"
 	Tcp       CheckType = "tcp"
@@ -247,6 +249,10 @@ const (
 // Valid indicates whether the value is a known member of the CheckType enum.
 func (e CheckType) Valid() bool {
 	switch e {
+	case Dns:
+		return true
+	case Domain:
+		return true
 	case Heartbeat:
 		return true
 	case Http:
