@@ -350,13 +350,17 @@
       "http": "HTTP",
       "tls": "TLS",
       "tcp": "TCP",
-      "heartbeat": "Heartbeat"
+      "heartbeat": "Heartbeat",
+      "dns": "DNS",
+      "domain": "Domain"
     },
     "kindHint": {
       "http": "Fetches a URL from outside: its status after redirects, optionally a word on the page, how long it takes, and its certificate.",
       "tls": "Opens a TLS connection, for services that are not HTTPS, such as mail on port 465, and watches the certificate.",
       "tcp": "Connects to a port, such as a database.",
-      "heartbeat": "A job, such as a backup, calls a URL when it ran. If it does not within the period and the grace, the check goes down."
+      "heartbeat": "A job, such as a backup, calls a URL when it ran. If it does not within the period and the grace, the check goes down.",
+      "dns": "Asks for a name's records, and says when it does not resolve, or not to what it should.",
+      "domain": "Watches when a domain's registration expires, as its registry publishes it. The hub looks it up a few times a day."
     },
     "state": {
       "up": "up",
@@ -393,7 +397,16 @@
     "delete": "Delete check",
     "deleteConfirm": "Delete this check and its results? Its history stays.",
     "deleted": "Check deleted.",
-    "created": "{{name}} added. Its first run comes in a moment."
+    "created": "{{name}} added. Its first run comes in a moment.",
+    "dnsName": "Name",
+    "recordType": "Record",
+    "expect": "Expected",
+    "expectHint": "Values that must be among the answers, such as 203.0.113.10; separated by commas.",
+    "resolver": "Resolver",
+    "resolverHint": "A DNS server to ask, such as 1.1.1.1:53; the system's otherwise.",
+    "domain": "Domain",
+    "domainHint": "Some registries, such as DENIC for .de, publish no date: those domains renew until cancelled.",
+    "domainExpires": "Registration"
   },
   "probe": {
     "title": "Probes",
@@ -422,7 +435,8 @@
     "check.cert": "A certificate expires in fewer days than this.",
     "check.heartbeat": "A heartbeat did not come in time, or said its job failed.",
     "probe.silent": "An external probe is gone.",
-    "channel.failing": "A channel cannot send notifications."
+    "channel.failing": "A channel cannot send notifications.",
+    "check.domain": "A domain's registration expires in fewer days than this."
   },
   "alert": {
     "title": "Alerts",
@@ -471,7 +485,8 @@
       "check.cert": "Certificate expiring",
       "check.heartbeat": "Heartbeat missed",
       "probe.silent": "Probe offline",
-      "channel.failing": "Channel cannot send"
+      "channel.failing": "Channel cannot send",
+      "check.domain": "Domain expiring"
     },
     "sinceAgo": "for {{time}}"
   },
@@ -656,7 +671,7 @@
     "check": "Check",
     "last24h": "Last 24 hours",
     "response": "Response",
-    "certificate": "Certificate"
+    "certificate": "Expires"
   },
   "bell": {
     "title": "Alerts for {{name}}",
