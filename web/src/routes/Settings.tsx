@@ -43,12 +43,13 @@ export function Settings({ tab }: { tab?: string }) {
       <ObjectHeader icon={null} title={t("settings.title")} />
       <Page>
         <Tabs defaultValue={tab ?? "general"} orientation="vertical" className="flex-col gap-6 md:flex-row">
-          <TabsList variant="line" className="h-auto w-full shrink-0 flex-row flex-wrap items-stretch gap-0.5 p-0 md:w-52 md:flex-col">
+          {/* A column beside the page; on a phone, a row that scrolls. */}
+          <TabsList variant="line" className="-mx-4 h-auto w-auto shrink-0 flex-row! items-stretch justify-start gap-0.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:w-52 md:flex-col! md:overflow-visible md:p-0">
             {sections.map((x) => (
               <TabsTrigger
                 key={x.value}
                 value={x.value}
-                className="h-9 flex-none justify-start gap-2.5 rounded-md border-0 px-2.5 text-ui! font-medium text-muted-foreground after:hidden hover:bg-accent/60 hover:text-foreground data-active:bg-accent! data-active:text-foreground! [&_svg]:size-4"
+                className="h-9 flex-none justify-start gap-2.5 rounded-md max-md:w-auto! border-0 px-2.5 text-ui! font-medium text-muted-foreground after:hidden hover:bg-accent/60 hover:text-foreground data-active:bg-accent! data-active:text-foreground! [&_svg]:size-4"
               >
                 {x.icon}
                 {x.label}

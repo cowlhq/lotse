@@ -5,8 +5,9 @@ import { useTranslation } from "react-i18next";
 import { getConfig, setSetting, type ConfigValue } from "@/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Panel } from "@/components/shell/Panel";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMe } from "@/lib/useMe";
 
@@ -28,25 +29,30 @@ export function Config({ subject, part }: { subject: string; part?: "general" | 
   }
   return (
     <>
-      {part !== "rules" && <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">{t("config.title")}</CardTitle>
-          <CardDescription>{t("config.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="divide-y">
-          {general.map((v) => (
-            <Row key={v.key} subject={subject} value={v} />
-          ))}
-        </CardContent>
-      </Card>}
+      {part !== "rules" && general.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-muted-foreground">{t("config.description")}</p>
+          {groups.map((g) => {
+            const list = general.filter((v) => g.match(v.key));
+            return (
+              list.length > 0 && (
+                <Panel key={g.key} title={t(`config.groups.${g.key}`)} flush>
+                  <div className="divide-y">
+                    {list.map((v) => (
+                      <Row key={v.key} subject={subject} value={v} />
+                    ))}
+                  </div>
+                </Panel>
+              )
+            );
+          })}
+        </div>
+      )}
       {part !== "general" && rules.size > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">{t("config.rules")}</CardTitle>
-            <CardDescription>{t("config.rulesDescription")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
+        <div className="space-y-4">
+          <p className="text-muted-foreground">{t("config.rulesDescription")}</p>
+          <Panel title={t("config.rules")} flush>
+            <Table className="[&_td:first-child]:pl-4 [&_th:first-child]:pl-4">
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("config.rule")}</TableHead>
@@ -81,12 +87,24 @@ export function Config({ subject, part }: { subject: string; part?: "general" | 
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </Panel>
+        </div>
       )}
     </>
   );
 }
+
+// groups order the settings by what they are about. A setting that fits
+// none is not left out: the last group takes the rest.
+const groups: { key: string; match: (key: string) => boolean }[] = [
+  { key: "agent", match: (k) => k.startsWith("agent.") },
+  { key: "containers", match: (k) => k === "ignore" },
+  { key: "checks", match: (k) => k.startsWith("check.") },
+  { key: "notify", match: (k) => k.startsWith("notify.") },
+  { key: "deadman", match: (k) => k.startsWith("deadman.") },
+  { key: "retention", match: (k) => k.startsWith("retention.") },
+  { key: "other", match: (k) => !/^(agent\.|check\.|notify\.|deadman\.|retention\.|ignore$)/.test(k) },
+];
 
 // unitOf reads a threshold's unit from its description: "… (percent), or off."
 function unitOf(v: ConfigValue): string {
@@ -130,25 +148,20 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
   const save = useSetting(subject, v.key, () => setEditing(false));
 
   return (
-    <div className="grid gap-1 py-3 text-sm sm:grid-cols-[1fr_auto] sm:items-center">
+    <div className="grid gap-x-6 gap-y-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
       <div className="min-w-0">
-        <p className="font-mono text-xs">{v.key}</p>
-        <p className="text-muted-foreground">{v.description}</p>
+        <p className="font-medium">
+          {t(`config.keys.${v.key}`, { defaultValue: v.key })}
+          {/* The key, as lotse.yaml and the API name it. */}
+          <span className="ml-2 hidden font-mono text-mini font-normal text-muted-foreground/70 sm:inline">{v.key}</span>
+        </p>
+        <p className="text-mini text-muted-foreground">{v.description}</p>
       </div>
       {v.type === "bool" ? (
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="font-medium">{v.value ? t("config.on") : t("config.off")}</p>
-            <p className="text-xs text-muted-foreground">{from}</p>
-          </div>
-          {isAdmin && (
-            <>
-              <Button variant="outline" size="sm" disabled={save.isPending} onClick={() => save.mutate(!v.value)}>
-                {v.value ? t("config.turnOff") : t("config.turnOn")}
-              </Button>
-              {here && <Reset onClick={() => save.mutate(null)} />}
-            </>
-          )}
+          <p className="text-mini text-muted-foreground sm:text-right">{from}</p>
+          <Switch checked={Boolean(v.value)} disabled={!isAdmin || save.isPending} onCheckedChange={(on) => save.mutate(on)} aria-label={t(`config.keys.${v.key}`, { defaultValue: v.key })} />
+          {isAdmin && here && <Reset onClick={() => save.mutate(null)} />}
         </div>
       ) : editing ? (
         <form
@@ -168,7 +181,7 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
         </form>
       ) : (
         <div className="flex items-center gap-3">
-          <div className="min-w-0 text-right">
+          <div className="min-w-0 sm:text-right">
             <p className="truncate font-medium tabular-nums">{show(v.value) || "–"}</p>
             <p className="text-xs text-muted-foreground">
               {from}
@@ -213,7 +226,7 @@ function Cell({ subject, value: v, unit }: { subject: string; value: ConfigValue
   const { here, from } = useFrom(subject, v);
   const save = useSetting(subject, v.key, () => setEditing(false));
   const label =
-    v.type === "bool" ? (v.value ? t("config.on") : t("config.off")) : v.type === "level" ? t(`alert.state.${v.value}`) : v.value === "off" ? t("config.off") : `${show(v.value)}${unit === "percent" ? " %" : unit === "days" ? " d" : ""}`;
+    v.type === "bool" ? (v.value ? t("config.on") : t("config.off")) : v.type === "level" ? t(`config.levels.${v.value}`) : v.value === "off" ? t("config.off") : `${show(v.value)}${unit === "percent" ? " %" : unit === "days" ? " d" : ""}`;
   const error = save.isError && <p className="text-xs text-destructive">{save.error.message}</p>;
 
   if (editing) {
@@ -233,9 +246,17 @@ function Cell({ subject, value: v, unit }: { subject: string; value: ConfigValue
       </form>
     );
   }
+  if (v.type === "bool") {
+    return (
+      <span className="inline-flex items-center gap-1" title={from}>
+        <Switch size="sm" checked={Boolean(v.value)} disabled={!isAdmin || save.isPending} onCheckedChange={(on) => save.mutate(on)} aria-label={t("config.enabled")} />
+        {isAdmin && here && <Reset onClick={() => save.mutate(null)} />}
+        {error}
+      </span>
+    );
+  }
   const change = () => {
-    if (v.type === "bool") save.mutate(!v.value);
-    else if (v.type === "level") save.mutate(v.value === "crit" ? "warn" : "crit");
+    if (v.type === "level") save.mutate(v.value === "crit" ? "warn" : "crit");
     else {
       setText(show(v.value));
       setEditing(true);

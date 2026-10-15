@@ -261,7 +261,6 @@
     "tokenRevoked": "API token {{name}} revoked"
   },
   "config": {
-    "title": "Settings",
     "description": "What applies here, and where it comes from. A value set here wins over those set further up.",
     "default": "default",
     "here": "set here",
@@ -280,8 +279,6 @@
     },
     "on": "on",
     "off": "off",
-    "turnOn": "Turn on here",
-    "turnOff": "Turn off here",
     "rules": "Alert rules",
     "rulesDescription": "When something fires, and how bad it is. Values in bold are set here; the others are inherited, and say from where on hover. Click one to change it here.",
     "rule": "Rule",
@@ -289,7 +286,37 @@
     "for": "Alert after",
     "recover": "Clears after",
     "warning": "Warning",
-    "critical": "Critical"
+    "critical": "Critical",
+    "groups": {
+      "agent": "Agent",
+      "containers": "Containers",
+      "checks": "Checks",
+      "notify": "Notifications",
+      "deadman": "Dead man's switch",
+      "retention": "Keeping readings",
+      "other": "Other"
+    },
+    "keys": {
+      "agent.interval.host": "Host readings every",
+      "agent.interval.containers": "Container readings every",
+      "agent.auto_update": "Update automatically",
+      "agent.update_window": "Update window",
+      "ignore": "Ignore",
+      "check.interval": "Run every",
+      "check.timeout": "Timeout",
+      "check.probes": "Probes",
+      "notify.channels": "Channels",
+      "notify.repeat": "Repeat every",
+      "deadman.url": "Address",
+      "deadman.interval": "Call every",
+      "retention.raw": "Raw readings",
+      "retention.5m": "5-minute averages",
+      "retention.1h": "Hourly averages"
+    },
+    "levels": {
+      "crit": "always critical",
+      "warn": "always a warning"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -443,12 +470,6 @@
     },
     "firing": "Firing now",
     "allGood": "Nothing fires.",
-    "stateTitle": "State",
-    "rule": "Rule",
-    "subject": "Where",
-    "value": "Value / threshold",
-    "since": "Since",
-    "pending": "{{state}} soon",
     "maintenance": "maintenance",
     "inMaintenance": "During maintenance: recorded, but not sent. It is sent when the window ends, if it still fires.",
     "ackedBy": "acknowledged by {{who}}",
