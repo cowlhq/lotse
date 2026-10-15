@@ -2,7 +2,7 @@
 
 lotse is one binary in three roles: the **hub** (web interface, API,
 storage, alerts), the **agent** on every machine it watches, and the
-**probe**, which checks from outside. This page installs the first two.
+**probe**, which checks from outside. This page installs all three.
 
 ## The hub
 
@@ -143,7 +143,16 @@ Checks (HTTP, TLS, TCP, DNS, and a domain's expiry) run on the hub's own
 probe. A probe in another
 place checks from outside as well, so that the hub's network or a down
 machine does not decide alone: a check is down when most of the probes that
-run it see it fail. **Settings → Probes → Add probe** shows the command:
+run it see it fail. **Settings → Probes → Add probe** shows the command
+for a name and a location. On a Linux machine with systemd:
+
+```
+curl -fsSL https://lotse.sh/install | sudo sh -s -- probe --hub https://lotse.example.com --token lotse_enr_… --name fra --location Frankfurt
+```
+
+This installs the binary as for the agent and starts the service
+`lotse-probe`, as user `lotse`; the credential is in `/var/lib/lotse`, next
+to an agent's if the machine has one. Or as a container:
 
 ```
 docker run -d --name lotse-probe --restart unless-stopped \
@@ -156,6 +165,21 @@ docker run -d --name lotse-probe --restart unless-stopped \
 
 A probe needs no ports and only reaches out to the hub. Which probes run a
 check is the setting `check.probes`: `all`, or a list of names.
+
+Probes are not updated from the interface. Run the install command again
+(without `--token`, the credential stays), or pull the image and start the
+container again. With the token, a probe enrolls again under its name and
+keeps its checks and history, even after it was revoked.
+
+To remove a probe installed with the script:
+
+```
+sudo systemctl disable --now lotse-probe
+sudo rm /etc/systemd/system/lotse-probe.service /var/lib/lotse/probe.json
+```
+
+The binary, the user and `/var/lib/lotse` stay if an agent uses them;
+otherwise remove them as for the agent.
 
 ## Heartbeats
 

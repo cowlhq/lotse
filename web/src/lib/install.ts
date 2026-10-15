@@ -52,3 +52,28 @@ volumes:
     local: local || dev ? `LOTSE_TOKEN=${token} docker compose --profile agent up -d` : undefined,
   };
 }
+
+// The commands that run a probe under its name. Probes are updated by
+// running the command again (decision 0009).
+export function probeCommands(hub: string, token: string, name: string, location: string): { systemd: string; docker: string } {
+  const url = new URL(hub);
+  const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  const insecure = url.protocol === "http:" && !local;
+  const where = location ? ` --location ${quote(location)}` : "";
+
+  const systemd = `curl -fsSL https://lotse.sh/install | sudo sh -s -- probe --hub ${hub} --token ${token} --name ${name}${where}${insecure ? " --insecure" : ""}`;
+
+  const docker = `docker run -d --name lotse-probe --restart unless-stopped \\
+  -e LOTSE_HUB=${hub} \\
+  -e LOTSE_TOKEN=${token} \\${insecure ? "\n  -e LOTSE_INSECURE=true \\" : ""}
+  -e LOTSE_PROBE_NAME=${name} \\${location ? `\n  -e LOTSE_PROBE_LOCATION=${quote(location)} \\` : ""}
+  -v lotse-probe:/var/lib/lotse \\
+  ${image} probe`;
+
+  return { systemd, docker };
+}
+
+// quote makes text one word for the shell.
+function quote(s: string): string {
+  return /^[\w.,/-]+$/.test(s) ? s : `'${s.replaceAll("'", `'\\''`)}'`;
+}
