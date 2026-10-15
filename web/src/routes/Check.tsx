@@ -27,6 +27,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ago, dateTime, number, percent } from "@/lib/format";
 import { useMe } from "@/lib/useMe";
 import { useRange } from "@/lib/useRange";
+import { isFiring } from "@/lib/status";
 
 export function Check({ id }: { id: number }) {
   const { t } = useTranslation();
@@ -62,7 +63,7 @@ export function Check({ id }: { id: number }) {
   const days = certDays(c);
   const useAlertsData = alertsQuery.data;
 
-  const alerts = (useAlertsData ?? []).filter((x) => x.state !== "ok" && x.subject_kind === "check" && x.subject_id === id);
+  const alerts = (useAlertsData ?? []).filter((x) => isFiring(x) && x.subject_kind === "check" && x.subject_id === id);
   const level = c.state === "down" ? "crit" : c.state === "up" ? "ok" : "unknown";
   const subject = `check:${id}`;
 

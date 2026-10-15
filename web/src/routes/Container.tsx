@@ -22,6 +22,7 @@ import { ago, bytes, percent, rate } from "@/lib/format";
 import { appendReading, useLive } from "@/lib/live";
 import { useRange } from "@/lib/useRange";
 import { ContainerState } from "./Host";
+import { isFiring } from "@/lib/status";
 
 export function Container({ id }: { id: number }) {
   const { t } = useTranslation();
@@ -82,7 +83,7 @@ export function Container({ id }: { id: number }) {
   const c = container.data;
 
   const subject = `container:${id}`;
-  const problems = (alerts.data ?? []).filter((a) => a.state !== "ok" && a.subject_kind === "container" && a.subject_id === id);
+  const problems = (alerts.data ?? []).filter((a) => isFiring(a) && a.subject_kind === "container" && a.subject_id === id);
   const bad = (c.state === "running" && c.health === "unhealthy") || (c.state === "exited" && c.exit_code !== 0) || c.state === "dead";
   const level = c.gone_at != null ? "unknown" : problems.some((a) => a.state === "crit") || bad ? "crit" : problems.length ? "warn" : c.state === "running" ? "ok" : "unknown";
   const current = c.latest as Record<string, number | null | undefined> | undefined;

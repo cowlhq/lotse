@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { alertTitle } from "@/lib/alerts";
 import { ago, dateTime } from "@/lib/format";
 import { useMe } from "@/lib/useMe";
+import { isFiring } from "@/lib/status";
 
 // settingLabel says what a rule's setting is, in words.
 function settingLabel(t: (k: string) => string, key: string): string {
@@ -23,7 +24,7 @@ function settingLabel(t: (k: string) => string, key: string): string {
 export function Alerts() {
   const { t } = useTranslation();
   const alerts = useAlerts();
-  const now = (alerts.data ?? []).filter((a) => a.state !== "ok" || a.pending);
+  const now = (alerts.data ?? []).filter((a) => isFiring(a) || a.pending);
   return (
     <>
       <ObjectHeader icon={<StatusIcon level={now.some((a) => a.state === "crit") ? "crit" : now.some((a) => a.state === "warn") ? "warn" : "ok"} size={22} />} title={t("alert.title")} />
@@ -54,7 +55,7 @@ export function AlertDetail({ id }: { id: number }) {
   if (alert.isError) return <p className="p-6 text-destructive">{t("app.unreachable")}</p>;
   const a = alert.data;
   const now = current.data?.find((s) => s.alert_id === id);
-  const firing = now && (now.state === "crit" || now.state === "warn");
+  const nowFiring = now != null && isFiring(now);
   return (
     <>
       <ObjectHeader
@@ -68,7 +69,7 @@ export function AlertDetail({ id }: { id: number }) {
         title={alertTitle(t, a)}
         actions={
           isAdmin &&
-          firing &&
+          nowFiring &&
           (now.acked_by ? (
             <span className="text-muted-foreground">{t("alert.ackedBy", { who: now.acked_by })}</span>
           ) : (

@@ -8,7 +8,7 @@ import { StatusIcon } from "@/components/shell/Dot";
 import { Button } from "@/components/ui/button";
 import { alertTitle, subjectName } from "@/lib/alerts";
 import { ago, dateTime } from "@/lib/format";
-import { levelOf } from "@/lib/status";
+import { levelOf, isFiring } from "@/lib/status";
 import { useMe } from "@/lib/useMe";
 
 // Incidents lists what needs attention, worst first, each as one line:
@@ -32,13 +32,12 @@ function Incident({ alert: a }: { alert: AlertState }) {
     onSuccess: () => client.invalidateQueries({ queryKey: ["alerts"] }),
   });
   const { name, where } = subjectName(a);
-  const firing = a.state === "crit" || a.state === "warn";
-  return (
-    <li className="group flex h-13 items-center gap-3 border-b px-4 transition-colors duration-100 last:border-b-0 hover:bg-accent/60">
+    return (
+    <li className="group flex min-h-13 items-center gap-3 border-b px-4 py-2 sm:py-0 transition-colors duration-100 last:border-b-0 hover:bg-accent/60">
       <StatusIcon level={levelOf(a)} />
-      <Link to="/alerts/$id" params={{ id: String(a.alert_id) }} className="flex min-w-0 flex-1 items-baseline gap-2">
+      <Link to="/alerts/$id" params={{ id: String(a.alert_id) }} className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-baseline sm:gap-2">
         <span className="truncate font-medium sm:shrink-0">{alertTitle(t, a)}</span>
-        <span className="truncate">
+        <span className="truncate text-muted-foreground sm:text-foreground">
           {name}
           {a.instance && <span className="font-mono text-mini"> {a.instance}</span>}
         </span>
@@ -66,7 +65,7 @@ function Incident({ alert: a }: { alert: AlertState }) {
           </span>
         ) : (
           isAdmin &&
-          firing && (
+          isFiring(a) && (
             <Button size="xs" variant="outline" className="hidden transition-opacity md:inline-flex md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100" disabled={ack.isPending} onClick={() => ack.mutate()}>
               {t("alert.acknowledge")}
             </Button>

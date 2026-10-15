@@ -43,7 +43,15 @@ export function levelOfSubject(alerts: AlertState[], kind: string, id: number, p
   return level;
 }
 
-// firing are the alerts that are sent: WARN and CRIT.
+// isFiring says whether an alert is sent and needs attention: WARN or
+// CRIT. One that is unknown, because its readings are missing, is not a
+// problem of its own; what keeps the readings away, such as a silent agent,
+// is.
+export function isFiring(a: Pick<AlertState, "state">) {
+  return a.state === "crit" || a.state === "warn";
+}
+
+// firing are the alerts that are sent.
 export function firing(alerts: AlertState[]): AlertState[] {
-  return alerts.filter((a) => a.state === "crit" || a.state === "warn");
+  return alerts.filter(isFiring);
 }
