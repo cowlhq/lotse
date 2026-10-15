@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, FolderPlus, Plus, Server } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { listScopes } from "@/api";
+import { listScopes, type Scope } from "@/api";
 import { AgentBody } from "@/components/AddAgent";
 import { CheckForm } from "@/components/AddCheck";
 import { EnvironmentForm } from "@/components/NewEnvironment";
@@ -71,6 +71,12 @@ function Body({ what, done }: { what: What; done: () => void }) {
   const { t } = useTranslation();
   const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
   const envs = (scopes.data ?? []).filter((s) => s.kind === "environment");
+  const byID = new Map((scopes.data ?? []).map((s) => [s.id, s]));
+  const owners = (e: Scope) => {
+    const project = e.parent_id != null ? byID.get(e.parent_id) : undefined;
+    const customer = project?.parent_id != null ? byID.get(project.parent_id) : undefined;
+    return [customer?.name, project?.name].filter(Boolean).join(" · ");
+  };
   const [env, setEnv] = useState<number | null>(null);
   if (what === "environment") return <EnvironmentForm customer="" project="" done={done} />;
   const chosen = env ?? (envs.length === 1 ? envs[0].id : null);
@@ -98,9 +104,11 @@ function Body({ what, done }: { what: What; done: () => void }) {
           <ul className="max-h-72 overflow-y-auto rounded-md border">
             {envs.map((e) => (
               <li key={e.id}>
-                <button type="button" onClick={() => setEnv(e.id)} className="flex w-full items-center justify-between border-b px-3 py-2.5 text-left last:border-b-0 hover:bg-accent">
+                <button type="button" onClick={() => setEnv(e.id)} className="flex w-full items-baseline gap-2 border-b px-3 py-2.5 text-left last:border-b-0 hover:bg-accent">
+                  {/* Environments are often named alike, such as production:
+                      the customer and project tell them apart. */}
                   <span className="font-medium">{e.name}</span>
-                  <span className="font-mono text-mini text-muted-foreground">{e.path}</span>
+                  <span className="min-w-0 truncate text-muted-foreground">{owners(e)}</span>
                 </button>
               </li>
             ))}
