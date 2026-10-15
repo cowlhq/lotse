@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { acknowledgeAlert, getAlert, listAlerts, NotFound } from "@/api";
+import type { TFunction } from "i18next";
+import { acknowledgeAlert, getAlert, listAlerts, NotFound, type Alert } from "@/api";
 import { AlertHistory, SubjectLink, useAlerts, value } from "@/components/Alerts";
 import { Incidents } from "@/components/Incidents";
 import { StatusIcon } from "@/components/shell/Dot";
@@ -18,6 +19,18 @@ function settingLabel(t: (k: string) => string, key: string): string {
   if (key === "notify.channels") return t("why.channels");
   if (key === "notify.repeat") return t("why.repeat");
   return t(`why.${key.slice(key.lastIndexOf(".") + 1)}`);
+}
+
+// settingValue writes a setting of a rule in words: on or off, "always
+// critical", a threshold in its unit, "never" for no repeats.
+function settingValue(t: TFunction, key: string, v: unknown, unit: Alert["unit"]): string {
+  if (typeof v === "boolean") return v ? t("config.on") : t("config.off");
+  if (Array.isArray(v)) return v.length ? v.join(", ") : t("why.nowhere");
+  if (v === "off") return t("config.off");
+  if (key.endsWith(".level") && typeof v === "string") return t(`config.levels.${v}`);
+  if (key === "notify.repeat" && (v === "0s" || v === "0")) return t("why.never");
+  if (typeof v === "number" && (key.endsWith(".warn") || key.endsWith(".crit")) && unit) return value(v, unit);
+  return String(v);
 }
 
 // Alerts is what fires now, everywhere, and what happened before.
@@ -108,7 +121,7 @@ export function AlertDetail({ id }: { id: number }) {
             {a.settings.map((s) => (
               <li key={s.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b px-4 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_10rem_14rem]">
                 <span>{settingLabel(t, s.key)}</span>
-                <span className="tabular-nums">{Array.isArray(s.value) ? s.value.join(", ") || "–" : String(s.value)}</span>
+                <span className="tabular-nums">{settingValue(t, s.key, s.value, a.unit)}</span>
                 <span className="hidden text-muted-foreground sm:block">
                   {s.from ? t("config.from", { kind: t(`config.kinds.${s.from.kind}`), name: s.from.name || s.from.path }) : t("config.default")}
                 </span>

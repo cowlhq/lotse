@@ -444,7 +444,7 @@
     "now": "Now",
     "why": "The rule as it applied",
     "notifications": "Notifications",
-    "noNotifications": "Nothing was sent: notify.channels names no channel here.",
+    "noNotifications": "Nothing was sent: no channel is set for it. Channels are set in Settings, Notifications.",
     "status": {
       "pending": "waiting to be sent",
       "sent": "sent",
@@ -650,7 +650,9 @@
     "for": "Alert after",
     "recover": "Clears after",
     "channels": "Sent to",
-    "repeat": "Repeated every"
+    "repeat": "Repeated every",
+    "never": "never",
+    "nowhere": "nowhere"
   },
   "start": {
     "title": "Get started",
