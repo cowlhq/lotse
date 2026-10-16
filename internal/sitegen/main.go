@@ -1,6 +1,7 @@
 // Command sitegen builds lotse.sh (decision 0022): it copies site/ as it is
 // and renders the documentation in docs/ into pages beside it, so that the
-// Markdown stays the one source and reads the same on GitHub.
+// Markdown stays the one source and reads the same on GitHub. The
+// comparison with other tools is made from compare.yaml (compare.go).
 //
 //	go run ./internal/sitegen -out _site
 package main
@@ -29,7 +30,7 @@ import (
 
 const repo = "https://github.com/cowlhq/lotse"
 
-//go:embed page.html
+//go:embed page.html compare.html
 var files embed.FS
 
 var layout = template.Must(template.ParseFS(files, "page.html"))
@@ -93,6 +94,9 @@ func build(root, out string) error {
 		if err := os.WriteFile(dst, html, 0o644); err != nil {
 			return err
 		}
+	}
+	if err := buildCompare(out); err != nil {
+		return err
 	}
 	// /docs/ itself leads to the first guide.
 	return os.WriteFile(filepath.Join(out, "docs", "index.html"), redirect(pages[0].URL), 0o644)

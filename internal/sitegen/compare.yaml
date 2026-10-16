@@ -1,0 +1,451 @@
+# What lotse and other tools do, for /compare/ (compare.go). Every row has a
+# cell for every tool: a level (yes, partial, extra, paid, no) and, after a
+# colon, a short note. Each tool's sources are what the cells rest on; check
+# them again before changing "as_of".
+as_of: October 2026
+
+tools:
+  - id: lotse
+    name: lotse
+    url: /
+    edition: "0.1"
+  - id: beszel
+    name: Beszel
+    url: https://beszel.dev
+    edition: "0.21"
+    sources:
+      - https://beszel.dev/guide/what-is-beszel
+      - https://beszel.dev/guide/network-monitors
+      - https://beszel.dev/guide/notifications/
+      - https://beszel.dev/guide/user-accounts
+      - https://github.com/henrygd/beszel/releases
+  - id: kuma
+    name: Uptime Kuma
+    url: https://uptime.kuma.pet
+    edition: "2.5"
+    sources:
+      - https://github.com/louislam/uptime-kuma
+      - https://github.com/louislam/uptime-kuma/wiki
+      - https://github.com/louislam/uptime-kuma/releases
+  - id: gatus
+    name: Gatus
+    url: https://gatus.io
+    edition: "5.37, self-hosted"
+    sources:
+      - https://github.com/TwiN/gatus#readme
+      - https://gatus.io/pricing
+      - https://github.com/TwiN/gatus/releases
+  - id: netdata
+    name: Netdata
+    url: https://www.netdata.cloud
+    edition: "2.12, free plan"
+    sources:
+      - https://github.com/netdata/netdata/blob/master/docs/netdata-oss-limitations.md
+      - https://github.com/netdata/netdata/tree/master/src/health/health.d
+      - https://github.com/netdata/netdata/tree/master/src/go/plugin/go.d/collector
+      - https://www.netdata.cloud/pricing/
+  - id: checkmk
+    name: Checkmk Community
+    url: https://checkmk.com
+    edition: "2.5, formerly Raw"
+    sources:
+      - https://checkmk.com/product/editions
+      - https://docs.checkmk.com/2.5.0/en/
+      - https://github.com/Checkmk/checkmk
+  - id: zabbix
+    name: Zabbix
+    url: https://www.zabbix.com
+    edition: "7.0 LTS, 7.4"
+    sources:
+      - https://www.zabbix.com/documentation/current/en/manual
+      - https://github.com/zabbix/zabbix/tree/release/7.4/templates
+      - https://www.zabbix.com/integrations
+      - https://www.zabbix.com/license
+  - id: prometheus
+    name: Prometheus + Grafana
+    url: https://prometheus.io
+    edition: "Prometheus 3, Grafana 13 OSS"
+    sources:
+      - https://prometheus.io/docs/
+      - https://github.com/prometheus/blackbox_exporter
+      - https://github.com/google/cadvisor
+      - https://grafana.com/docs/grafana/latest/
+
+groups:
+  - name: Running it
+    rows:
+      - feature: Open source, every feature
+        lotse: "yes: AGPL-3.0"
+        beszel: "yes: MIT"
+        kuma: "yes: MIT"
+        gatus: "yes: Apache-2.0; the hosted version adds more"
+        netdata: "partial: agent GPL-3.0; free dashboards show 5 nodes"
+        checkmk: "partial: GPL-2.0; much is in paid editions"
+        zabbix: "yes: AGPL-3.0"
+        prometheus: "partial: some Grafana features are Enterprise"
+      - feature: One program to run
+        lotse: "yes: hub, agent and probe are one binary"
+        beszel: "yes: hub, and an agent per machine"
+        kuma: "yes: one container"
+        gatus: "yes: one binary"
+        netdata: "yes: one daemon, one container"
+        checkmk: "yes: one container or package"
+        zabbix: "no: server, web frontend, database"
+        prometheus: "no: four services, and exporters"
+      - feature: No database server needed
+        lotse: "yes: SQLite, or Postgres"
+        beszel: "yes: SQLite"
+        kuma: "yes: SQLite, or MariaDB"
+        gatus: "yes: SQLite, or Postgres"
+        netdata: "yes: its own files"
+        checkmk: "yes: its own files"
+        zabbix: "no: MySQL, MariaDB or Postgres"
+        prometheus: "yes: its own files"
+      - feature: Agents updated from the web interface
+        lotse: "yes: one click, or on a schedule"
+        beszel: "no: on each machine"
+        kuma: "no: has no agent"
+        gatus: "no: has no agent"
+        netdata: "no: they update themselves"
+        checkmk: "paid: Pro and up"
+        zabbix: "no"
+        prometheus: "no"
+      - feature: Signed releases
+        lotse: "yes: minisign and cosign"
+        beszel: "no: checksums"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes: GPG"
+        checkmk: "yes: GPG"
+        zabbix: "partial: signed packages, not the tarballs"
+        prometheus: "partial: Grafana's packages; Prometheus has checksums"
+
+  - name: Inside machines
+    rows:
+      - feature: CPU, memory, disks, network
+        lotse: "yes"
+        beszel: "yes"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "yes: node_exporter"
+      - feature: Disk I/O, I/O wait and steal
+        lotse: "yes"
+        beszel: "yes"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "yes"
+      - feature: Temperatures, S.M.A.R.T., GPUs
+        lotse: "no"
+        beszel: "yes"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes: with templates"
+        prometheus: "extra: exporters"
+      - feature: Failed systemd units
+        lotse: "yes"
+        beszel: "yes"
+        kuma: "partial: one named service, on its own machine"
+        gatus: "partial: with your own SSH command"
+        netdata: "partial: alerts off until you name units"
+        checkmk: "yes"
+        zabbix: "yes: with agent 2"
+        prometheus: "yes: once switched on"
+      - feature: Reboot required, pending updates
+        lotse: "partial: reboot required, on Debian, Ubuntu and NixOS"
+        beszel: "partial: pending updates, no alert"
+        kuma: "no"
+        gatus: "no"
+        netdata: "partial: reboot required, on Debian and Ubuntu"
+        checkmk: "partial: pending updates; no reboot check on Linux"
+        zabbix: "extra: community templates"
+        prometheus: "extra: textfile scripts"
+      - feature: Every Docker container's CPU, memory, network
+        lotse: "yes"
+        beszel: "yes: Docker and Podman"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes"
+        checkmk: "partial: with a plugin, hosts added by hand"
+        zabbix: "yes: with agent 2"
+        prometheus: "yes: cAdvisor"
+      - feature: Container health and restart loops
+        lotse: "yes"
+        beszel: "partial: health, of running containers"
+        kuma: "partial: one check per named container"
+        gatus: "no"
+        netdata: "partial: unhealthy alerts, no restart count"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "partial: health, no restart count"
+      - feature: Kubernetes
+        lotse: "no"
+        beszel: "partial: nodes, not the cluster"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes"
+        checkmk: "yes: hosts by hand; dashboards in Pro"
+        zabbix: "yes"
+        prometheus: "yes: its home ground"
+      - feature: Windows and macOS
+        lotse: "no: Linux"
+        beszel: "yes"
+        kuma: "no"
+        gatus: "no"
+        netdata: "partial: a Windows machine's own dashboard is paid"
+        checkmk: "yes: a basic agent for macOS"
+        zabbix: "yes"
+        prometheus: "yes: windows_exporter for Windows"
+      - feature: SNMP devices
+        lotse: "no"
+        beszel: "no"
+        kuma: "yes"
+        gatus: "no"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes: one of its strengths"
+        prometheus: "extra: snmp_exporter"
+      - feature: Logs
+        lotse: "no"
+        beszel: "partial: container and unit logs, when asked"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes: journal, OpenTelemetry"
+        checkmk: "partial: patterns in log files, syslog"
+        zabbix: "partial: log lines as items, with triggers"
+        prometheus: "extra: Loki"
+
+  - name: Checks from outside
+    rows:
+      - feature: HTTP with status and keyword
+        lotse: "yes"
+        beszel: "partial: status only"
+        kuma: "yes"
+        gatus: "yes"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "yes: blackbox_exporter"
+      - feature: TLS certificate expiry
+        lotse: "yes"
+        beszel: "partial: shown, no alert"
+        kuma: "yes"
+        gatus: "yes"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "yes"
+      - feature: TCP ports
+        lotse: "yes"
+        beszel: "yes"
+        kuma: "yes"
+        gatus: "yes"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "yes"
+      - feature: DNS records
+        lotse: "yes"
+        beszel: "partial: whether a name resolves"
+        kuma: "yes"
+        gatus: "yes"
+        netdata: "partial: whether it answers, not what"
+        checkmk: "yes"
+        zabbix: "yes: from an agent"
+        prometheus: "yes"
+      - feature: Domain expiry
+        lotse: "partial: RDAP only"
+        beszel: "no"
+        kuma: "partial: RDAP only"
+        gatus: "yes: RDAP, then WHOIS"
+        netdata: "yes: WHOIS"
+        checkmk: "extra: third-party plugins"
+        zabbix: "no: comes with 8.0"
+        prometheus: "extra: third-party exporters"
+      - feature: Ping (ICMP)
+        lotse: "no"
+        beszel: "yes"
+        kuma: "yes"
+        gatus: "yes"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "yes"
+      - feature: Heartbeats for cron jobs and backups
+        lotse: "yes"
+        beszel: "no"
+        kuma: "yes"
+        gatus: "yes"
+        netdata: "no"
+        checkmk: "partial: cron jobs through the agent; no URL to call"
+        zabbix: "yes: trapper items and nodata()"
+        prometheus: "extra: Pushgateway"
+      - feature: From several places, down when most agree
+        lotse: "yes: your own probes"
+        beszel: "partial: several agents, each alerts on its own"
+        kuma: "partial: one place per check, via Globalping"
+        gatus: "partial: remote instances (experimental), no majority"
+        netdata: "no"
+        checkmk: "no"
+        zabbix: "partial: proxies; the majority as your own trigger"
+        prometheus: "partial: the majority as your own rule"
+      - feature: Public status pages
+        lotse: "no"
+        beszel: "no"
+        kuma: "yes"
+        gatus: "yes"
+        netdata: "no"
+        checkmk: "no"
+        zabbix: "partial: dashboards for guests"
+        prometheus: "partial: shared Grafana dashboards"
+
+  - name: Alerts
+    rows:
+      - feature: Alert rules on from the start
+        lotse: "yes"
+        beszel: "partial: S.M.A.R.T. and ZFS; the rest per machine"
+        kuma: "partial: up and down, once a channel is set"
+        gatus: "no"
+        netdata: "yes: hundreds"
+        checkmk: "yes: preset thresholds"
+        zabbix: "partial: templates bring triggers; sending is off"
+        prometheus: "no: community rule sets"
+      - feature: Waits before firing and before clearing
+        lotse: "yes"
+        beszel: "partial: averages; down clears at once"
+        kuma: "partial: retries; clears at once"
+        gatus: "yes: failure and success thresholds"
+        netdata: "yes"
+        checkmk: "partial: before firing; clears at once"
+        zabbix: "yes"
+        prometheus: "yes"
+      - feature: Email, Slack, Discord, Telegram, ntfy, webhooks
+        lotse: "yes: 8 kinds"
+        beszel: "yes: about 30 kinds"
+        kuma: "yes: over 100 kinds"
+        gatus: "yes: about 40 kinds"
+        netdata: "yes: many from the agent; most from Cloud are paid"
+        checkmk: "partial: email, Slack, Pushover, Teams and more; Telegram, Discord, ntfy by script"
+        zabbix: "yes: about 30 kinds; ntfy by webhook"
+        prometheus: "yes: about 20 kinds; ntfy by webhook"
+      - feature: Maintenance windows
+        lotse: "yes: once or recurring"
+        beszel: "yes: quiet hours"
+        kuma: "yes"
+        gatus: "partial: recurring only"
+        netdata: "partial: silencing rules in Netdata Cloud"
+        checkmk: "partial: one-off; recurring in Pro"
+        zabbix: "yes"
+        prometheus: "yes: silences, mute timings"
+      - feature: Acknowledging an alert
+        lotse: "yes"
+        beszel: "no"
+        kuma: "no"
+        gatus: "no"
+        netdata: "no"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "partial: silences"
+      - feature: Says which rule fired, with values and thresholds
+        lotse: "yes"
+        beszel: "partial: the value, not the threshold"
+        kuma: "partial: the check's result"
+        gatus: "yes: the conditions, with values"
+        netdata: "yes"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "yes: as your templates write it"
+      - feature: Dead man's switch for itself
+        lotse: "yes"
+        beszel: "yes"
+        kuma: "no"
+        gatus: "no"
+        netdata: "yes: through Netdata Cloud"
+        checkmk: "no"
+        zabbix: "partial: a cluster, no outside watchdog"
+        prometheus: "partial: a Watchdog rule and an outside service"
+
+  - name: Many customers and projects
+    rows:
+      - feature: Customers, projects, environments, with inherited settings
+        lotse: "yes"
+        beszel: "no"
+        kuma: "partial: groups, nothing inherited"
+        gatus: "partial: one level of groups"
+        netdata: "partial: spaces and rooms, nothing inherited"
+        checkmk: "yes: folders with inherited rules; tenants in Ultimate"
+        zabbix: "partial: nested host groups, macros"
+        prometheus: "partial: Grafana folders and organizations"
+      - feature: Users with roles
+        lotse: "no: one admin, for now; API tokens per customer"
+        beszel: "yes: admin, user, read-only"
+        kuma: "no: one user"
+        gatus: "no: one login"
+        netdata: "paid: one role on the free plan"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "partial: Grafana's roles; finer ones in Enterprise"
+      - feature: Single sign-on
+        lotse: "no"
+        beszel: "yes: OAuth2 and OIDC"
+        kuma: "no"
+        gatus: "yes: OIDC"
+        netdata: "paid: OIDC, Okta"
+        checkmk: "partial: LDAP; SAML in Pro"
+        zabbix: "yes: LDAP, SAML"
+        prometheus: "yes: Grafana OIDC, LDAP; SAML paid"
+      - feature: History of changes
+        lotse: "yes: on every object, who, when and how"
+        beszel: "no"
+        kuma: "no"
+        gatus: "paid: in hosted gatus.io"
+        netdata: "paid: Cloud events; 4 hours free"
+        checkmk: "yes: audit log"
+        zabbix: "yes: audit log"
+        prometheus: "paid: Grafana Enterprise"
+
+  - name: Configuration
+    rows:
+      - feature: In the web interface
+        lotse: "yes"
+        beszel: "yes"
+        kuma: "yes"
+        gatus: "no: YAML; a UI in hosted gatus.io"
+        netdata: "paid"
+        checkmk: "yes"
+        zabbix: "yes"
+        prometheus: "partial: Grafana; Prometheus is files"
+      - feature: As code, with a dry run
+        lotse: "yes: lotse apply --dry-run, lotse export"
+        beszel: "partial: the list of machines"
+        kuma: "extra: third-party tools"
+        gatus: "partial: YAML, no dry run"
+        netdata: "partial: plain files, no dry run"
+        checkmk: "partial: REST API, Ansible"
+        zabbix: "partial: import with a preview"
+        prometheus: "yes: YAML, promtool, Terraform"
+      - feature: From Docker labels
+        lotse: "yes"
+        beszel: "no"
+        kuma: "extra: AutoKuma"
+        gatus: "extra: unofficial generators"
+        netdata: "partial: discovery by image"
+        checkmk: "no"
+        zabbix: "no: discovers containers"
+        prometheus: "partial: labels choose what is scraped"
+      - feature: API and client library
+        lotse: "yes: read, and apply; Go client"
+        beszel: "yes: PocketBase's REST API and SDKs"
+        kuma: "partial: an internal API, not stable"
+        gatus: "partial: read only; Go SDK"
+        netdata: "partial: mostly read; a Cloud API"
+        checkmk: "yes: read and write"
+        zabbix: "yes: all of it; Python library"
+        prometheus: "yes: per service; Go clients"

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="go-import" content="lotse.sh git https://github.com/cowlhq/lotse">
+<meta name="go-source" content="lotse.sh https://github.com/cowlhq/lotse https://github.com/cowlhq/lotse/tree/main{/dir} https://github.com/cowlhq/lotse/blob/main{/dir}/{file}#L{line}">
+<title>lotse compared with {{range $i, $t := .Others}}{{if $i}}{{if eq (len $.Others) (inc $i)}} and {{else}}, {{end}}{{end}}{{$t.Name}}{{end}}</title>
+<meta name="description" content="Feature by feature: what lotse, {{range $i, $t := .Others}}{{if $i}}, {{end}}{{$t.Name}}{{end}} do for host metrics, Docker, checks from outside, alerts, and many customers.">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:image" content="https://lotse.sh/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="logo" href="/"><picture><source srcset="/logo-dark.svg" media="(prefers-color-scheme: dark)"><img src="/logo.svg" width="88" height="22" alt="lotse"></picture></a>
+    <nav>
+      <a href="/docs/">Docs</a>
+      <a href="/compare/" aria-current="page">Compare</a>
+      <a href="https://github.com/cowlhq/lotse/releases">Releases</a>
+      <a href="https://github.com/cowlhq/lotse">GitHub</a>
+    </nav>
+  </div>
+</header>
+<main class="compare-page">
+<div class="wrap">
+  <p class="kicker">Compared</p>
+  <h1>lotse and the tools you may know</h1>
+  <p class="intro">Feature by feature, as of {{.AsOf}}. Every tool here is good at
+  something; this is to help you see which one fits. We read each tool's own
+  documentation for it, and link it below. If something is wrong or out of
+  date, <a href="https://github.com/cowlhq/lotse/issues/new">tell us</a> and we fix it.</p>
+  <p class="legend">
+    <span><b class="v yes" aria-hidden="true">✓</b> yes</span>
+    <span><b class="v partial" aria-hidden="true">◐</b> partly</span>
+    <span><b class="v extra" aria-hidden="true">+</b> with an add-on</span>
+    <span><b class="v paid" aria-hidden="true">$</b> in a paid edition</span>
+    <span><b class="v no" aria-hidden="true">–</b> no</span>
+  </p>
+</div>
+<div class="table-wrap">
+<table class="features">
+  <thead>
+    <tr>
+      <th scope="col"><span class="sr">Feature</span></th>
+      {{- range .Tools}}
+      <th scope="col"><a href="{{.URL}}">{{.Name}}</a>{{if .Edition}}<small>{{.Edition}}</small>{{end}}</th>
+      {{- end}}
+    </tr>
+  </thead>
+  {{- range .Groups}}
+  <tbody>
+    <tr class="group"><th scope="rowgroup">{{.Name}}</th><td colspan="{{len $.Tools}}"></td></tr>
+    {{- range .Rows}}
+    <tr>
+      <th scope="row">{{.Feature}}</th>
+      {{- range .Cells}}
+      <td><b class="v {{.Level}}" aria-hidden="true">{{mark .Level}}</b><span class="sr">{{.Label}}</span>{{if .Note}}<small>{{.Note}}</small>{{end}}</td>
+      {{- end}}
+    </tr>
+    {{- end}}
+  </tbody>
+  {{- end}}
+</table>
+</div>
+<div class="wrap sources">
+  <h2>Where this comes from</h2>
+  <ul>
+    {{- range .Others}}
+    <li><b>{{.Name}}</b>{{if .Edition}} ({{.Edition}}){{end}}: {{range $i, $s := .Sources}}{{if $i}} · {{end}}<a href="{{$s}}">{{host $s}}</a>{{end}}</li>
+    {{- end}}
+    <li><b>lotse</b>: the <a href="/docs/install/">documentation</a> and the <a href="https://github.com/cowlhq/lotse">code</a>.</li>
+  </ul>
+</div>
+</main>
+<footer class="foot">
+  <div class="foot-in">
+    <span>lotse is free software under the AGPL-3.0.</span>
+    <a href="https://github.com/cowlhq/lotse">GitHub</a>
+  </div>
+</footer>
+</body>
+</html>

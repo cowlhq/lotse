@@ -56,6 +56,7 @@ code, pre, kbd { font-family: var(--mono); font-size: 0.875em; }
 .logo { display: flex; }
 .logo img { display: block; height: 1.375rem; width: auto; }
 .top nav { display: flex; gap: 1.5rem; font-size: 0.9375rem; }
+@media (max-width: 30rem) { .top nav { gap: 1rem; font-size: 0.875rem; } }
 .top nav a { color: var(--muted); font-weight: 500; }
 .top nav a:hover, .top nav a[aria-current] { color: var(--fg); text-decoration: none; }
 
@@ -128,6 +129,9 @@ section.part:first-of-type { border-top: 0; }
 .compare th, .compare td { padding: 0.8rem 1rem 0.8rem 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .compare th { font-weight: 600; white-space: nowrap; }
 .compare td { color: var(--muted); }
+.more { margin: 1.5rem 0 0; font-weight: 500; }
+.more a { text-decoration: underline; text-decoration-color: var(--brand); text-underline-offset: 0.2em; }
+.more a::after { content: " →"; }
 
 .cta { padding: 5rem 0 6rem; text-align: center; border-top: 1px solid var(--line); }
 .cta h2 { margin: 0; font-size: clamp(1.6rem, 3.4vw, 2.25rem); font-weight: 600; letter-spacing: -0.02em; }
@@ -181,6 +185,37 @@ section.part:first-of-type { border-top: 0; }
 .plain h1 { margin: 0 0 1rem; font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; }
 .plain p { color: var(--muted); }
 .plain .cmd { margin: 1.5rem 0; }
+
+/* The comparison: one wide table that scrolls inside itself, so that the
+   feature names and the tools' names stay in view. */
+.compare-page { padding: 3.5rem 0 4rem; }
+.compare-page h1 { margin: 0; font-size: clamp(2rem, 4.5vw, 2.75rem); line-height: 1.1; font-weight: 600; letter-spacing: -0.025em; }
+.compare-page .intro a, .sources a { text-decoration: underline; text-decoration-color: var(--brand); text-underline-offset: 0.2em; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin: 1.5rem 0 0; color: var(--muted); font-size: 0.875rem; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.table-wrap { max-width: 96rem; max-height: calc(100vh - 4.5rem); margin: 2rem auto 0; overflow: auto; border-block: 1px solid var(--line); }
+@media (min-width: 98rem) { .table-wrap { border: 1px solid var(--line); border-radius: 0.75rem; } }
+.features { border-collapse: separate; border-spacing: 0; min-width: 100%; font-size: 0.875rem; }
+.features th, .features td { padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; background: var(--bg); }
+.features thead th { position: sticky; top: 0; z-index: 2; min-width: 8.5rem; font-weight: 600; font-size: 0.9375rem; vertical-align: bottom; }
+.features thead th a { color: var(--fg); }
+.features thead th small { display: block; color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+.features tbody th { position: sticky; left: 0; z-index: 1; width: 15rem; min-width: 9rem; font-weight: 500; }
+@media (max-width: 40rem) { .features tbody th { width: 9rem; } .features thead th { min-width: 7.5rem; } }
+.features thead th:first-child { left: 0; z-index: 3; }
+.features th:nth-child(2), .features td:nth-child(2) { background: color-mix(in oklch, var(--brand) 4%, var(--bg)); }
+.features .group th, .features .group td { padding-top: 1.6rem; color: var(--muted); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; background: var(--bg); }
+.features td small { margin-left: 0.4rem; color: var(--muted); font-size: 0.8125rem; }
+.v { display: inline-block; min-width: 0.8rem; font-weight: 600; }
+.v.yes { color: var(--ok); }
+.v.partial, .v.extra { color: var(--warn); }
+.v.paid { color: var(--muted); }
+.v.no { color: var(--muted); font-weight: 400; }
+.sources { padding-top: 3rem; color: var(--muted); font-size: 0.875rem; }
+.sources h2 { margin: 0 0 0.75rem; color: var(--fg); font-size: 1.1rem; font-weight: 600; }
+.sources ul { margin: 0; padding-left: 1.1rem; }
+.sources li { margin: 0.3rem 0; overflow-wrap: anywhere; }
+.sources b { color: var(--fg); font-weight: 500; }
 
 /* On a phone, a command wraps instead of running off the screen. */
 @media (max-width: 40rem) {
