@@ -924,6 +924,27 @@ func (e UserRole) Valid() bool {
 	}
 }
 
+// Defines values for UserState.
+const (
+	Active   UserState = "active"
+	Disabled UserState = "disabled"
+	Invited  UserState = "invited"
+)
+
+// Valid indicates whether the value is a known member of the UserState enum.
+func (e UserState) Valid() bool {
+	switch e {
+	case Active:
+		return true
+	case Disabled:
+		return true
+	case Invited:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetupDatabaseJSONBodyKind.
 const (
 	SetupDatabaseJSONBodyKindPostgres SetupDatabaseJSONBodyKind = "postgres"
@@ -954,6 +975,42 @@ func (e CreateTokenJSONBodyKind) Valid() bool {
 	case CreateTokenJSONBodyKindApply:
 		return true
 	case CreateTokenJSONBodyKindRead:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InviteUserJSONBodyRole.
+const (
+	InviteUserJSONBodyRoleAdmin  InviteUserJSONBodyRole = "admin"
+	InviteUserJSONBodyRoleViewer InviteUserJSONBodyRole = "viewer"
+)
+
+// Valid indicates whether the value is a known member of the InviteUserJSONBodyRole enum.
+func (e InviteUserJSONBodyRole) Valid() bool {
+	switch e {
+	case InviteUserJSONBodyRoleAdmin:
+		return true
+	case InviteUserJSONBodyRoleViewer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateUserJSONBodyRole.
+const (
+	UpdateUserJSONBodyRoleAdmin  UpdateUserJSONBodyRole = "admin"
+	UpdateUserJSONBodyRoleViewer UpdateUserJSONBodyRole = "viewer"
+)
+
+// Valid indicates whether the value is a known member of the UpdateUserJSONBodyRole enum.
+func (e UpdateUserJSONBodyRole) Valid() bool {
+	switch e {
+	case UpdateUserJSONBodyRoleAdmin:
+		return true
+	case UpdateUserJSONBodyRoleViewer:
 		return true
 	default:
 		return false
@@ -1785,14 +1842,38 @@ type Updates struct {
 
 // User defines model for User.
 type User struct {
-	Email string   `json:"email"`
-	Id    int64    `json:"id"`
-	Name  string   `json:"name"`
-	Role  UserRole `json:"role"`
+	CreatedAt   int64  `json:"created_at"`
+	Email       string `json:"email"`
+	Id          int64  `json:"id"`
+	LastLoginAt *int64 `json:"last_login_at,omitempty"`
+
+	// LinkExpiresAt Until when a link to choose a password works, if there is one.
+	LinkExpiresAt *int64   `json:"link_expires_at,omitempty"`
+	Name          string   `json:"name"`
+	Role          UserRole `json:"role"`
+
+	// State Invited until they choose a password.
+	State UserState `json:"state"`
 }
 
 // UserRole defines model for User.Role.
 type UserRole string
+
+// UserState Invited until they choose a password.
+type UserState string
+
+// UserLink defines model for UserLink.
+type UserLink struct {
+	// Link The link to choose a password with; it is not shown again.
+	Link string `json:"link"`
+
+	// MailError Why sending the email failed, if it did.
+	MailError *string `json:"mail_error,omitempty"`
+
+	// Mailed Whether the hub sent the link by email.
+	Mailed bool `json:"mailed"`
+	User   User `json:"user"`
+}
 
 // From defines model for From.
 type From = int64
@@ -1839,10 +1920,29 @@ type ListAlertHistoryParams struct {
 	To *To `form:"to,omitempty" json:"to,omitempty"`
 }
 
+// CheckLinkJSONBody defines parameters for CheckLink.
+type CheckLinkJSONBody struct {
+	Token string `json:"token"`
+}
+
+// UseLinkJSONBody defines parameters for UseLink.
+type UseLinkJSONBody struct {
+	Name     *string `json:"name,omitempty"`
+	Password string  `json:"password"`
+	Token    string  `json:"token"`
+}
+
 // LoginJSONBody defines parameters for Login.
 type LoginJSONBody struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// UpdateMeJSONBody defines parameters for UpdateMe.
+type UpdateMeJSONBody struct {
+	CurrentPassword *string `json:"current_password,omitempty"`
+	Name            *string `json:"name,omitempty"`
+	Password        *string `json:"password,omitempty"`
 }
 
 // ListChangesParams defines parameters for ListChanges.
@@ -2016,6 +2116,26 @@ type CreateTokenJSONBody struct {
 // CreateTokenJSONBodyKind defines parameters for CreateToken.
 type CreateTokenJSONBodyKind string
 
+// InviteUserJSONBody defines parameters for InviteUser.
+type InviteUserJSONBody struct {
+	Email string                 `json:"email"`
+	Name  *string                `json:"name,omitempty"`
+	Role  InviteUserJSONBodyRole `json:"role"`
+}
+
+// InviteUserJSONBodyRole defines parameters for InviteUser.
+type InviteUserJSONBodyRole string
+
+// UpdateUserJSONBody defines parameters for UpdateUser.
+type UpdateUserJSONBody struct {
+	Disabled *bool                   `json:"disabled,omitempty"`
+	Name     *string                 `json:"name,omitempty"`
+	Role     *UpdateUserJSONBodyRole `json:"role,omitempty"`
+}
+
+// UpdateUserJSONBodyRole defines parameters for UpdateUser.
+type UpdateUserJSONBodyRole string
+
 // ReadAlertHistoryParams defines parameters for ReadAlertHistory.
 type ReadAlertHistoryParams struct {
 	// From Start, in Unix seconds. Defaults to an hour before to.
@@ -2081,8 +2201,17 @@ type ReadHostSeriesParams struct {
 	Points *Points `form:"points,omitempty" json:"points,omitempty"`
 }
 
+// CheckLinkJSONRequestBody defines body for CheckLink for application/json ContentType.
+type CheckLinkJSONRequestBody CheckLinkJSONBody
+
+// UseLinkJSONRequestBody defines body for UseLink for application/json ContentType.
+type UseLinkJSONRequestBody UseLinkJSONBody
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody LoginJSONBody
+
+// UpdateMeJSONRequestBody defines body for UpdateMe for application/json ContentType.
+type UpdateMeJSONRequestBody UpdateMeJSONBody
 
 // CreateChannelJSONRequestBody defines body for CreateChannel for application/json ContentType.
 type CreateChannelJSONRequestBody = ChannelInput
@@ -2129,6 +2258,12 @@ type SetupDatabaseJSONRequestBody SetupDatabaseJSONBody
 // CreateTokenJSONRequestBody defines body for CreateToken for application/json ContentType.
 type CreateTokenJSONRequestBody CreateTokenJSONBody
 
+// InviteUserJSONRequestBody defines body for InviteUser for application/json ContentType.
+type InviteUserJSONRequestBody InviteUserJSONBody
+
+// UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
+type UpdateUserJSONRequestBody UpdateUserJSONBody
+
 // ApplyDocumentJSONRequestBody defines body for ApplyDocument for application/json ContentType.
 type ApplyDocumentJSONRequestBody ApplyDocumentJSONBody
 
@@ -2146,6 +2281,12 @@ type ServerInterface interface {
 	// AcknowledgeAlert Note that someone looks after a firing alert, which stops repeats
 	// (POST /api/alerts/{id}/acknowledge)
 	AcknowledgeAlert(w http.ResponseWriter, r *http.Request, id ID)
+	// CheckLink Who a link to choose a password is for
+	// (POST /api/auth/link)
+	CheckLink(w http.ResponseWriter, r *http.Request)
+	// UseLink Choose a password with a link, and log in
+	// (POST /api/auth/link/password)
+	UseLink(w http.ResponseWriter, r *http.Request)
 	// Login Log in
 	// (POST /api/auth/login)
 	Login(w http.ResponseWriter, r *http.Request)
@@ -2155,6 +2296,9 @@ type ServerInterface interface {
 	// GetMe Who is logged in
 	// (GET /api/auth/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// UpdateMe Change one's own name, or password
+	// (PATCH /api/auth/me)
+	UpdateMe(w http.ResponseWriter, r *http.Request)
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(w http.ResponseWriter, r *http.Request, params ListChangesParams)
@@ -2317,6 +2461,21 @@ type ServerInterface interface {
 	// CheckUpdates Look for a newer release now, instead of at the next check
 	// (POST /api/updates)
 	CheckUpdates(w http.ResponseWriter, r *http.Request)
+	// ListUsers Everyone who may log in, and who is invited
+	// (GET /api/users)
+	ListUsers(w http.ResponseWriter, r *http.Request)
+	// InviteUser Invite someone; the link is shown this once
+	// (POST /api/users)
+	InviteUser(w http.ResponseWriter, r *http.Request)
+	// WithdrawInvitation Withdraw an invitation nobody accepted yet
+	// (DELETE /api/users/{id})
+	WithdrawInvitation(w http.ResponseWriter, r *http.Request, id ID)
+	// UpdateUser Change a user's name or role, or disable or enable them
+	// (PATCH /api/users/{id})
+	UpdateUser(w http.ResponseWriter, r *http.Request, id ID)
+	// NewUserLink A new link to choose a password with; the old one stops working
+	// (POST /api/users/{id}/link)
+	NewUserLink(w http.ResponseWriter, r *http.Request, id ID)
 	// ReadAlerts The alerts that are not OK now, the worst first
 	// (GET /api/v1/alerts)
 	ReadAlerts(w http.ResponseWriter, r *http.Request)
@@ -2508,6 +2667,34 @@ func (siw *ServerInterfaceWrapper) AcknowledgeAlert(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// CheckLink operation middleware
+func (siw *ServerInterfaceWrapper) CheckLink(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckLink(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UseLink operation middleware
+func (siw *ServerInterfaceWrapper) UseLink(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UseLink(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Login operation middleware
 func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -2541,6 +2728,20 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMe operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMe(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3943,6 +4144,112 @@ func (siw *ServerInterfaceWrapper) CheckUpdates(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ListUsers operation middleware
+func (siw *ServerInterfaceWrapper) ListUsers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListUsers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// InviteUser operation middleware
+func (siw *ServerInterfaceWrapper) InviteUser(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.InviteUser(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// WithdrawInvitation operation middleware
+func (siw *ServerInterfaceWrapper) WithdrawInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.WithdrawInvitation(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateUser operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateUser(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// NewUserLink operation middleware
+func (siw *ServerInterfaceWrapper) NewUserLink(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id ID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.NewUserLink(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ReadAlerts operation middleware
 func (siw *ServerInterfaceWrapper) ReadAlerts(w http.ResponseWriter, r *http.Request) {
 
@@ -4508,6 +4815,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/login", wrapper.Login)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/logout", wrapper.Logout)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/auth/me", wrapper.GetMe)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/auth/me", wrapper.UpdateMe)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/link", wrapper.CheckLink)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/auth/link/password", wrapper.UseLink)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/scopes", wrapper.ListScopes)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/scopes/{id}", wrapper.DeleteScope)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/scopes/{id}", wrapper.GetScope)
@@ -4564,6 +4874,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/tokens", wrapper.ListTokens)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/tokens", wrapper.CreateToken)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/tokens/{id}", wrapper.RevokeToken)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/users", wrapper.ListUsers)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/users", wrapper.InviteUser)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/users/{id}", wrapper.WithdrawInvitation)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/users/{id}", wrapper.UpdateUser)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/users/{id}/link", wrapper.NewUserLink)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/status", wrapper.ReadStatus)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/scopes", wrapper.ReadScopes)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/hosts", wrapper.ReadHosts)
@@ -4740,6 +5055,136 @@ func (response AcknowledgeAlert404JSONResponse) VisitAcknowledgeAlertResponse(w 
 	return err
 }
 
+type CheckLinkRequestObject struct {
+	Body *CheckLinkJSONRequestBody
+}
+
+type CheckLinkResponseObject interface {
+	VisitCheckLinkResponse(w http.ResponseWriter) error
+}
+
+type CheckLink200JSONResponse struct {
+	Email string `json:"email"`
+
+	// Invited An invitation; otherwise a new password for an account.
+	Invited bool   `json:"invited"`
+	Name    string `json:"name"`
+}
+
+func (response CheckLink200JSONResponse) VisitCheckLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckLink404JSONResponse Error
+
+func (response CheckLink404JSONResponse) VisitCheckLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CheckLink429JSONResponse Error
+
+func (response CheckLink429JSONResponse) VisitCheckLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UseLinkRequestObject struct {
+	Body *UseLinkJSONRequestBody
+}
+
+type UseLinkResponseObject interface {
+	VisitUseLinkResponse(w http.ResponseWriter) error
+}
+
+type UseLink200ResponseHeaders struct {
+	SetCookie *string
+}
+
+type UseLink200JSONResponse struct {
+	Body    User
+	Headers UseLink200ResponseHeaders
+}
+
+func (response UseLink200JSONResponse) VisitUseLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UseLink400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UseLink400JSONResponse) VisitUseLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UseLink404JSONResponse Error
+
+func (response UseLink404JSONResponse) VisitUseLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UseLink429JSONResponse Error
+
+func (response UseLink429JSONResponse) VisitUseLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type LoginRequestObject struct {
 	Body *LoginJSONRequestBody
 }
@@ -4840,6 +5285,42 @@ func (response GetMe200JSONResponse) VisitGetMeResponse(w http.ResponseWriter) e
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMeRequestObject struct {
+	Body *UpdateMeJSONRequestBody
+}
+
+type UpdateMeResponseObject interface {
+	VisitUpdateMeResponse(w http.ResponseWriter) error
+}
+
+type UpdateMe200JSONResponse User
+
+func (response UpdateMe200JSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMe400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateMe400JSONResponse) VisitUpdateMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -7244,6 +7725,292 @@ func (response CheckUpdates403JSONResponse) VisitCheckUpdatesResponse(w http.Res
 	return err
 }
 
+type ListUsersRequestObject struct {
+}
+
+type ListUsersResponseObject interface {
+	VisitListUsersResponse(w http.ResponseWriter) error
+}
+
+type ListUsers200JSONResponse []User
+
+func (response ListUsers200JSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListUsers403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListUsers403JSONResponse) VisitListUsersResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type InviteUserRequestObject struct {
+	Body *InviteUserJSONRequestBody
+}
+
+type InviteUserResponseObject interface {
+	VisitInviteUserResponse(w http.ResponseWriter) error
+}
+
+type InviteUser201JSONResponse UserLink
+
+func (response InviteUser201JSONResponse) VisitInviteUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type InviteUser400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response InviteUser400JSONResponse) VisitInviteUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type InviteUser403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response InviteUser403JSONResponse) VisitInviteUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type InviteUser409JSONResponse Error
+
+func (response InviteUser409JSONResponse) VisitInviteUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawInvitationRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type WithdrawInvitationResponseObject interface {
+	VisitWithdrawInvitationResponse(w http.ResponseWriter) error
+}
+
+type WithdrawInvitation204Response struct {
+}
+
+func (response WithdrawInvitation204Response) VisitWithdrawInvitationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type WithdrawInvitation400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response WithdrawInvitation400JSONResponse) VisitWithdrawInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawInvitation403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response WithdrawInvitation403JSONResponse) VisitWithdrawInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type WithdrawInvitation404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response WithdrawInvitation404JSONResponse) VisitWithdrawInvitationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUserRequestObject struct {
+	Id   ID `json:"id"`
+	Body *UpdateUserJSONRequestBody
+}
+
+type UpdateUserResponseObject interface {
+	VisitUpdateUserResponse(w http.ResponseWriter) error
+}
+
+type UpdateUser200JSONResponse User
+
+func (response UpdateUser200JSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUser400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateUser400JSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUser403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateUser403JSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateUser404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateUser404JSONResponse) VisitUpdateUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewUserLinkRequestObject struct {
+	Id ID `json:"id"`
+}
+
+type NewUserLinkResponseObject interface {
+	VisitNewUserLinkResponse(w http.ResponseWriter) error
+}
+
+type NewUserLink200JSONResponse UserLink
+
+func (response NewUserLink200JSONResponse) VisitNewUserLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewUserLink400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response NewUserLink400JSONResponse) VisitNewUserLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewUserLink403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response NewUserLink403JSONResponse) VisitNewUserLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type NewUserLink404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response NewUserLink404JSONResponse) VisitNewUserLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ReadAlertsRequestObject struct {
 }
 
@@ -7905,6 +8672,12 @@ type StrictServerInterface interface {
 	// AcknowledgeAlert Note that someone looks after a firing alert, which stops repeats
 	// (POST /api/alerts/{id}/acknowledge)
 	AcknowledgeAlert(ctx context.Context, request AcknowledgeAlertRequestObject) (AcknowledgeAlertResponseObject, error)
+	// CheckLink Who a link to choose a password is for
+	// (POST /api/auth/link)
+	CheckLink(ctx context.Context, request CheckLinkRequestObject) (CheckLinkResponseObject, error)
+	// UseLink Choose a password with a link, and log in
+	// (POST /api/auth/link/password)
+	UseLink(ctx context.Context, request UseLinkRequestObject) (UseLinkResponseObject, error)
 	// Login Log in
 	// (POST /api/auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -7914,6 +8687,9 @@ type StrictServerInterface interface {
 	// GetMe Who is logged in
 	// (GET /api/auth/me)
 	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// UpdateMe Change one's own name, or password
+	// (PATCH /api/auth/me)
+	UpdateMe(ctx context.Context, request UpdateMeRequestObject) (UpdateMeResponseObject, error)
 	// ListChanges The history of an object
 	// (GET /api/changes)
 	ListChanges(ctx context.Context, request ListChangesRequestObject) (ListChangesResponseObject, error)
@@ -8076,6 +8852,21 @@ type StrictServerInterface interface {
 	// CheckUpdates Look for a newer release now, instead of at the next check
 	// (POST /api/updates)
 	CheckUpdates(ctx context.Context, request CheckUpdatesRequestObject) (CheckUpdatesResponseObject, error)
+	// ListUsers Everyone who may log in, and who is invited
+	// (GET /api/users)
+	ListUsers(ctx context.Context, request ListUsersRequestObject) (ListUsersResponseObject, error)
+	// InviteUser Invite someone; the link is shown this once
+	// (POST /api/users)
+	InviteUser(ctx context.Context, request InviteUserRequestObject) (InviteUserResponseObject, error)
+	// WithdrawInvitation Withdraw an invitation nobody accepted yet
+	// (DELETE /api/users/{id})
+	WithdrawInvitation(ctx context.Context, request WithdrawInvitationRequestObject) (WithdrawInvitationResponseObject, error)
+	// UpdateUser Change a user's name or role, or disable or enable them
+	// (PATCH /api/users/{id})
+	UpdateUser(ctx context.Context, request UpdateUserRequestObject) (UpdateUserResponseObject, error)
+	// NewUserLink A new link to choose a password with; the old one stops working
+	// (POST /api/users/{id}/link)
+	NewUserLink(ctx context.Context, request NewUserLinkRequestObject) (NewUserLinkResponseObject, error)
 	// ReadAlerts The alerts that are not OK now, the worst first
 	// (GET /api/v1/alerts)
 	ReadAlerts(ctx context.Context, request ReadAlertsRequestObject) (ReadAlertsResponseObject, error)
@@ -8257,6 +9048,68 @@ func (sh *strictHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// CheckLink operation middleware
+func (sh *strictHandler) CheckLink(w http.ResponseWriter, r *http.Request) {
+	var request CheckLinkRequestObject
+
+	var body CheckLinkJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CheckLink(ctx, request.(CheckLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CheckLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CheckLinkResponseObject); ok {
+		if err := validResponse.VisitCheckLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UseLink operation middleware
+func (sh *strictHandler) UseLink(w http.ResponseWriter, r *http.Request) {
+	var request UseLinkRequestObject
+
+	var body UseLinkJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UseLink(ctx, request.(UseLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UseLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UseLinkResponseObject); ok {
+		if err := validResponse.VisitUseLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Login operation middleware
 func (sh *strictHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request LoginRequestObject
@@ -8329,6 +9182,37 @@ func (sh *strictHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetMeResponseObject); ok {
 		if err := validResponse.VisitGetMeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMe operation middleware
+func (sh *strictHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	var request UpdateMeRequestObject
+
+	var body UpdateMeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMe(ctx, request.(UpdateMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMe")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMeResponseObject); ok {
+		if err := validResponse.VisitUpdateMeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -9797,6 +10681,146 @@ func (sh *strictHandler) CheckUpdates(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CheckUpdatesResponseObject); ok {
 		if err := validResponse.VisitCheckUpdatesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListUsers operation middleware
+func (sh *strictHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	var request ListUsersRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListUsers(ctx, request.(ListUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListUsers")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListUsersResponseObject); ok {
+		if err := validResponse.VisitListUsersResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// InviteUser operation middleware
+func (sh *strictHandler) InviteUser(w http.ResponseWriter, r *http.Request) {
+	var request InviteUserRequestObject
+
+	var body InviteUserJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.InviteUser(ctx, request.(InviteUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "InviteUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(InviteUserResponseObject); ok {
+		if err := validResponse.VisitInviteUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// WithdrawInvitation operation middleware
+func (sh *strictHandler) WithdrawInvitation(w http.ResponseWriter, r *http.Request, id ID) {
+	var request WithdrawInvitationRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.WithdrawInvitation(ctx, request.(WithdrawInvitationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "WithdrawInvitation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(WithdrawInvitationResponseObject); ok {
+		if err := validResponse.VisitWithdrawInvitationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateUser operation middleware
+func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request, id ID) {
+	var request UpdateUserRequestObject
+
+	request.Id = id
+
+	var body UpdateUserJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateUser(ctx, request.(UpdateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateUserResponseObject); ok {
+		if err := validResponse.VisitUpdateUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// NewUserLink operation middleware
+func (sh *strictHandler) NewUserLink(w http.ResponseWriter, r *http.Request, id ID) {
+	var request NewUserLinkRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.NewUserLink(ctx, request.(NewUserLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "NewUserLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(NewUserLinkResponseObject); ok {
+		if err := validResponse.VisitNewUserLinkResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

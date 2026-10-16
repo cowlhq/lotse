@@ -311,8 +311,9 @@ full filesystems on one host.
 **Access**
 
 ```
-users              id, email (unique), name, password_hash (argon2id),
-                   role (admin|viewer), created_at, disabled_at
+users              id, email (unique), name, password_hash (argon2id;
+                   empty while invited), role (admin|viewer), created_at,
+                   disabled_at, link_hash, link_expires_at, last_login_at
 sessions           id_hash, user_id, created_at, expires_at, last_seen_at
 api_tokens         id, name, kind (read|apply), token_hash, created_by,
                    created_at, expires_at, last_used_at, revoked_at
