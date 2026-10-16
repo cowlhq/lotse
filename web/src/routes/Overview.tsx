@@ -25,6 +25,7 @@ export function Overview() {
   const checks = useQuery({ queryKey: ["checks", "all"], queryFn: () => listChecks(), refetchInterval: 30_000 });
   const alerts = useAlerts().data ?? [];
   const [filter, setFilter] = useState("");
+  const [startHidden, setStartHidden] = useState(() => localStorage.getItem("lotse.started") === "hidden");
   const client = useQueryClient();
   useLive(["hosts"], (m) => {
     if (m.type === "host") {
@@ -53,14 +54,17 @@ export function Overview() {
   const shownChecks = (checks.data ?? []).filter((c) => `${c.name} ${c.path}`.toLowerCase().includes(text));
   const problems = firing(alerts);
   const crit = problems.filter((a) => a.state === "crit").length;
-
+  // Before the first host or check, there is no status to show, and Get
+  // started says what to do; empty tables beside it would only repeat it.
+  const empty = hosts.data.length === 0 && (checks.data?.length ?? 0) === 0;
+  const guided = isAdmin && !startHidden;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
-          <StatusIcon level={crit ? "crit" : problems.length ? "warn" : "ok"} size={20} />
-          {hosts.data.length === 0 && (checks.data?.length ?? 0) === 0
+          {!empty && <StatusIcon level={crit ? "crit" : problems.length ? "warn" : "ok"} size={20} />}
+          {empty
             ? t("overview.welcome")
             : crit
               ? t("overview.critical", { count: crit })
@@ -69,13 +73,22 @@ export function Overview() {
                 : t("overview.allGood")}
         </h1>
         <div className="flex-1" />
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t("rows.filter")} className="w-56 pl-8" />
-        </div>
+        {!empty && (
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t("rows.filter")} className="w-56 pl-8" />
+          </div>
+        )}
       </div>
 
-      {isAdmin && <GettingStarted scopes={scopes.data} hosts={hosts.data} checks={checks.data ?? []} />}
+      {guided && (
+        <GettingStarted
+          scopes={scopes.data}
+          hosts={hosts.data}
+          checks={checks.data ?? []}
+          onHide={() => (localStorage.setItem("lotse.started", "hidden"), setStartHidden(true))}
+        />
+      )}
 
       {problems.length > 0 && (
         <section className="overflow-hidden rounded-lg border bg-card">
@@ -83,6 +96,8 @@ export function Overview() {
         </section>
       )}
 
+      {!(empty && guided) && (
+        <>
       <section className="overflow-hidden rounded-lg border bg-card">
         <header className="flex items-baseline gap-2 border-b px-4 py-3">
           <h2 className="font-semibold">{t("nav.hosts")}</h2>
@@ -106,6 +121,8 @@ export function Overview() {
           <CheckTable checks={shownChecks} where={(c) => where(c.environment_id)} />
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }

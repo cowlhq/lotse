@@ -18,7 +18,7 @@ export function Setup({ token }: { token: string }) {
   const check = useQuery({ queryKey: ["setup", token], queryFn: () => checkSetup(token), retry: false });
 
   let body;
-  if (!token) body = <p>{t("setup.noToken")}</p>;
+  if (!token) body = <NoSetupToken />;
   else if (check.isPending) body = <p className="text-muted-foreground">{t("setup.checking")}</p>;
   else if (check.isError) body = <p>{t("setup.done")}</p>;
   else if (!check.data.valid) body = <p>{t("setup.invalid")}</p>;
@@ -162,6 +162,18 @@ function AdminStep({ token }: { token: string }) {
           </Button>
         </form>
       </div>
+    </div>
+  );
+}
+
+// NoSetupToken says where the setup link is, for whoever opens the hub
+// without it.
+export function NoSetupToken() {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-3">
+      <p>{t("setup.noToken")}</p>
+      <pre className="rounded-md border bg-muted/60 px-3 py-2 font-mono text-mini whitespace-pre-wrap [overflow-wrap:anywhere]">sudo docker compose -f /opt/lotse/compose.yml logs hub</pre>
     </div>
   );
 }
