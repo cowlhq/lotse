@@ -105,7 +105,7 @@ export function Host({ id }: { id: number }) {
       <Page>
         <AgentUpdate host={h} status={update} />
         {problems.length > 0 && (
-          <section className="overflow-hidden rounded-lg border bg-card">
+          <section className="overflow-hidden rounded-xl border bg-card">
             <Incidents alerts={problems} />
           </section>
         )}

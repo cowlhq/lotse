@@ -163,7 +163,7 @@ export function Scope({ id }: { id: number }) {
         />
       <TabsContent value="overview" className="space-y-6">
           {problems.length > 0 && (
-            <section className="overflow-hidden rounded-lg border bg-card">
+            <section className="overflow-hidden rounded-xl border bg-card">
               <Incidents alerts={problems} />
             </section>
           )}

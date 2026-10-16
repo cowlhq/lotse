@@ -59,7 +59,7 @@ export function Settings({ tab }: { tab?: string }) {
               <TabsTrigger
                 key={x.value}
                 value={x.value}
-                className="h-9 flex-none justify-start gap-2.5 rounded-md max-md:w-auto! border-0 px-2.5 text-ui! font-medium text-muted-foreground after:hidden hover:bg-accent/60 hover:text-foreground data-active:bg-accent! data-active:text-foreground! [&_svg]:size-4"
+                className="h-9 flex-none justify-start gap-2.5 rounded-md max-md:w-auto! border-0 px-2.5 text-ui! font-medium text-muted-foreground after:hidden hover:bg-sidebar-accent/70 hover:text-foreground data-active:chip data-active:bg-card! data-active:text-foreground! [&_svg]:size-4"
               >
                 {x.icon}
                 {x.label}

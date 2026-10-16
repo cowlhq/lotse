@@ -8,7 +8,7 @@ export function PageTabs({ tabs }: { tabs: { value: string; label: string; count
         <TabsTrigger
           key={tab.value}
           value={tab.value}
-          className="h-8 flex-none rounded-md border-0 px-2.5 text-ui! font-medium text-muted-foreground after:hidden hover:bg-accent/60 hover:text-foreground data-active:bg-accent! data-active:text-foreground!"
+          className="h-8 flex-none rounded-md border-0 px-2.5 text-ui! font-medium text-muted-foreground after:hidden hover:bg-sidebar-accent/70 hover:text-foreground data-active:chip data-active:bg-card! data-active:text-foreground!"
         >
           {tab.label}
           {tab.count ? <span className="text-mini tabular-nums text-muted-foreground">{tab.count}</span> : null}

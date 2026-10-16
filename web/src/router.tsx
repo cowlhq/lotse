@@ -78,14 +78,14 @@ function Layout() {
           <Sidebar onSearch={() => (setMenu(false), setSearch(true))} onNavigate={() => setMenu(false)} />
         </SheetContent>
       </Sheet>
-      <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-background px-3 md:hidden">
           <Button variant="ghost" size="icon-sm" aria-label={t("nav.menu")} onClick={() => setMenu(true)}>
             <Menu />
           </Button>
           <Wordmark />
         </div>
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background pb-16 md:rounded-lg md:border md:shadow-xs">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto pb-16">
           <Outlet />
         </main>
       </div>

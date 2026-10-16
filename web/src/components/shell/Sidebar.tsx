@@ -19,7 +19,7 @@ import { newer } from "@/lib/version";
 
 const item =
   "flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-sidebar-foreground transition-colors duration-100 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground";
-const active = "bg-sidebar-accent text-sidebar-accent-foreground";
+const active = "chip hover:bg-card!";
 const icon = "size-4 text-muted-foreground";
 
 // Sidebar is the way around: the views, the tree of customers, projects and
