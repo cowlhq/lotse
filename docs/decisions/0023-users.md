@@ -18,6 +18,13 @@ Date: 2026-10-16
   agents and updating them. What belongs to the whole hub stays with admins
   of the whole hub: users, API tokens, the mail server, probes, the hub's
   update, and the global settings.
+- So that a scope's admin stays in it: a channel's secret may refer to the
+  hub's environment or secret files only for admins and tokens of the whole
+  hub, since those hold every customer's secrets, and a channel that has
+  such a reference is pointed elsewhere only by them; what a server answered
+  is left out of a channel's errors shown to someone kept to a scope; and
+  enrolling a machine again takes over its host only in the host's own
+  environment, so no enrollment token takes a machine from another.
 - Users join by invitation. An admin of the whole hub gives an email
   address, a role and an access; the hub makes a link that works once and
   for seven days. It is shown to copy and, if the hub has a mail server,

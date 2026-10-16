@@ -242,11 +242,19 @@ func (a *applier) scope(refs []apply.ScopeRef) (store.Scope, error) {
 		keys[i] = r.Key
 	}
 	path := strings.Join(keys, "/")
-	if err := a.may(path); err != nil {
-		return store.Scope{}, err
-	}
 	kinds := []string{"customer", "project", "environment"}
 	last := refs[len(refs)-1]
+	if err := a.may(path); err != nil {
+		// Kept to a project or an environment, a document still names the
+		// scopes above it, to say where its own is. Those it may name as
+		// they are, not make or rename.
+		x, ok := a.scopes[path]
+		if !ok || !strings.HasPrefix(a.opts.within, path+"/") || (last.Name != "" && strings.TrimSpace(last.Name) != x.Name) {
+			return store.Scope{}, err
+		}
+		a.seen["scope:"+path] = true
+		return x, nil
+	}
 	a.seen["scope:"+path] = true
 	if x, ok := a.scopes[path]; ok {
 		if last.Name != "" && strings.TrimSpace(last.Name) != x.Name {
@@ -278,6 +286,12 @@ func (a *applier) scope(refs []apply.ScopeRef) (store.Scope, error) {
 
 // level is what every scope has: settings, channels, maintenance.
 func (a *applier) level(x store.Scope, s apply.Settings, channels []apply.Channel, windows []apply.Window) error {
+	// A scope above the token's is named only to say where its own is.
+	if len(s) > 0 || len(channels) > 0 || len(windows) > 0 {
+		if err := a.may(x.Path); err != nil {
+			return err
+		}
+	}
 	sub := store.Subject{Kind: x.Kind, ID: x.ID, Path: x.Path}
 	if err := a.settings(sub, s); err != nil {
 		return err
@@ -407,12 +421,17 @@ func (a *applier) channels(x store.Scope, list []apply.Channel) error {
 				inputs[field] = api.SecretInput{Value: nonEmpty(s.Value), Env: nonEmpty(s.Env), File: nonEmpty(s.File)}
 			}
 		}
-		if err := sec.apply(secretFields[typ], inputs); err != nil {
+		if err := sec.apply(secretFields[typ], inputs, a.opts.all || a.opts.within == "", old.refs); err != nil {
 			return fail("channel %s: %v", path, err)
 		}
 		spec, err := checkChannel(typ, raw, sec)
 		if err != nil {
 			return fail("channel %s: %v", path, err)
+		}
+		if have != nil {
+			if msg := refsStay(!(a.opts.all || a.opts.within == ""), have.SecretRefs, have.Spec, spec); msg != "" {
+				return fail("channel %s: %s", path, msg)
+			}
 		}
 		name := nameOr(c.Name, c.Key)
 		if have == nil {
@@ -705,6 +724,17 @@ func (a *applier) hosts(env store.Scope, list []apply.Host) error {
 			if found == nil {
 				a.warnings = append(a.warnings, fmt.Sprintf("%s does not run on %s; what is set on it waits until it does", c.Key, path))
 				continue
+			}
+			// A container its label puts in another environment is that
+			// environment's to set.
+			if found.EnvironmentID != nil {
+				for p, x := range a.scopes {
+					if x.ID == *found.EnvironmentID {
+						if err := a.may(p); err != nil {
+							return err
+						}
+					}
+				}
 			}
 			csub := store.Subject{Kind: "container", ID: found.ID, Path: cpath}
 			if err := a.settings(csub, c.Settings); err != nil {

@@ -124,7 +124,8 @@ func (s *Store) RenameScope(ctx context.Context, actor Actor, id int64, name str
 	})
 }
 
-// ErrNotEmpty is returned for a scope that still has scopes or hosts in it.
+// ErrNotEmpty is returned for a scope that still has scopes, hosts or
+// checks in it, or users kept to it.
 var ErrNotEmpty = errors.New("not empty")
 
 // DeleteScope deletes an empty scope.
@@ -140,8 +141,8 @@ func (s *Store) DeleteScope(ctx context.Context, actor Actor, id int64) error {
 		var n int
 		if err := tx.QueryRowContext(ctx, s.rebind(`
 			SELECT (SELECT count(*) FROM scopes WHERE parent_id = ?) + (SELECT count(*) FROM hosts WHERE environment_id = ?)
-				+ (SELECT count(*) FROM checks WHERE environment_id = ?)`),
-			id, id, id).Scan(&n); err != nil {
+				+ (SELECT count(*) FROM checks WHERE environment_id = ?) + (SELECT count(*) FROM users WHERE scope_id = ?)`),
+			id, id, id, id).Scan(&n); err != nil {
 			return err
 		}
 		if n > 0 {

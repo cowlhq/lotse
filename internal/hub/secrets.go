@@ -69,8 +69,11 @@ func (h *hub) closeSecrets(s secrets) (*string, json.RawMessage) {
 }
 
 // apply changes the secrets as an input says: a value, a reference, or
-// nothing (an empty object) for each field named.
-func (s *secrets) apply(fields []string, in map[string]api.SecretInput) error {
+// nothing (an empty object) for each field named. References read the
+// hub's environment and secret files, which belong to the whole hub; refs
+// says whether the one asking may make them (decision 0023). One that is
+// already there, in known, may be given again by anyone.
+func (s *secrets) apply(fields []string, in map[string]api.SecretInput, refs bool, known map[string]secretRef) error {
 	for name, x := range in {
 		if !slices.Contains(fields, name) {
 			return fmt.Errorf("there is no secret %q here", name)
@@ -84,6 +87,9 @@ func (s *secrets) apply(fields []string, in map[string]api.SecretInput) error {
 		}
 		if n > 1 {
 			return fmt.Errorf("%s: a value, an environment variable or a file, not more than one", name)
+		}
+		if (env != "" || file != "") && !refs && known[name] != (secretRef{Env: env, File: file}) {
+			return fmt.Errorf("%s: only an admin of the whole hub refers to the hub's environment or files; give the value", name)
 		}
 		delete(s.sealed, name)
 		delete(s.refs, name)
@@ -174,4 +180,16 @@ func (s secrets) info(fields []string) map[string]api.SecretInfo {
 		out[f] = i
 	}
 	return out
+}
+
+// refsStay says why a channel that sends with the hub's own secrets may not
+// be pointed elsewhere by someone kept to a scope: its secret would go
+// along (decision 0023). Empty when it may.
+func refsStay(restricted bool, refs json.RawMessage, before, after json.RawMessage) string {
+	var have map[string]secretRef
+	json.Unmarshal(refs, &have)
+	if !restricted || len(have) == 0 || sameJSON(before, after) {
+		return ""
+	}
+	return "this channel sends with the hub's own secrets; only an admin of the whole hub changes where it sends"
 }

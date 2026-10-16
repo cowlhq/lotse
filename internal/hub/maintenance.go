@@ -68,10 +68,13 @@ func (s apiServer) ListMaintenance(ctx context.Context, req api.ListMaintenanceR
 		if !ok {
 			return api.ListMaintenance400JSONResponse{Error: "subject is kind:id, such as host:3"}, nil
 		}
-		if chain = t.chain(kind, id); chain == nil {
+		if chain = t.chain(kind, id); chain == nil || !visible(ctx, t, kind, id) {
 			return api.ListMaintenance200JSONResponse{}, nil
 		}
 	}
+	// Windows above an object cover it too, so they are listed with it;
+	// without an object, only the windows on what the request sees.
+	scope, _ := accessOf(ctx)
 	windows, err := s.db.Maintenances(ctx)
 	if err != nil {
 		return nil, err
@@ -83,7 +86,7 @@ func (s apiServer) ListMaintenance(ctx context.Context, req api.ListMaintenanceR
 		for _, l := range chain {
 			covers = covers || l.Kind == m.SubjectKind && l.ID == m.SubjectID
 		}
-		if covers {
+		if covers && (chain != nil || t.sees(m.SubjectKind, m.SubjectID, scope)) {
 			out = append(out, s.toMaintenance(t, m, now))
 		}
 	}
@@ -91,7 +94,7 @@ func (s apiServer) ListMaintenance(ctx context.Context, req api.ListMaintenanceR
 }
 
 func (s apiServer) CreateMaintenance(ctx context.Context, req api.CreateMaintenanceRequestObject) (api.CreateMaintenanceResponseObject, error) {
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return api.CreateMaintenance403JSONResponse{Error: forbidden}, nil
 	}
 	b := req.Body
@@ -108,7 +111,7 @@ func (s apiServer) CreateMaintenance(ctx context.Context, req api.CreateMaintena
 	if err != nil {
 		return nil, err
 	}
-	if t.chain(kind, id) == nil {
+	if t.chain(kind, id) == nil || !visible(ctx, t, kind, id) {
 		return api.CreateMaintenance404JSONResponse{Error: "there is no such object"}, nil
 	}
 	reason := strings.TrimSpace(ptrValue(b.Reason))
@@ -143,7 +146,7 @@ func (s apiServer) CreateMaintenance(ctx context.Context, req api.CreateMaintena
 }
 
 func (s apiServer) DeleteMaintenance(ctx context.Context, req api.DeleteMaintenanceRequestObject) (api.DeleteMaintenanceResponseObject, error) {
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return api.DeleteMaintenance403JSONResponse{Error: forbidden}, nil
 	}
 	m, err := s.db.Maintenance(ctx, req.Id)
@@ -156,6 +159,9 @@ func (s apiServer) DeleteMaintenance(ctx context.Context, req api.DeleteMaintena
 	t, err := s.loadTree(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if !visible(ctx, t, m.SubjectKind, m.SubjectID) {
+		return api.DeleteMaintenance404JSONResponse{Error: "no such window"}, nil
 	}
 	if err := s.db.DeleteMaintenance(ctx, actor(ctx), m.ID, t.path(m.SubjectKind, m.SubjectID)); err != nil {
 		return nil, err

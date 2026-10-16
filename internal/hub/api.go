@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -57,8 +56,15 @@ func (s apiServer) ListHosts(ctx context.Context, _ api.ListHostsRequestObject) 
 	if err != nil {
 		return nil, err
 	}
+	t, err := s.treeFor(ctx)
+	if err != nil {
+		return nil, err
+	}
 	out := make(api.ListHosts200JSONResponse, 0, len(hosts))
 	for _, h := range hosts {
+		if !visible(ctx, t, "host", h.ID) {
+			continue
+		}
 		sum := api.HostSummary{Host: s.toHost(ctx, h)}
 		latest, err := s.db.LatestHostSample(ctx, h.ID)
 		if err != nil {
@@ -82,7 +88,7 @@ func (s apiServer) ListHosts(ctx context.Context, _ api.ListHostsRequestObject) 
 			return nil, err
 		}
 		for _, c := range cs {
-			if c.GoneAt != nil {
+			if c.GoneAt != nil || !visible(ctx, t, "container", c.ID) {
 				continue
 			}
 			sum.Containers.Total++
@@ -102,7 +108,10 @@ func (s apiServer) ListHosts(ctx context.Context, _ api.ListHostsRequestObject) 
 
 func (s apiServer) GetHost(ctx context.Context, req api.GetHostRequestObject) (api.GetHostResponseObject, error) {
 	h, err := s.db.Host(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	if err == nil {
+		err = s.see(ctx, "host", req.Id)
+	}
+	if notFound(err) {
 		return api.GetHost404JSONResponse{Error: "no such host"}, nil
 	}
 	if err != nil {
@@ -140,6 +149,11 @@ func (s apiServer) GetHost(ctx context.Context, req api.GetHostRequestObject) (a
 		return nil, err
 	}
 	for _, c := range cs {
+		// A container its label puts in an environment the request does
+		// not see is not shown with its host.
+		if restricted(ctx) && !t.sees("container", c.ID, scopeOf(ctx)) {
+			continue
+		}
 		ac := toContainer(c, h.Name)
 		ac.Ignored = ptr(ignored(t, c.ID))
 		if x, ok := readings[c.ID]; ok {
@@ -154,8 +168,15 @@ func (s apiServer) GetHostSeries(ctx context.Context, req api.GetHostSeriesReque
 	if msg := checkPoints(req.Params.Points); msg != "" {
 		return api.GetHostSeries400JSONResponse{Error: msg}, nil
 	}
-	if _, err := s.db.Host(ctx, req.Id); errors.Is(err, store.ErrNotFound) {
+	_, err := s.db.Host(ctx, req.Id)
+	if err == nil {
+		err = s.see(ctx, "host", req.Id)
+	}
+	if notFound(err) {
 		return api.GetHostSeries404JSONResponse{Error: "no such host"}, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 	sr, err := s.series(ctx, "host", req.Id, req.Params.From, req.Params.To, req.Params.Points, s.hostInterval)
 	return api.GetHostSeries200JSONResponse(sr), err
@@ -165,13 +186,26 @@ func (s apiServer) GetFilesystemSeries(ctx context.Context, req api.GetFilesyste
 	if msg := checkPoints(req.Params.Points); msg != "" {
 		return api.GetFilesystemSeries400JSONResponse{Error: msg}, nil
 	}
+	host, err := s.db.FilesystemHost(ctx, req.Id)
+	if err == nil {
+		err = s.see(ctx, "host", host)
+	}
+	if notFound(err) {
+		return api.GetFilesystemSeries404JSONResponse{Error: "no such filesystem"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
 	sr, err := s.series(ctx, "filesystem", req.Id, req.Params.From, req.Params.To, req.Params.Points, s.hostInterval)
 	return api.GetFilesystemSeries200JSONResponse(sr), err
 }
 
 func (s apiServer) GetContainer(ctx context.Context, req api.GetContainerRequestObject) (api.GetContainerResponseObject, error) {
 	c, err := s.db.Container(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	if err == nil {
+		err = s.see(ctx, "container", req.Id)
+	}
+	if notFound(err) {
 		return api.GetContainer404JSONResponse{Error: "no such container"}, nil
 	}
 	if err != nil {
@@ -201,6 +235,16 @@ func (s apiServer) GetContainerSeries(ctx context.Context, req api.GetContainerS
 	if msg := checkPoints(req.Params.Points); msg != "" {
 		return api.GetContainerSeries400JSONResponse{Error: msg}, nil
 	}
+	_, err := s.db.Container(ctx, req.Id)
+	if err == nil {
+		err = s.see(ctx, "container", req.Id)
+	}
+	if notFound(err) {
+		return api.GetContainerSeries404JSONResponse{Error: "no such container"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
 	sr, err := s.series(ctx, "container", req.Id, req.Params.From, req.Params.To, req.Params.Points, s.containerInterval)
 	return api.GetContainerSeries200JSONResponse(sr), err
 }
@@ -210,6 +254,11 @@ func (s apiServer) ListEvents(ctx context.Context, req api.ListEventsRequestObje
 	id, err := strconv.ParseInt(idText, 10, 64)
 	if (kind != "host" && kind != "container" && kind != "check") || err != nil {
 		return api.ListEvents400JSONResponse{Error: "subject must be host:<id>, container:<id> or check:<id>"}, nil
+	}
+	if err := s.see(ctx, kind, id); notFound(err) {
+		return api.ListEvents200JSONResponse{}, nil
+	} else if err != nil {
+		return nil, err
 	}
 	from, to := timeRange(req.Params.From, req.Params.To)
 	events, err := s.db.Events(ctx, kind, id, from, to)

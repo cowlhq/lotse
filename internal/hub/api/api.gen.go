@@ -1852,6 +1852,12 @@ type User struct {
 	Name          string   `json:"name"`
 	Role          UserRole `json:"role"`
 
+	// ScopeId The scope the user is kept to, with what is below it; 1 for the whole hub.
+	ScopeId int64 `json:"scope_id"`
+
+	// ScopePath Its path; empty for the whole hub.
+	ScopePath string `json:"scope_path"`
+
 	// State Invited until they choose a password.
 	State UserState `json:"state"`
 }
@@ -2121,6 +2127,9 @@ type InviteUserJSONBody struct {
 	Email string                 `json:"email"`
 	Name  *string                `json:"name,omitempty"`
 	Role  InviteUserJSONBodyRole `json:"role"`
+
+	// ScopeId The customer, project or environment the user is kept to, with what is below it; 1, or none, for the whole hub.
+	ScopeId *int64 `json:"scope_id,omitempty"`
 }
 
 // InviteUserJSONBodyRole defines parameters for InviteUser.
@@ -2131,6 +2140,9 @@ type UpdateUserJSONBody struct {
 	Disabled *bool                   `json:"disabled,omitempty"`
 	Name     *string                 `json:"name,omitempty"`
 	Role     *UpdateUserJSONBodyRole `json:"role,omitempty"`
+
+	// ScopeId The scope the user is kept to; 1 for the whole hub.
+	ScopeId *int64 `json:"scope_id,omitempty"`
 }
 
 // UpdateUserJSONBodyRole defines parameters for UpdateUser.
@@ -2470,7 +2482,7 @@ type ServerInterface interface {
 	// WithdrawInvitation Withdraw an invitation nobody accepted yet
 	// (DELETE /api/users/{id})
 	WithdrawInvitation(w http.ResponseWriter, r *http.Request, id ID)
-	// UpdateUser Change a user's name or role, or disable or enable them
+	// UpdateUser Change a user's name, role or access, or disable or enable them
 	// (PATCH /api/users/{id})
 	UpdateUser(w http.ResponseWriter, r *http.Request, id ID)
 	// NewUserLink A new link to choose a password with; the old one stops working
@@ -5897,6 +5909,20 @@ func (response GetCheckSeries400JSONResponse) VisitGetCheckSeriesResponse(w http
 	return err
 }
 
+type GetCheckSeries404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetCheckSeries404JSONResponse) VisitGetCheckSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetConfigRequestObject struct {
 	Params GetConfigParams
 }
@@ -6020,6 +6046,20 @@ func (response GetContainerSeries400JSONResponse) VisitGetContainerSeriesRespons
 	return err
 }
 
+type GetContainerSeries404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetContainerSeries404JSONResponse) VisitGetContainerSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CreateEnvironmentRequestObject struct {
 	Body *CreateEnvironmentJSONRequestBody
 }
@@ -6139,6 +6179,20 @@ func (response GetFilesystemSeries400JSONResponse) VisitGetFilesystemSeriesRespo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetFilesystemSeries404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetFilesystemSeries404JSONResponse) VisitGetFilesystemSeriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -8861,7 +8915,7 @@ type StrictServerInterface interface {
 	// WithdrawInvitation Withdraw an invitation nobody accepted yet
 	// (DELETE /api/users/{id})
 	WithdrawInvitation(ctx context.Context, request WithdrawInvitationRequestObject) (WithdrawInvitationResponseObject, error)
-	// UpdateUser Change a user's name or role, or disable or enable them
+	// UpdateUser Change a user's name, role or access, or disable or enable them
 	// (PATCH /api/users/{id})
 	UpdateUser(ctx context.Context, request UpdateUserRequestObject) (UpdateUserResponseObject, error)
 	// NewUserLink A new link to choose a password with; the old one stops working

@@ -2,6 +2,7 @@ package hub
 
 import (
 	"context"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -56,6 +57,9 @@ const (
 type liveClient struct {
 	send   chan LiveMessage
 	topics map[string]bool
+	// visible are what a client kept to a scope may hear about; nil for
+	// one that sees everything (decision 0023).
+	visible *liveAccess
 	// gone is closed when the client is done, by either side.
 	gone     chan struct{}
 	goneOnce sync.Once
@@ -95,8 +99,15 @@ func (l *live) publish(m LiveMessage) {
 		if !c.topics[topic] && !(c.topics["hosts"] && toHosts) {
 			continue
 		}
+		out := m
+		if c.visible != nil && m.Type != "alerts" {
+			if !c.visible.hosts[m.HostID] {
+				continue
+			}
+			out = c.visible.strip(m)
+		}
 		select {
-		case c.send <- m:
+		case c.send <- out:
 		default:
 			c.close()
 			l.drop(c)
@@ -104,9 +115,11 @@ func (l *live) publish(m LiveMessage) {
 	}
 }
 
-// subscribe replaces a client's topics. It returns the hosts that are
-// watched now and were not before, and those no longer watched at all.
-func (l *live) subscribe(c *liveClient, topics []string) (started, stopped []int64) {
+// subscribe replaces a client's topics, and the hosts it may hear about
+// (nil for all); a host it may not see is left out. It returns the hosts
+// that are watched now and were not before, and those no longer watched at
+// all.
+func (l *live) subscribe(c *liveClient, topics []string, visible *liveAccess) (started, stopped []int64) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if c.isGone() {
@@ -117,10 +130,14 @@ func (l *live) subscribe(c *liveClient, topics []string) (started, stopped []int
 	}
 	l.clients[c] = true
 	before := l.unwatch(c)
-	c.topics = map[string]bool{}
+	c.topics, c.visible = map[string]bool{}, visible
 	for _, t := range topics {
+		id, isHost := hostTopic(t)
+		if isHost && visible != nil && !visible.hosts[id] {
+			continue
+		}
 		c.topics[t] = true
-		if id, ok := hostTopic(t); ok {
+		if isHost {
 			if l.watched[id] == 0 && !slices.Contains(before, id) {
 				started = append(started, id)
 			}
@@ -201,6 +218,7 @@ func (h *hub) connectLive(w http.ResponseWriter, r *http.Request) {
 	}()
 	defer c.close()
 
+	go h.watchAccess(ctx, c)
 	go func() {
 		defer c.close()
 		for {
@@ -210,7 +228,12 @@ func (h *hub) connectLive(w http.ResponseWriter, r *http.Request) {
 			if err := wsjson.Read(ctx, conn, &req); err != nil {
 				return
 			}
-			started, stopped := h.live.subscribe(c, req.Subscribe)
+			visible, err := h.liveAccess(ctx)
+			if err != nil {
+				h.log.Error("cannot tell what a browser may see", "err", err)
+				return
+			}
+			started, stopped := h.live.subscribe(c, req.Subscribe, visible)
 			for _, id := range started {
 				h.sendLive(ctx, id, liveFor)
 			}
@@ -237,6 +260,98 @@ func (h *hub) connectLive(w http.ResponseWriter, r *http.Request) {
 }
 
 const writeTimeout = 10 * time.Second
+
+// liveAccess is what the user of a live connection kept to a scope may
+// hear about: the hosts in it, without the containers their labels put in
+// environments outside it.
+type liveAccess struct {
+	hosts  map[int64]bool
+	hidden map[int64]bool
+}
+
+// strip leaves the hidden containers out of a message.
+func (a *liveAccess) strip(m LiveMessage) LiveMessage {
+	if len(a.hidden) == 0 || len(m.Containers) == 0 {
+		return m
+	}
+	var kept []LiveContainerReading
+	for _, x := range m.Containers {
+		if !a.hidden[x.ContainerID] {
+			kept = append(kept, x)
+		}
+	}
+	m.Containers = kept
+	return m
+}
+
+func (a *liveAccess) equal(b *liveAccess) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return maps.Equal(a.hosts, b.hosts) && maps.Equal(a.hidden, b.hidden)
+}
+
+// liveAccess is what the user of a live connection may hear about; nil
+// for one who sees everything.
+func (h *hub) liveAccess(ctx context.Context) (*liveAccess, error) {
+	if !restricted(ctx) {
+		return nil, nil
+	}
+	t, err := h.loadTree(ctx)
+	if err != nil {
+		return nil, err
+	}
+	scope := scopeOf(ctx)
+	a := &liveAccess{hosts: map[int64]bool{}, hidden: map[int64]bool{}}
+	for id := range t.hosts {
+		if t.sees("host", id, scope) {
+			a.hosts[id] = true
+		}
+	}
+	for id, c := range t.containers {
+		if a.hosts[c.HostID] && !t.sees("container", id, scope) {
+			a.hidden[id] = true
+		}
+	}
+	return a, nil
+}
+
+// watchAccess ends a live connection once its user may not see what it
+// was opened with any more: logged out, disabled, given another role or
+// access, or with hosts moved in or out of their scope. The browser
+// connects again, and subscribes with what is right now.
+func (h *hub) watchAccess(ctx context.Context, c *liveClient) {
+	before, _ := userOf(ctx)
+	t := time.NewTicker(liveRecheck)
+	defer t.Stop()
+	for {
+		select {
+		case <-c.gone:
+			return
+		case <-t.C:
+		}
+		u, err := h.sessionUser(ctx, requestOf(ctx).session)
+		if err != nil || u.Role != before.Role || u.ScopeID != before.ScopeID {
+			c.close()
+			return
+		}
+		now, err := h.liveAccess(ctx)
+		if err == nil && !h.live.accessIs(c, now) {
+			c.close()
+			return
+		}
+	}
+}
+
+// accessIs says whether a client hears about what access says.
+func (l *live) accessIs(c *liveClient, access *liveAccess) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return c.visible.equal(access)
+}
+
+// liveRecheck is how often a live connection's access is looked at again.
+var liveRecheck = time.Minute
 
 // keepLive tells the agents of watched hosts, again and again, to stay
 // live, until ctx ends.

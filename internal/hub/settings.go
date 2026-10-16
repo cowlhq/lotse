@@ -37,13 +37,20 @@ func (h *hub) levels(ctx context.Context, subject string) ([]config.Level, error
 		scopeID = c.EnvironmentID
 	case "container", "host":
 		if kind == "container" {
-			// A container's settings are inherited from its host.
+			// A container's settings are inherited from its host, or from
+			// the environment its lotse.env label puts it in.
 			c, err := h.db.Container(ctx, id)
 			if err != nil {
 				return nil, err
 			}
 			levels = append(levels, config.Level{Kind: "container", ID: c.ID, Path: c.Name, Name: c.Name})
 			id = c.HostID
+			if c.EnvironmentID != nil {
+				// Put elsewhere by its lotse.env label: that environment is
+				// its, as in the tree the alerts work from.
+				scopeID = *c.EnvironmentID
+				break
+			}
 		}
 		host, err := h.db.Host(ctx, id)
 		if err != nil {
@@ -150,11 +157,15 @@ func toLevel(l config.Level) api.ConfigLevel {
 }
 
 func (s apiServer) GetConfig(ctx context.Context, req api.GetConfigRequestObject) (api.GetConfigResponseObject, error) {
-	values, err := s.effective(ctx, req.Params.Subject)
+	err := s.seeSubject(ctx, req.Params.Subject)
+	var values []config.Value
+	if err == nil {
+		values, err = s.effective(ctx, req.Params.Subject)
+	}
 	switch {
 	case errors.Is(err, errBadSubject):
 		return api.GetConfig400JSONResponse{Error: err.Error()}, nil
-	case errors.Is(err, store.ErrNotFound):
+	case notFound(err):
 		return api.GetConfig404JSONResponse{Error: "there is no such object"}, nil
 	case err != nil:
 		return nil, err
@@ -177,8 +188,13 @@ func (s apiServer) GetConfig(ctx context.Context, req api.GetConfigRequestObject
 }
 
 func (s apiServer) SetSetting(ctx context.Context, req api.SetSettingRequestObject) (api.SetSettingResponseObject, error) {
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return api.SetSetting403JSONResponse{Error: forbidden}, nil
+	}
+	if err := s.seeSubject(ctx, req.Body.Subject); errors.Is(err, errNotVisible) {
+		return api.SetSetting404JSONResponse{Error: "there is no such object"}, nil
+	} else if err != nil && !errors.Is(err, errBadSubject) {
+		return nil, err
 	}
 	key, ok := config.Lookup(req.Body.Key)
 	if !ok {

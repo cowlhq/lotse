@@ -79,10 +79,11 @@ func (s apiServer) ListAlerts(ctx context.Context, req api.ListAlertsRequestObje
 	slices.SortFunc(list, func(a, b store.AlertState) int {
 		return cmp.Or(cmp.Compare(stateRank(a), stateRank(b)), cmp.Compare(a.Since, b.Since))
 	})
+	scope, _ := accessOf(ctx)
 	out := api.ListAlerts200JSONResponse{}
 	for _, st := range list {
 		chain := t.chain(st.SubjectKind, st.SubjectID)
-		if chain == nil || !covers(chain, kind, id) {
+		if chain == nil || !covers(chain, kind, id) || !t.sees(st.SubjectKind, st.SubjectID, scope) {
 			continue
 		}
 		r, _ := config.LookupRule(st.Rule)
@@ -134,7 +135,7 @@ func (s apiServer) ListAlertHistory(ctx context.Context, req api.ListAlertHistor
 		return nil, err
 	}
 	var t *tree
-	if kind != "" {
+	if kind != "" || restricted(ctx) {
 		if t, err = s.loadTree(ctx); err != nil {
 			return nil, err
 		}
@@ -144,7 +145,7 @@ func (s apiServer) ListAlertHistory(ctx context.Context, req api.ListAlertHistor
 		if len(out) == 500 {
 			break
 		}
-		if kind == "" || covers(t.chain(a.SubjectKind, a.SubjectID), kind, id) {
+		if (kind == "" || covers(t.chain(a.SubjectKind, a.SubjectID), kind, id)) && visible(ctx, t, a.SubjectKind, a.SubjectID) {
 			out = append(out, toAlert(a))
 		}
 	}
@@ -153,7 +154,10 @@ func (s apiServer) ListAlertHistory(ctx context.Context, req api.ListAlertHistor
 
 func (s apiServer) GetAlert(ctx context.Context, req api.GetAlertRequestObject) (api.GetAlertResponseObject, error) {
 	a, err := s.db.Alert(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	if err == nil {
+		err = s.see(ctx, a.SubjectKind, a.SubjectID)
+	}
+	if notFound(err) {
 		return api.GetAlert404JSONResponse{Error: "no such alert"}, nil
 	}
 	if err != nil {
@@ -172,13 +176,31 @@ func (s apiServer) GetAlert(ctx context.Context, req api.GetAlertRequestObject) 
 	if out.Settings == nil {
 		out.Settings = []api.RuleSetting{}
 	}
+	// Kept to a scope, a user sees what went to its own channels; those of
+	// the scopes above belong to others, as may the errors they met.
+	t, err := s.treeFor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	channelScope := map[int64]int64{}
+	if t != nil {
+		for _, c := range t.channels {
+			channelScope[c.ID] = c.ScopeID
+		}
+	}
 	for _, n := range list {
+		if t != nil {
+			sid, ok := channelScope[ptrValue(n.ChannelID)]
+			if !ok || !visible(ctx, t, t.scopes[sid].Kind, sid) {
+				continue
+			}
+		}
 		x := api.Notification{
 			Id: n.ID, Channel: n.Channel, ChannelId: n.ChannelID, Kind: api.NotificationKind(n.Kind),
 			Status: api.NotificationStatus(n.Status), Attempts: n.Attempts, CreatedAt: n.CreatedAt, SentAt: n.SentAt,
 		}
 		if n.Error != "" {
-			x.Error = ptr(n.Error)
+			x.Error = ptr(withoutReply(ctx, n.Error))
 		}
 		out.Notifications = append(out.Notifications, x)
 	}
@@ -186,7 +208,7 @@ func (s apiServer) GetAlert(ctx context.Context, req api.GetAlertRequestObject) 
 }
 
 func (s apiServer) AcknowledgeAlert(ctx context.Context, req api.AcknowledgeAlertRequestObject) (api.AcknowledgeAlertResponseObject, error) {
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return api.AcknowledgeAlert403JSONResponse{Error: forbidden}, nil
 	}
 	var found *store.AlertState
@@ -202,6 +224,12 @@ func (s apiServer) AcknowledgeAlert(ctx context.Context, req api.AcknowledgeAler
 		return notFiring, nil
 	}
 	a, err := s.db.Alert(ctx, req.Id)
+	if err == nil {
+		err = s.see(ctx, a.SubjectKind, a.SubjectID)
+	}
+	if notFound(err) {
+		return notFiring, nil
+	}
 	if err != nil {
 		return nil, err
 	}

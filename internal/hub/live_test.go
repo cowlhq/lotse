@@ -60,7 +60,7 @@ func TestLive(t *testing.T) {
 func TestLiveDropsSlowClients(t *testing.T) {
 	var l live
 	c := newLiveClient()
-	l.subscribe(c, []string{"host:1"})
+	l.subscribe(c, []string{"host:1"}, nil)
 	for range liveBuffer + 1 {
 		l.publish(LiveMessage{Type: "host", HostID: 1})
 	}
@@ -68,7 +68,7 @@ func TestLiveDropsSlowClients(t *testing.T) {
 		t.Error("a client that fell behind is still there")
 	}
 	// A late subscription of a dropped client changes nothing.
-	if started, _ := l.subscribe(c, []string{"host:1"}); started != nil || len(l.watchedHosts()) != 0 {
+	if started, _ := l.subscribe(c, []string{"host:1"}, nil); started != nil || len(l.watchedHosts()) != 0 {
 		t.Error("a dropped client subscribed again")
 	}
 }
@@ -78,14 +78,14 @@ func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 func TestLiveWatchCounts(t *testing.T) {
 	var l live
 	a, b := newLiveClient(), newLiveClient()
-	if started, _ := l.subscribe(a, []string{"hosts", "host:1"}); len(started) != 1 || started[0] != 1 {
+	if started, _ := l.subscribe(a, []string{"hosts", "host:1"}, nil); len(started) != 1 || started[0] != 1 {
 		t.Errorf("first watcher of host 1: started %v", started)
 	}
-	if started, _ := l.subscribe(b, []string{"host:1"}); started != nil {
+	if started, _ := l.subscribe(b, []string{"host:1"}, nil); started != nil {
 		t.Errorf("second watcher of host 1: started %v", started)
 	}
 	// a moves on to host 2: host 1 is still watched by b.
-	if started, stopped := l.subscribe(a, []string{"host:2"}); len(started) != 1 || started[0] != 2 || stopped != nil {
+	if started, stopped := l.subscribe(a, []string{"host:2"}, nil); len(started) != 1 || started[0] != 2 || stopped != nil {
 		t.Errorf("a moves to host 2: started %v, stopped %v", started, stopped)
 	}
 	if stopped := l.remove(b); len(stopped) != 1 || stopped[0] != 1 {

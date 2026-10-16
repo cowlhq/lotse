@@ -272,7 +272,7 @@ func (s apiServer) toCheck(ctx context.Context, c store.Check) api.Check {
 		Type: api.CheckType(c.Type), Spec: spec, State: api.CheckState(c.State),
 		StateSince: c.StateSince, LastPing: c.LastPing,
 	}
-	if c.PingSealed != nil && isAdmin(ctx) {
+	if c.PingSealed != nil && isAnyAdmin(ctx) {
 		if token, err := s.box.Open(*c.PingSealed); err == nil {
 			out.PingUrl = ptr(s.URL() + "/ping/" + token)
 		}
@@ -308,18 +308,28 @@ func (s apiServer) ListChecks(ctx context.Context, req api.ListChecksRequestObje
 	if err != nil {
 		return nil, err
 	}
-	out := make(api.ListChecks200JSONResponse, len(list))
-	for i, c := range list {
-		out[i] = s.toCheck(ctx, c)
+	t, err := s.treeFor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := api.ListChecks200JSONResponse{}
+	for _, c := range list {
+		if visible(ctx, t, "check", c.ID) {
+			out = append(out, s.toCheck(ctx, c))
+		}
 	}
 	return out, nil
 }
 
 func (s apiServer) CreateCheck(ctx context.Context, req api.CreateCheckRequestObject) (api.CreateCheckResponseObject, error) {
-	if !isAdmin(ctx) {
+	b := req.Body
+	if ok, err := s.mayChange(ctx, "environment", b.EnvironmentId); notFound(err) {
+		return api.CreateCheck400JSONResponse{Error: "no such environment"}, nil
+	} else if err != nil {
+		return nil, err
+	} else if !ok {
 		return api.CreateCheck403JSONResponse{Error: forbidden}, nil
 	}
-	b := req.Body
 	name := strings.TrimSpace(b.Name)
 	if msg := checkName(name); msg != "" {
 		return api.CreateCheck400JSONResponse{Error: msg}, nil
@@ -358,7 +368,10 @@ func (s apiServer) CreateCheck(ctx context.Context, req api.CreateCheckRequestOb
 
 func (s apiServer) GetCheck(ctx context.Context, req api.GetCheckRequestObject) (api.GetCheckResponseObject, error) {
 	c, err := s.db.Check(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	if err == nil {
+		err = s.see(ctx, "check", req.Id)
+	}
+	if notFound(err) {
 		return api.GetCheck404JSONResponse{Error: "no such check"}, nil
 	}
 	if err != nil {
@@ -404,15 +417,19 @@ func toCheckResult(r store.CheckResult, names map[int64]string) api.CheckResult 
 }
 
 func (s apiServer) UpdateCheck(ctx context.Context, req api.UpdateCheckRequestObject) (api.UpdateCheckResponseObject, error) {
-	if !isAdmin(ctx) {
-		return api.UpdateCheck403JSONResponse{Error: forbidden}, nil
-	}
 	c, err := s.db.Check(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	ok := false
+	if err == nil {
+		ok, err = s.mayChange(ctx, "check", req.Id)
+	}
+	if notFound(err) {
 		return api.UpdateCheck404JSONResponse{Error: "no such check"}, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !ok {
+		return api.UpdateCheck403JSONResponse{Error: forbidden}, nil
 	}
 	name := strings.TrimSpace(req.Body.Name)
 	if msg := checkName(name); msg != "" {
@@ -432,10 +449,21 @@ func (s apiServer) UpdateCheck(ctx context.Context, req api.UpdateCheckRequestOb
 }
 
 func (s apiServer) DeleteCheck(ctx context.Context, req api.DeleteCheckRequestObject) (api.DeleteCheckResponseObject, error) {
-	if !isAdmin(ctx) {
+	_, err := s.db.Check(ctx, req.Id)
+	ok := false
+	if err == nil {
+		ok, err = s.mayChange(ctx, "check", req.Id)
+	}
+	if notFound(err) {
+		return api.DeleteCheck404JSONResponse{Error: "no such check"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
 		return api.DeleteCheck403JSONResponse{Error: forbidden}, nil
 	}
-	err := s.db.DeleteCheck(ctx, actor(ctx), req.Id)
+	err = s.db.DeleteCheck(ctx, actor(ctx), req.Id)
 	if errors.Is(err, store.ErrNotFound) {
 		return api.DeleteCheck404JSONResponse{Error: "no such check"}, nil
 	}
@@ -454,11 +482,26 @@ func (s apiServer) GetCheckSeries(ctx context.Context, req api.GetCheckSeriesReq
 	if msg := checkPoints(req.Params.Points); msg != "" {
 		return api.GetCheckSeries400JSONResponse{Error: msg}, nil
 	}
+	_, err := s.db.Check(ctx, req.Id)
+	if err == nil {
+		err = s.see(ctx, "check", req.Id)
+	}
+	if notFound(err) {
+		return api.GetCheckSeries404JSONResponse{Error: "no such check"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
 	sr, err := s.series(ctx, "check", req.Id, req.Params.From, req.Params.To, req.Params.Points, 10*time.Second)
 	return api.GetCheckSeries200JSONResponse(sr), err
 }
 
 func (s apiServer) ListCheckResults(ctx context.Context, req api.ListCheckResultsRequestObject) (api.ListCheckResultsResponseObject, error) {
+	if err := s.see(ctx, "check", req.Id); notFound(err) {
+		return api.ListCheckResults200JSONResponse{}, nil
+	} else if err != nil {
+		return nil, err
+	}
 	from, to := timeRange(req.Params.From, req.Params.To)
 	results, err := s.db.Results(ctx, req.Id, from, to, 200)
 	if err != nil {

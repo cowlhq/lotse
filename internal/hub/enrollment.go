@@ -17,6 +17,9 @@ func (s apiServer) environment(ctx context.Context, id int64) (store.Scope, erro
 	if err == nil && env.Kind != "environment" {
 		err = store.ErrNotFound
 	}
+	if err == nil {
+		err = s.see(ctx, env.Kind, env.ID)
+	}
 	return env, err
 }
 
@@ -29,11 +32,13 @@ func (s apiServer) enrollment(t store.EnrollmentToken) (api.Enrollment, error) {
 }
 
 func (s apiServer) GetEnrollment(ctx context.Context, req api.GetEnrollmentRequestObject) (api.GetEnrollmentResponseObject, error) {
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return api.GetEnrollment403JSONResponse{Error: forbidden}, nil
 	}
-	if _, err := s.environment(ctx, req.Id); errors.Is(err, store.ErrNotFound) {
+	if _, err := s.environment(ctx, req.Id); notFound(err) {
 		return api.GetEnrollment404JSONResponse{Error: "no such environment"}, nil
+	} else if err != nil {
+		return nil, err
 	}
 	t, err := s.db.EnrollmentToken(ctx, req.Id)
 	if errors.Is(err, store.ErrNotFound) {
@@ -50,11 +55,13 @@ func (s apiServer) GetEnrollment(ctx context.Context, req api.GetEnrollmentReque
 }
 
 func (s apiServer) NewEnrollment(ctx context.Context, req api.NewEnrollmentRequestObject) (api.NewEnrollmentResponseObject, error) {
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return api.NewEnrollment403JSONResponse{Error: forbidden}, nil
 	}
-	if _, err := s.environment(ctx, req.Id); errors.Is(err, store.ErrNotFound) {
+	if _, err := s.environment(ctx, req.Id); notFound(err) {
 		return api.NewEnrollment404JSONResponse{Error: "no such environment"}, nil
+	} else if err != nil {
+		return nil, err
 	}
 	token, hash := auth.NewToken("lotse_enr_")
 	if err := s.db.NewEnrollmentToken(ctx, actor(ctx), req.Id, hash, s.box.Seal(token), time.Now().Unix()); err != nil {
@@ -72,7 +79,11 @@ func (s apiServer) NewEnrollment(ctx context.Context, req api.NewEnrollmentReque
 }
 
 func (s apiServer) RevokeAgent(ctx context.Context, req api.RevokeAgentRequestObject) (api.RevokeAgentResponseObject, error) {
-	if !isAdmin(ctx) {
+	if ok, err := s.mayChange(ctx, "host", req.Id); notFound(err) {
+		return api.RevokeAgent404JSONResponse{Error: "no such host"}, nil
+	} else if err != nil {
+		return nil, err
+	} else if !ok {
 		return api.RevokeAgent403JSONResponse{Error: forbidden}, nil
 	}
 	err := s.db.RevokeAgents(ctx, actor(ctx), req.Id, time.Now().Unix())

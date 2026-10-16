@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,15 +57,19 @@ func (h *hub) askUpdate(ctx context.Context, hostID int64, v string) bool {
 }
 
 func (s apiServer) UpdateHost(ctx context.Context, req api.UpdateHostRequestObject) (api.UpdateHostResponseObject, error) {
-	if !isAdmin(ctx) {
-		return api.UpdateHost403JSONResponse{Error: forbidden}, nil
-	}
 	host, err := s.db.Host(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	ok := false
+	if err == nil {
+		ok, err = s.mayChange(ctx, "host", req.Id)
+	}
+	if notFound(err) {
 		return api.UpdateHost404JSONResponse{Error: "no such host"}, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !ok {
+		return api.UpdateHost403JSONResponse{Error: forbidden}, nil
 	}
 	latest, _, _ := s.releases.get()
 	switch {
@@ -81,15 +84,19 @@ func (s apiServer) UpdateHost(ctx context.Context, req api.UpdateHostRequestObje
 }
 
 func (s apiServer) UpdateScope(ctx context.Context, req api.UpdateScopeRequestObject) (api.UpdateScopeResponseObject, error) {
-	if !isAdmin(ctx) {
-		return api.UpdateScope403JSONResponse{Error: forbidden}, nil
-	}
 	scope, err := s.db.Scope(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	ok := false
+	if err == nil {
+		ok, err = s.mayChange(ctx, scope.Kind, scope.ID)
+	}
+	if notFound(err) {
 		return api.UpdateScope404JSONResponse{Error: "no such scope"}, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !ok {
+		return api.UpdateScope403JSONResponse{Error: forbidden}, nil
 	}
 	latest, _, _ := s.releases.get()
 	if latest == nil {

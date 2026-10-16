@@ -313,7 +313,8 @@ full filesystems on one host.
 ```
 users              id, email (unique), name, password_hash (argon2id;
                    empty while invited), role (admin|viewer), created_at,
-                   disabled_at, link_hash, link_expires_at, last_login_at
+                   disabled_at, link_hash, link_expires_at, last_login_at,
+                   scope_id (NULL for the whole hub)
 sessions           id_hash, user_id, created_at, expires_at, last_seen_at
 api_tokens         id, name, kind (read|apply), token_hash, created_by,
                    created_at, expires_at, last_used_at, revoked_at
@@ -705,7 +706,8 @@ These followed from the decisions and were confirmed on 2026-10-13:
 - API tokens come in two kinds: `read` for the read API, and `apply`, which
   may also write configuration but not manage users or tokens (5.3, 9.2).
 - Enrollment tokens stay valid until revoked (7).
-- Enrolling again with the same machine ID takes over the existing host (7).
+- Enrolling again with the same machine ID takes over the existing host,
+  in its own environment only (7, decision 0023).
 - A check is down when the majority of its online probes see it fail (8.3).
 - A list in the settings replaces the inherited list (5.2).
 - Updates are milestone 4, right after the tree and onboarding (11).
