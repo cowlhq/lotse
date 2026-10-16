@@ -23,6 +23,12 @@ link. The link holds a one-time token; it is also in
 2. **The admin**, and the address under which people and agents reach the
    hub.
 
+Then a guide takes the new hub step by step from nothing to being told: a
+customer and its environment, the first machine, which it waits for, a
+check, tried before it is added, and where alerts go. Each step can be
+skipped; the overview keeps a list of what is left, and **Step by step**
+opens the guide again.
+
 Running the command again pulls the newest image and restarts the hub; its
 data stays in the volume `lotse_data`.
 

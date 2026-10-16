@@ -84,10 +84,10 @@ export function AddCheck({ envID }: { envID: number }) {
 }
 
 // CheckForm first asks what to watch, then for that.
-export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => void }) {
+export function CheckForm({ envID, onDone, onCreated }: { envID: number; onDone?: () => void; onCreated?: (c: Check) => void }) {
   const { t } = useTranslation();
   const [intent, setIntent] = useState<Intent | null>(null);
-  if (intent) return <IntentForm key={intent} envID={envID} intent={intent} onBack={() => setIntent(null)} onDone={onDone} />;
+  if (intent) return <IntentForm key={intent} envID={envID} intent={intent} onBack={() => setIntent(null)} onDone={onDone} onCreated={onCreated} />;
   return (
     <div className="space-y-4">
       <DialogHeader>
@@ -116,7 +116,7 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
   );
 }
 
-function IntentForm({ envID, intent, onBack, onDone }: { envID: number; intent: Intent; onBack: () => void; onDone?: () => void }) {
+function IntentForm({ envID, intent, onBack, onDone, onCreated }: { envID: number; intent: Intent; onBack: () => void; onDone?: () => void; onCreated?: (c: Check) => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -201,7 +201,8 @@ function IntentForm({ envID, intent, onBack, onDone }: { envID: number; intent: 
       await client.invalidateQueries({ queryKey: ["checks"] });
       onDone?.();
       toast.success(t("check.created", { name: c.name }));
-      navigate({ to: "/checks/$id", params: { id: String(c.id) } });
+      if (onCreated) onCreated(c);
+      else navigate({ to: "/checks/$id", params: { id: String(c.id) } });
     },
   });
 

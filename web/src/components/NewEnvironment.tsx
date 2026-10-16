@@ -30,7 +30,7 @@ export function NewEnvironment({ customer = "", project = "" }: { customer?: str
   );
 }
 
-export function EnvironmentForm({ customer: c0, project: p0, done }: { customer: string; project: string; done: () => void }) {
+export function EnvironmentForm({ customer: c0, project: p0, done, onCreated, bare = false }: { customer: string; project: string; done: () => void; onCreated?: (env: Scope) => void; bare?: boolean }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -72,7 +72,8 @@ export function EnvironmentForm({ customer: c0, project: p0, done }: { customer:
       await client.invalidateQueries({ queryKey: ["scopes"] });
       done();
       toast.success(t("tree.created", { name: env.name }));
-      navigate({ to: "/scopes/$id", params: { id: String(env.id) } });
+      if (onCreated) onCreated(env);
+      else navigate({ to: "/scopes/$id", params: { id: String(env.id) } });
     },
   });
 
@@ -87,7 +88,7 @@ export function EnvironmentForm({ customer: c0, project: p0, done }: { customer:
       }}
       className="space-y-4"
     >
-      <DialogHeader>
+      <DialogHeader className={bare ? "hidden" : undefined}>
         <DialogTitle>{t("tree.newEnvironment")}</DialogTitle>
         <DialogDescription>{t("tree.newEnvironmentHint")}</DialogDescription>
       </DialogHeader>
