@@ -38,8 +38,10 @@
 
 <div class="wrap">
   <figure class="shot" style="margin-bottom: 0">
-    <img class="light-only" src="/img/home-light.png" width="2800" height="1800" alt="lotse's home page: machines with their CPU, memory and disk, and the checks, with their status">
-    <img class="dark-only" src="/img/home-dark.png" width="2800" height="1800" alt="">
+    <picture>
+      <source srcset="/img/home-dark.webp" media="(prefers-color-scheme: dark)">
+      <img src="/img/home-light.webp" width="2800" height="1800" alt="lotse's home page: what needs attention now, and every machine with its CPU, memory, disk and network">
+    </picture>
   </figure>
 </div>
 
@@ -97,8 +99,10 @@
       </ul>
     </div>
     <figure class="shot">
-      <img class="light-only" src="/img/alert-light.png" width="2400" height="1600" alt="An alert in lotse: the rule, the values that made it fire, and its history">
-      <img class="dark-only" src="/img/alert-dark.png" width="2400" height="1600" alt="">
+      <picture>
+        <source srcset="/img/alert-dark.webp" media="(prefers-color-scheme: dark)">
+        <img src="/img/alert-light.webp" width="2400" height="1600" loading="lazy" alt="An alert in lotse: what fired, the rule as it applied and where each value comes from, and where it was sent">
+      </picture>
     </figure>
   </div>
 </section>
@@ -121,8 +125,10 @@
       </ul>
     </div>
     <figure class="shot">
-      <img class="light-only" src="/img/host-light.png" width="2400" height="1600" alt="A machine in lotse: charts of its CPU, memory, disks and network over time">
-      <img class="dark-only" src="/img/host-dark.png" width="2400" height="1600" alt="">
+      <picture>
+        <source srcset="/img/host-dark.webp" media="(prefers-color-scheme: dark)">
+        <img src="/img/host-light.webp" width="2400" height="1600" loading="lazy" alt="A machine in lotse over a week: CPU, memory, load and network">
+      </picture>
     </figure>
   </div>
 </section>

@@ -87,9 +87,6 @@ code, pre, kbd { font-family: var(--mono); font-size: 0.875em; }
 
 .shot { margin: 1rem auto 0; max-width: 64rem; border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; box-shadow: var(--shadow); background: var(--soft); }
 .shot img { width: 100%; }
-.light-only { display: block; }
-.dark-only { display: none; }
-@media (prefers-color-scheme: dark) { .light-only { display: none; } .dark-only { display: block; } }
 
 section.part { padding: 5rem 0; border-top: 1px solid var(--line); }
 section.part:first-of-type { border-top: 0; }
