@@ -37,6 +37,23 @@ hub runs on Postgres.
 For development, `mise run dev` runs the hub and the web interface with live
 reload, and `mise run check` runs what CI runs.
 
+## Demo data
+
+For screenshots, a hub full of made-up data: four customers, twelve
+machines with their containers, checks of every kind, a probe in Frankfurt,
+a week of history with a few incidents, and alerts that fire now.
+
+```
+pnpm --dir web build
+go run ./internal/demo -dir /tmp/lotse-demo -listen 127.0.0.1:18096
+```
+
+Log in at http://127.0.0.1:18096 as `demo@example.com` with
+`demo-password-1234`. Each run starts afresh in its data directory, and
+nothing leaves the machine: the web sites, DNS, mail and Slack it reaches
+are played by the demo itself, on ports 18100 to 18105 (`-ports`). Alerts
+that wait before they fire are all there after about seven minutes.
+
 ## License
 
 lotse is licensed under the [GNU AGPL-3.0](LICENSE). The Go client in
