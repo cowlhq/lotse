@@ -26,6 +26,12 @@ link. The link holds a one-time token; it is also in
 Running the command again pulls the newest image and restarts the hub; its
 data stays in the volume `lotse_data`.
 
+**More people**: in **Settings → Users**, an admin invites someone by email
+address, as admin (changes anything) or viewer (looks). lotse makes a link
+that works once, for seven days; with a mail server set up under
+**Settings → Notifications** it is sent to them, otherwise you pass it on.
+Whoever forgets their password gets a new link the same way (decision 0023).
+
 **Behind a reverse proxy** (recommended, decision 0006): bind the port to
 `127.0.0.1:8080` in `compose.yml`, let Traefik or Caddy terminate TLS and
 forward to it, and set the hub's address in setup to the `https://` one.

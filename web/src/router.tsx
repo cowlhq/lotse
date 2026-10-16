@@ -20,6 +20,7 @@ import { Host } from "@/routes/Host";
 import { Login } from "@/routes/Login";
 import { Overview } from "@/routes/Overview";
 import { NoSetupToken, Setup } from "@/routes/Setup";
+import { Welcome } from "@/routes/Welcome";
 
 // Gate shows setup while the hub is not set up, the login page without a
 // session, and the app otherwise.
@@ -48,6 +49,8 @@ function Gate() {
     );
   }
   if (path === "/setup") return <Navigate to="/" />;
+  // A link to choose a password works whether someone is logged in or not.
+  if (path === "/welcome") return <Outlet />;
   if (me.isPending) return <Skeleton className="m-6 h-32" />;
   if (me.error instanceof Unauthorized) {
     return path === "/login" ? <Outlet /> : <Navigate to="/login" search={{ next: path }} />;
@@ -177,7 +180,9 @@ const login = createRoute({
   },
 });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, hostList, checkList, host, container, scope, check, alerts, alertDetail, settings, setup, login]) });
+const welcome = createRoute({ getParentRoute: () => root, path: "/welcome", component: Welcome });
+
+export const router = createRouter({ routeTree: root.addChildren([overview, hostList, checkList, host, container, scope, check, alerts, alertDetail, settings, setup, login, welcome]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

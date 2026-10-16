@@ -5,8 +5,9 @@ import { checkUpdates, getHealth, listHosts, updateHub } from "@/api";
 import { Page } from "@/components/shell/PageHeader";
 import { ObjectHeader } from "@/components/shell/Panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BellRing, Cog, History, KeyRound, Radar, Send, SlidersHorizontal, Wrench } from "lucide-react";
+import { BellRing, Cog, History, KeyRound, Radar, Send, SlidersHorizontal, Users as UsersIcon, Wrench } from "lucide-react";
 import { Tokens } from "@/components/Tokens";
+import { Users } from "@/components/Users";
 import { Channels } from "@/components/Channels";
 import { MailServer } from "@/components/MailServer";
 import { Maintenance } from "@/components/Maintenance";
@@ -34,7 +35,12 @@ export function Settings({ tab }: { tab?: string }) {
     { value: "rules", label: t("settings.rules"), icon: <BellRing /> },
     { value: "probes", label: t("probe.title"), icon: <Radar /> },
     { value: "maintenance", label: t("maintenance.title"), icon: <Wrench /> },
-    { value: "tokens", label: t("token.title"), icon: <KeyRound /> },
+    ...(isAdmin
+      ? [
+          { value: "users", label: t("user.title"), icon: <UsersIcon /> },
+          { value: "tokens", label: t("token.title"), icon: <KeyRound /> },
+        ]
+      : []),
     { value: "advanced", label: t("settings.advanced"), icon: <Cog /> },
     { value: "activity", label: t("tabs.activity"), icon: <History /> },
   ];
@@ -73,6 +79,9 @@ export function Settings({ tab }: { tab?: string }) {
             </TabsContent>
             <TabsContent value="maintenance">
               <Maintenance subject="global:1" />
+            </TabsContent>
+            <TabsContent value="users">
+              <Users />
             </TabsContent>
             <TabsContent value="tokens" className="space-y-6">
               <Tokens />

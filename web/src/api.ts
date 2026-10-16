@@ -14,6 +14,7 @@ export type Container = Schemas["Container"];
 export type Series = Schemas["Series"];
 export type Event = Schemas["Event"];
 export type User = Schemas["User"];
+export type UserLink = Schemas["UserLink"];
 export type Scope = Schemas["Scope"];
 export type ScopeName = Schemas["ScopeName"];
 export type Change = Schemas["Change"];
@@ -120,6 +121,15 @@ export const setupAdmin = (token: string, admin: { name: string; email: string; 
 export const getMe = () => get<User>("/api/auth/me");
 export const login = (email: string, password: string) => post<User>("/api/auth/login", { email, password });
 export const logout = () => post<void>("/api/auth/logout");
+export const updateMe = (input: { name?: string; password?: string; current_password?: string }) => send<User>("PATCH", "/api/auth/me", input);
+export type LinkCheck = { email: string; name: string; invited: boolean };
+export const checkLink = (token: string) => post<LinkCheck>("/api/auth/link", { token });
+export const acceptLink = (token: string, name: string, password: string) => post<User>("/api/auth/link/password", { token, name, password });
+export const listUsers = () => get<User[]>("/api/users");
+export const inviteUser = (email: string, name: string, role: User["role"]) => post<UserLink>("/api/users", { email, name, role });
+export const updateUser = (id: number, change: { name?: string; role?: User["role"]; disabled?: boolean }) => send<User>("PATCH", `/api/users/${id}`, change);
+export const withdrawInvitation = (id: number) => send<void>("DELETE", `/api/users/${id}`);
+export const newUserLink = (id: number) => post<UserLink>(`/api/users/${id}/link`);
 
 export class NotFound extends Error {}
 export class Unauthorized extends Error {}
