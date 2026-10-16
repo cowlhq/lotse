@@ -27,7 +27,7 @@ export function AddCheck({ envID }: { envID: number }) {
         <Plus className="size-4" />
         {t("check.add")}
       </DialogTrigger>
-      <DialogContent>{open && <CheckForm envID={envID} onDone={() => setOpen(false)} />}</DialogContent>
+      <DialogContent className="sm:max-w-xl">{open && <CheckForm envID={envID} onDone={() => setOpen(false)} />}</DialogContent>
     </Dialog>
   );
 }
@@ -93,7 +93,7 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
       </DialogHeader>
       <ToggleGroup value={[kind]} onValueChange={(v: string[]) => v[0] && setKind(v[0] as Kind)} variant="segmented" size="sm" className="grid w-full grid-cols-3 sm:grid-cols-6">
         {kinds.map((k) => (
-          <ToggleGroupItem key={k} value={k}>
+          <ToggleGroupItem key={k} value={k} className="px-1">
             {t(`check.kind.${k}`)}
           </ToggleGroupItem>
         ))}
