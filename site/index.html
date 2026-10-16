@@ -5,14 +5,247 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="go-import" content="lotse.sh git https://github.com/cowlhq/lotse">
 <meta name="go-source" content="lotse.sh https://github.com/cowlhq/lotse https://github.com/cowlhq/lotse/tree/main{/dir} https://github.com/cowlhq/lotse/blob/main{/dir}/{file}#L{line}">
-<title>lotse</title>
-<style>body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5 } code { font-size: .95em }</style>
+<title>lotse · monitoring for every machine you look after</title>
+<meta name="description" content="Self-hosted monitoring for machines across customers and projects: host and Docker metrics, HTTP, TLS, DNS and heartbeat checks, and alerts that say why. One small tool you run yourself.">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
 </head>
 <body>
-<h1>lotse</h1>
-<p>A lean, self-hosted monitoring tool for machines across several customers
-and projects: host and Docker metrics from an agent, HTTP, TLS, TCP and
-heartbeat checks from the outside, alerting, and one place to look at it all.</p>
-<p>Work in progress: <a href="https://github.com/cowlhq/lotse">github.com/cowlhq/lotse</a></p>
+<header class="top">
+  <div class="top-in">
+    <a class="logo" href="/"><span class="mark">l</span>lotse</a>
+    <nav>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/cowlhq/lotse/releases">Releases</a>
+      <a href="https://github.com/cowlhq/lotse">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap hero">
+  <a class="badge" href="https://github.com/cowlhq/lotse"><b>Open source</b> · self-hosted · one binary</a>
+  <h1>Monitoring for every machine you look after</h1>
+  <p class="lead">Metrics from inside each machine and its containers, checks from
+  outside, and alerts that say why they fire. For all your customers and
+  projects, in one small tool you run yourself.</p>
+  <div class="actions">
+    <a class="button primary" href="/docs/install/">Get started</a>
+    <a class="button" href="https://github.com/cowlhq/lotse">View on GitHub</a>
+  </div>
+  <div class="cmd"><code>curl -fsSL https://lotse.sh/install | sudo sh -s -- hub</code></div>
+</div>
+
+<div class="wrap">
+  <figure class="shot" style="margin-bottom: 0">
+    <img class="light-only" src="/img/home-light.png" width="2800" height="1800" alt="lotse's home page: machines with their CPU, memory and disk, and the checks, with their status">
+    <img class="dark-only" src="/img/home-dark.png" width="2800" height="1800" alt="">
+  </figure>
+</div>
+
+<div class="wrap">
+<section class="part">
+  <p class="kicker">Inside and outside</p>
+  <h2>One tool for what used to take two</h2>
+  <p class="intro">An agent on every machine reports what happens inside it. Checks
+  look at your services from outside, from the hub and from probes in other
+  places. Both meet in one view, with one set of alerts.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Machines</h3>
+      <p>CPU, load, memory and swap, disks and their I/O, network, I/O wait
+      and steal, uptime and reboots. systemd units that failed, and updates
+      that wait for a restart.</p>
+    </div>
+    <div class="card">
+      <h3>Containers</h3>
+      <p>Every Docker container with its status, health, restarts, CPU,
+      memory and network. A container that stops or turns unhealthy shows up
+      the moment Docker says so.</p>
+    </div>
+    <div class="card">
+      <h3>Checks</h3>
+      <p>HTTP with status and keyword, TLS certificates, TCP ports, DNS
+      records, domain expiry, and heartbeats for cron jobs and backups that
+      must call in.</p>
+    </div>
+    <div class="card">
+      <h3>Probes</h3>
+      <p>Checks run from the hub and from probes in other places. A check is
+      down when most of them agree, so one network's bad minute wakes no
+      one.</p>
+    </div>
+  </div>
+</section>
+
+<section class="part">
+  <div class="split">
+    <div>
+      <p class="kicker">Alerts</p>
+      <h2>Alerts that say why</h2>
+      <p class="intro">Every alert shows the rule that fired, the values that made it
+      fire, and what happened before. The rules are on from the start.</p>
+      <ul class="points" style="margin-top: 2rem">
+        <li><b>Calm by design.</b> A condition must hold for a while before it fires and
+        clear for a while before it ends, so nothing flaps.</li>
+        <li><b>Silence is an alert.</b> A machine or a probe that stops reporting is
+        not “fine”; it is a problem of its own.</li>
+        <li><b>Where you are.</b> Email, Slack, Discord, Google Chat, Telegram, ntfy,
+        Pushover or any webhook, routed per customer or project.</li>
+        <li><b>Maintenance windows,</b> acknowledgements, and a dead man's switch that
+        tells you when the hub itself goes quiet.</li>
+      </ul>
+    </div>
+    <figure class="shot">
+      <img class="light-only" src="/img/alert-light.png" width="2400" height="1600" alt="An alert in lotse: the rule, the values that made it fire, and its history">
+      <img class="dark-only" src="/img/alert-dark.png" width="2400" height="1600" alt="">
+    </figure>
+  </div>
+</section>
+
+<section class="part">
+  <div class="split flip">
+    <div>
+      <p class="kicker">Customers and projects</p>
+      <h2>Built for the machines of many</h2>
+      <p class="intro">Machines and checks live in customers, projects and
+      environments. Settings are made once, high up, and hold for everything
+      below, unless something below says otherwise.</p>
+      <ul class="points" style="margin-top: 2rem">
+        <li><b>Inherited, and shown so.</b> Every machine and check shows the value
+        that applies to it and where it comes from.</li>
+        <li><b>A history for everything.</b> Who changed what, when, and how: in the
+        interface, from a file, or through a container's labels.</li>
+        <li><b>Each customer their own channel.</b> Alerts follow the hierarchy, so
+        one customer's problems reach that customer's people.</li>
+      </ul>
+    </div>
+    <figure class="shot">
+      <img class="light-only" src="/img/host-light.png" width="2400" height="1600" alt="A machine in lotse: charts of its CPU, memory, disks and network over time">
+      <img class="dark-only" src="/img/host-dark.png" width="2400" height="1600" alt="">
+    </figure>
+  </div>
+</section>
+
+<section class="part">
+  <p class="kicker">Configuration</p>
+  <h2>Click it, write it, or label it</h2>
+  <p class="intro">There is one configuration, in the hub's database, and three
+  ways to change it. Use whichever fits; they all end up in the same place.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>In the interface</h3>
+      <p>Everything can be done here, with forms that explain themselves.
+      Adding a machine is one line to copy.</p>
+    </div>
+    <div class="card">
+      <h3>As code</h3>
+      <p><code>lotse apply</code> takes a <code>lotse.yaml</code> from Git or your
+      deploy pipeline. <code>--dry-run</code> shows the difference first;
+      <code>lotse export</code> writes what is there as a file.</p>
+    </div>
+    <div class="card">
+      <h3>With Docker labels</h3>
+      <p>A container brings its own checks, the way Traefik routes:
+      <code>lotse.check.web.http.url</code> next to the service it watches.</p>
+    </div>
+  </div>
+</section>
+
+<section class="part">
+  <p class="kicker">Getting started</p>
+  <h2>Running in a few minutes</h2>
+  <p class="intro">No configuration is needed before the first chart appears.</p>
+  <div class="steps">
+    <div class="step">
+      <h3>Start the hub</h3>
+      <p>On a machine with Docker. It prints a link; the first login there
+      becomes the admin.</p>
+      <div class="cmd"><code>curl -fsSL https://lotse.sh/install | sudo sh -s -- hub</code></div>
+    </div>
+    <div class="step">
+      <h3>Add a customer</h3>
+      <p>A customer, a project and an environment: three fields. Then
+      <b>Add host</b> shows the line for your machine, token included.</p>
+    </div>
+    <div class="step">
+      <h3>Run the line</h3>
+      <p>The machine and its containers appear within seconds, with the
+      default alerts already on.</p>
+      <div class="cmd"><code>curl -fsSL https://lotse.sh/install | sudo sh -s -- agent --hub https://… --token …</code></div>
+    </div>
+  </div>
+</section>
+
+<section class="part">
+  <p class="kicker">Small and safe</p>
+  <h2>Few moving parts, and none pointing in</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>One binary</h3>
+      <p>Hub, agent and probe are the same program. The hub keeps everything
+      in one SQLite file, or in Postgres if you prefer.</p>
+    </div>
+    <div class="card">
+      <h3>Agents only reach out</h3>
+      <p>They open no ports and run no commands. Each has its own credential,
+      which you can revoke on its own.</p>
+    </div>
+    <div class="card">
+      <h3>Signed updates</h3>
+      <p>Releases are signed. Agents update with a click, and install only
+      what carries lotse's signature.</p>
+    </div>
+    <div class="card">
+      <h3>A read API</h3>
+      <p>Everything you see is in a documented REST API, with read-only
+      tokens and a Go client at <code>lotse.sh/client</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="part">
+  <p class="kicker">Compared</p>
+  <h2>Where lotse fits</h2>
+  <table class="compare">
+    <tr>
+      <th>Beszel and Uptime Kuma</th>
+      <td>Two good tools, one for inside and one for outside. lotse does both
+      in one place, and adds customers and projects, inherited settings, a
+      history of changes, and configuration as code.</td>
+    </tr>
+    <tr>
+      <th>Checkmk, Zabbix</th>
+      <td>They monitor nearly anything, and take an effort to match. lotse covers
+      Linux machines, Docker and services from outside, and asks for nothing
+      before it works.</td>
+    </tr>
+    <tr>
+      <th>Prometheus and Grafana</th>
+      <td>A toolkit to build monitoring from. lotse is the finished thing: the
+      charts, the checks and the alerts are there from the start.</td>
+    </tr>
+  </table>
+</section>
+</div>
+
+<section class="cta">
+  <div class="wrap">
+    <h2>See your machines in five minutes</h2>
+    <p>Start a hub, add a machine, and watch the first charts fill in.</p>
+    <div class="actions">
+      <a class="button primary" href="/docs/install/">Read the guide</a>
+      <a class="button" href="https://github.com/cowlhq/lotse">View on GitHub</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <span>lotse is free software under the AGPL-3.0.</span>
+    <a href="https://github.com/cowlhq/lotse">GitHub</a>
+  </div>
+</footer>
 </body>
 </html>
