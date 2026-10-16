@@ -19,7 +19,7 @@ import { useMe } from "@/lib/useMe";
 // an environment's own page, from the sidebar, shows just theirs.
 export function Overview() {
   const { t } = useTranslation();
-  const { isAdmin } = useMe();
+  const { isHubAdmin } = useMe();
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts, refetchInterval: 60_000 });
   const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
   const checks = useQuery({ queryKey: ["checks", "all"], queryFn: () => listChecks(), refetchInterval: 30_000 });
@@ -57,7 +57,8 @@ export function Overview() {
   // Before the first host or check, there is no status to show, and Get
   // started says what to do; empty tables beside it would only repeat it.
   const empty = hosts.data.length === 0 && (checks.data?.length ?? 0) === 0;
-  const guided = isAdmin && !startHidden;
+  // Getting started is setting up the hub, for whoever looks after all of it.
+  const guided = isHubAdmin && !startHidden;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-6">

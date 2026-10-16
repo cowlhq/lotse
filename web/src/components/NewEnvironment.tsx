@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useMe } from "@/lib/useMe";
 import { slugify } from "@/lib/slug";
 
 // NewEnvironment asks for three names: customer, project, environment.
@@ -34,12 +35,22 @@ export function EnvironmentForm({ customer: c0, project: p0, done }: { customer:
   const client = useQueryClient();
   const navigate = useNavigate();
   const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
-  const [customer, setCustomer] = useState(c0);
-  const [project, setProject] = useState(p0);
+  const { user, scoped } = useMe();
+  const [customerText, setCustomer] = useState(c0);
+  const [projectText, setProject] = useState(p0);
   // Most start with production; it is only a suggestion.
   const [environment, setEnvironment] = useState("Production");
 
   const all = scopes.data ?? [];
+  // A user kept to a customer or project adds environments only there, so
+  // those are given; by name if the user sees it, by key if not.
+  const fixed = scoped ? (user?.scope_path ?? "").split("/") : [];
+  const given = (n: number) => {
+    const path = fixed.slice(0, n).join("/");
+    return all.find((s) => s.path === path)?.name ?? fixed[n - 1];
+  };
+  const customer = fixed.length >= 1 ? given(1) : customerText;
+  const project = fixed.length >= 2 ? given(2) : projectText;
   // A name the hub already knows keeps its key; a new one gets one.
   const match = (name: string, kind: Scope["kind"], parent?: Scope) =>
     all.find(
@@ -48,8 +59,8 @@ export function EnvironmentForm({ customer: c0, project: p0, done }: { customer:
   const c = match(customer, "customer");
   const p = c && match(project, "project", c);
   const levels = {
-    customer: { slug: c?.slug ?? slugify(customer), name: c?.name ?? customer.trim() },
-    project: { slug: p?.slug ?? slugify(project), name: p?.name ?? project.trim() },
+    customer: { slug: fixed[0] ?? c?.slug ?? slugify(customer), name: c?.name ?? customer.trim() },
+    project: { slug: fixed[1] ?? p?.slug ?? slugify(project), name: p?.name ?? project.trim() },
     environment: { slug: slugify(environment), name: environment.trim() },
   };
   const path = [levels.customer.slug, levels.project.slug, levels.environment.slug].join("/");
@@ -80,8 +91,8 @@ export function EnvironmentForm({ customer: c0, project: p0, done }: { customer:
         <DialogTitle>{t("tree.newEnvironment")}</DialogTitle>
         <DialogDescription>{t("tree.newEnvironmentHint")}</DialogDescription>
       </DialogHeader>
-      <Field id="customer" label={t("tree.customer")} value={customer} onChange={setCustomer} options={customers} exists={!!c} />
-      <Field id="project" label={t("tree.project")} value={project} onChange={setProject} options={projects} exists={!!p} />
+      <Field id="customer" label={t("tree.customer")} value={customer} onChange={setCustomer} options={customers} exists={!!c || fixed.length >= 1} disabled={fixed.length >= 1} />
+      <Field id="project" label={t("tree.project")} value={project} onChange={setProject} options={projects} exists={!!p || fixed.length >= 2} disabled={fixed.length >= 2} />
       <Field id="environment" label={t("tree.environment")} value={environment} onChange={setEnvironment} placeholder="production" />
       {complete && (
         <p className="text-xs text-muted-foreground">
@@ -110,6 +121,7 @@ function Field(props: {
   options?: Scope[];
   exists?: boolean;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -127,6 +139,7 @@ function Field(props: {
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
         autoComplete="off"
+        disabled={props.disabled}
         required
       />
       {props.options && (

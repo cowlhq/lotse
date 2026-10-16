@@ -3,7 +3,7 @@ import { Ellipsis, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { inviteUser, listUsers, newUserLink, updateUser, withdrawInvitation, type User, type UserLink } from "@/api";
+import { inviteUser, listScopes, listUsers, newUserLink, updateUser, withdrawInvitation, type User, type UserLink } from "@/api";
 import { Command } from "@/components/Command";
 import { Panel } from "@/components/shell/Panel";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,6 +25,7 @@ export function Users() {
   const users = useQuery({ queryKey: ["users"], queryFn: listUsers });
   const [inviting, setInviting] = useState(false);
   const [link, setLink] = useState<UserLink | null>(null);
+  const [access, setAccess] = useState<User | null>(null);
   const list = users.data ?? [];
   return (
     <>
@@ -51,11 +52,12 @@ export function Users() {
                 </p>
                 <p className="truncate text-mini text-muted-foreground">
                   {u.name && <>{u.email} · </>}
+                  {u.scope_path && <>{t("user.only", { path: u.scope_path })} · </>}
                   <State user={u} />
                 </p>
               </div>
               <Badge variant={u.role === "admin" ? "secondary" : "outline"}>{t(`user.role.${u.role}`)}</Badge>
-              {u.id === me?.id ? <span className="w-8" /> : <Actions user={u} onLink={setLink} />}
+              {u.id === me?.id ? <span className="w-8" /> : <Actions user={u} onLink={setLink} onAccess={setAccess} />}
             </li>
           ))}
         </ul>
@@ -75,6 +77,9 @@ export function Users() {
       <Dialog open={link !== null} onOpenChange={(o) => !o && setLink(null)}>
         <DialogContent className="sm:max-w-lg">{link && <Link link={link} />}</DialogContent>
       </Dialog>
+      <Dialog open={access !== null} onOpenChange={(o) => !o && setAccess(null)}>
+        <DialogContent className="sm:max-w-md">{access && <AccessForm user={access} done={() => setAccess(null)} />}</DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -90,7 +95,7 @@ function State({ user: u }: { user: User }) {
   return <>{u.last_login_at ? t("user.state.lastLogin", { time: ago(u.last_login_at) }) : t("user.state.never")}</>;
 }
 
-function Actions({ user: u, onLink }: { user: User; onLink: (x: UserLink) => void }) {
+function Actions({ user: u, onLink, onAccess }: { user: User; onLink: (x: UserLink) => void; onAccess: (u: User) => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const done = () => client.invalidateQueries({ queryKey: ["users"] });
@@ -111,6 +116,7 @@ function Actions({ user: u, onLink }: { user: User; onLink: (x: UserLink) => voi
         <DropdownMenuItem onClick={() => change.mutate({ role: u.role === "admin" ? "viewer" : "admin" })}>
           {u.role === "admin" ? t("user.makeViewer") : t("user.makeAdmin")}
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAccess(u)}>{t("user.changeAccess")}</DropdownMenuItem>
         <DropdownMenuSeparator />
         {u.state === "invited" ? (
           <DropdownMenuItem variant="destructive" onClick={() => confirm(t("user.withdrawConfirm", { who })) && withdraw.mutate()}>
@@ -134,8 +140,9 @@ function InviteForm({ onDone }: { onDone: (x: UserLink) => void }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<User["role"]>("viewer");
+  const [scope, setScope] = useState(1);
   const save = useMutation({
-    mutationFn: () => inviteUser(email.trim(), name.trim(), role),
+    mutationFn: () => inviteUser(email.trim(), name.trim(), role, scope),
     onSuccess: (x) => (client.invalidateQueries({ queryKey: ["users"] }), onDone(x)),
   });
   return (
@@ -164,8 +171,9 @@ function InviteForm({ onDone }: { onDone: (x: UserLink) => void }) {
           <ToggleGroupItem value="viewer">{t("user.role.viewer")}</ToggleGroupItem>
           <ToggleGroupItem value="admin">{t("user.role.admin")}</ToggleGroupItem>
         </ToggleGroup>
-        <p className="text-mini text-muted-foreground">{t(`user.roleHint.${role}`)}</p>
+        <p className="text-mini text-muted-foreground">{t(scope === 1 ? `user.roleHint.${role}` : `user.roleHintScoped.${role}`)}</p>
       </div>
+      <ScopeSelect id="invite-scope" value={scope} onChange={setScope} />
       {save.isError && (
         <Alert variant="destructive">
           <AlertDescription>{save.error.message}</AlertDescription>
@@ -198,5 +206,65 @@ function Link({ link }: { link: UserLink }) {
       </DialogHeader>
       <Command text={link.link} hint={t("user.linkHint", { time: dateTime(u.link_expires_at!) })} />
     </div>
+  );
+}
+
+// ScopeSelect chooses what a user sees: everything, or one customer,
+// project or environment with what is in it.
+function ScopeSelect({ id, value, onChange }: { id: string; value: number; onChange: (id: number) => void }) {
+  const { t } = useTranslation();
+  const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
+  const depth = (path: string) => path.split("/").length - 1;
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{t("user.access")}</Label>
+      <select id={id} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-9 w-full rounded-md border border-input bg-background px-2.5 shadow-xs dark:bg-white/[0.02]">
+        <option value={1}>{t("user.everything")}</option>
+        {[...(scopes.data ?? [])]
+          .sort((a, b) => a.path.localeCompare(b.path))
+          .map((x) => (
+            <option key={x.id} value={x.id}>
+              {"\u00a0\u00a0".repeat(depth(x.path))}
+              {x.name} ({x.path})
+            </option>
+          ))}
+      </select>
+      <p className="text-mini text-muted-foreground">{value === 1 ? t("user.everythingHint") : t("user.scopeHint")}</p>
+    </div>
+  );
+}
+
+function AccessForm({ user: u, done }: { user: User; done: () => void }) {
+  const { t } = useTranslation();
+  const client = useQueryClient();
+  const [scope, setScope] = useState(u.scope_id);
+  const save = useMutation({
+    mutationFn: () => updateUser(u.id, { scope_id: scope }),
+    onSuccess: () => (client.invalidateQueries({ queryKey: ["users"] }), done()),
+  });
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <DialogHeader>
+        <DialogTitle>{t("user.accessTitle", { who: u.name || u.email })}</DialogTitle>
+        <DialogDescription>{t("user.accessHint")}</DialogDescription>
+      </DialogHeader>
+      <ScopeSelect id="access-scope" value={scope} onChange={setScope} />
+      {save.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>{save.error.message}</AlertDescription>
+        </Alert>
+      )}
+      <div className="flex justify-end">
+        <Button type="submit" disabled={save.isPending || scope === u.scope_id}>
+          {t("account.save")}
+        </Button>
+      </div>
+    </form>
   );
 }

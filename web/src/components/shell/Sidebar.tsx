@@ -30,10 +30,15 @@ export function Sidebar({ onSearch, onNavigate }: { onSearch: () => void; onNavi
   const list = alerts.data ?? [];
   const count = firing(list).length;
   const crit = list.some((a) => a.state === "crit");
-  const { isAdmin } = useMe();
+  const { isAdmin, scoped } = useMe();
   const scopes = useQuery({ queryKey: ["scopes"], queryFn: listScopes });
   const { updates } = useUpdates();
-  const customers = (scopes.data ?? []).filter((x) => x.kind === "customer");
+  // The tree starts at the customers; for a user kept to a project or an
+  // environment, at that.
+  const all = scopes.data ?? [];
+  const ids = new Set(all.map((x) => x.id));
+  const roots = all.filter((x) => x.parent_id == null || !ids.has(x.parent_id));
+  const heading = roots.every((x) => x.kind === "customer") ? t("nav.customers") : roots.every((x) => x.kind === "project") ? t("nav.projects") : t("nav.environments");
   const link = (to: string, glyph: ReactNode, label: string, extra?: ReactNode) => (
     <Link to={to} className={item} activeProps={{ className: active }} activeOptions={{ exact: to === "/" }} onClick={onNavigate}>
       {glyph}
@@ -66,12 +71,12 @@ export function Sidebar({ onSearch, onNavigate }: { onSearch: () => void; onNavi
         )}
       </nav>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <p className="mb-0.5 px-2.5 text-mini font-medium text-muted-foreground">{t("nav.customers")}</p>
-        {customers.length === 0 ? (
+        <p className="mb-0.5 px-2.5 text-mini font-medium text-muted-foreground">{heading}</p>
+        {roots.length === 0 ? (
           <p className="px-2.5 text-mini text-muted-foreground">{t("nav.noCustomers")}</p>
         ) : (
           <ul className="space-y-px">
-            {customers.map((c) => {
+            {roots.map((c) => {
               const level = levelUnder(list, c.path);
               return (
                 <li key={c.id}>
@@ -87,12 +92,13 @@ export function Sidebar({ onSearch, onNavigate }: { onSearch: () => void; onNavi
         )}
       </div>
       <nav className="space-y-px">
-        {link(
-          "/settings",
-          <Settings className={icon} />,
-          t("nav.settings"),
-          updates && newer(updates.latest?.version, updates.hub_version) && <span className="size-1.5 rounded-full bg-brand" title={t("nav.updateAvailable")} />,
-        )}
+        {!scoped &&
+          link(
+            "/settings",
+            <Settings className={icon} />,
+            t("nav.settings"),
+            updates && newer(updates.latest?.version, updates.hub_version) && <span className="size-1.5 rounded-full bg-brand" title={t("nav.updateAvailable")} />,
+          )}
         <UserMenu />
       </nav>
     </div>

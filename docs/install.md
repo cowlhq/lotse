@@ -30,7 +30,9 @@ data stays in the volume `lotse_data`.
 address, as admin (changes anything) or viewer (looks). lotse makes a link
 that works once, for seven days; with a mail server set up under
 **Settings → Notifications** it is sent to them, otherwise you pass it on.
-Whoever forgets their password gets a new link the same way (decision 0023).
+Whoever forgets their password gets a new link the same way. Someone can
+also be kept to one customer, project or environment: they see only that,
+and as admin change only that (decision 0023).
 
 **Behind a reverse proxy** (recommended, decision 0006): bind the port to
 `127.0.0.1:8080` in `compose.yml`, let Traefik or Caddy terminate TLS and
