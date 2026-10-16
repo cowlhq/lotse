@@ -73,8 +73,9 @@
 }
 
 /* The palette: near-neutral greys, one indigo for what can be done, and
-   four status colors that mean only state. The sidebar is the ground; the
-   page lies on it as a panel. Both themes are designed, not inverted. */
+   four status colors that mean only state. A grey ground, the sidebar and
+   the page share it; what holds content lies on it in white, with a fine
+   border and round corners. Both themes are designed, not inverted. */
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.22 0.006 275);
@@ -91,7 +92,7 @@
     --accent: oklch(0.965 0.003 275);
     --accent-foreground: oklch(0.22 0.006 275);
     --destructive: oklch(0.58 0.2 25);
-    --border: oklch(0.895 0.004 275);
+    --border: oklch(0.915 0.004 275);
     --input: oklch(0.86 0.005 275);
     --ring: oklch(0.55 0.19 277);
     --brand: oklch(0.52 0.2 277);
@@ -104,16 +105,16 @@
     --chart-3: oklch(0.63 0.12 175);
     --chart-4: oklch(0.6 0.15 320);
     --chart-5: oklch(0.72 0.12 95);
-    --radius: 0.5rem;
-    --sidebar: oklch(0.993 0.001 275);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.965 0.004 275);
     --sidebar-foreground: oklch(0.26 0.008 275);
     --sidebar-primary: oklch(0.22 0.006 275);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.945 0.005 275);
+    --sidebar-accent: oklch(0.935 0.005 275);
     --sidebar-accent-foreground: oklch(0.2 0.006 275);
-    --sidebar-border: oklch(0.93 0.003 275);
+    --sidebar-border: oklch(0.915 0.004 275);
     --sidebar-ring: oklch(0.6 0.14 277);
-    --group: oklch(0.985 0.002 275);
+    --group: oklch(0.979 0.003 275);
 }
 
 .dark {
@@ -154,6 +155,14 @@
     --sidebar-border: oklch(1 0 0 / 6%);
     --sidebar-ring: oklch(0.66 0.13 277);
     --group: oklch(0.215 0.005 275);
+}
+
+/* What is chosen on the grey ground, a tab or a place in the sidebar, is
+   lifted onto white, as a chip. */
+@utility chip {
+    background: var(--card);
+    color: var(--foreground);
+    box-shadow: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 0.04);
 }
 
 @layer base {

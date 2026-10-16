@@ -105,7 +105,7 @@ export function Check({ id }: { id: number }) {
           </p>
         )}
         {alerts.length > 0 && (
-          <section className="overflow-hidden rounded-lg border bg-card">
+          <section className="overflow-hidden rounded-xl border bg-card">
             <Incidents alerts={alerts} />
           </section>
         )}

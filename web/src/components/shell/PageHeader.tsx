@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 export type Crumb = { label: string } & Pick<LinkProps, "to" | "params">;
 
-// PageHeader is the bar on top of the page panel: where it is, its views,
+// PageHeader is the top of a page: where it is, its views,
 // and what can be done there.
 export function PageHeader({ crumbs, tabs, actions }: { crumbs: Crumb[]; tabs?: ReactNode; actions?: ReactNode }) {
   return (

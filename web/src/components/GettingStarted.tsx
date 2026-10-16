@@ -25,7 +25,7 @@ export function GettingStarted({ scopes, hosts, checks, onHide }: { scopes: Scop
   if (left === 0 || config.isPending) return null;
   const next = steps.find((s) => !s.done)!.key;
   return (
-    <section className="overflow-hidden rounded-lg border bg-card">
+    <section className="overflow-hidden rounded-xl border bg-card">
       <header className="flex items-center gap-3 border-b px-4 py-3">
         <h2 className="font-semibold">{t("start.title")}</h2>
         <span className="text-muted-foreground">{t("start.progress", { done: steps.length - left, of: steps.length })}</span>

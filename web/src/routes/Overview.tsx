@@ -92,14 +92,14 @@ export function Overview() {
       )}
 
       {problems.length > 0 && (
-        <section className="overflow-hidden rounded-lg border bg-card">
+        <section className="overflow-hidden rounded-xl border bg-card">
           <Incidents alerts={problems} />
         </section>
       )}
 
       {!(empty && guided) && (
         <>
-          <section className="overflow-hidden rounded-lg border bg-card">
+          <section className="overflow-hidden rounded-xl border bg-card">
             <header className="flex items-baseline gap-2 border-b px-4 py-3">
               <h2 className="font-semibold">{t("nav.hosts")}</h2>
               <span className="text-muted-foreground tabular-nums">{shownHosts.length}</span>
@@ -111,7 +111,7 @@ export function Overview() {
             )}
           </section>
 
-          <section className="overflow-hidden rounded-lg border bg-card">
+          <section className="overflow-hidden rounded-xl border bg-card">
             <header className="flex items-baseline gap-2 border-b px-4 py-3">
               <h2 className="font-semibold">{t("nav.checks")}</h2>
               <span className="text-muted-foreground tabular-nums">{shownChecks.length}</span>

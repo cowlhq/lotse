@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 // what it says on the right, and its content.
 export function Panel({ title, count, right, children, flush = false }: { title?: ReactNode; count?: number; right?: ReactNode; children: ReactNode; flush?: boolean }) {
   return (
-    <section className="overflow-hidden rounded-lg border bg-card">
+    <section className="overflow-hidden rounded-xl border bg-card">
       {(title || right) && (
         <header className="flex min-h-12 items-center gap-2 border-b px-4 py-2">
           {title && <h2 className="font-semibold">{title}</h2>}
