@@ -384,7 +384,7 @@ groups:
         zabbix: "partial: nested host groups, macros"
         prometheus: "partial: Grafana folders and organizations"
       - feature: Users with roles
-        lotse: "no: one admin, for now; API tokens per customer"
+        lotse: "yes: admin and viewer, for everything or one customer"
         beszel: "yes: admin, user, read-only"
         kuma: "no: one user"
         gatus: "no: one login"
