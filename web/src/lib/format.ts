@@ -16,11 +16,14 @@ export function bytes(n: number | null | undefined, digits = 1): string {
   return `${text} ${units[i]}`;
 }
 
-// digitsFor is how many decimals tell ticks incr apart: none for steps of
-// 1 or more, one for 0.1, two for 0.05, …
+// digitsFor is how many decimals tell ticks incr apart: as many as the
+// step has, none for 5, one for 2.5 or 0.1, two for 0.05, …
 export function digitsFor(incr: number): number {
-  if (incr >= 1) return 0;
-  return Math.min(4, Math.ceil(-Math.log10(incr) - 1e-9));
+  for (let d = 0; d < 4; d++) {
+    const scaled = incr * 10 ** d;
+    if (Math.abs(scaled - Math.round(scaled)) < 1e-6 * scaled) return d;
+  }
+  return 4;
 }
 
 export function rate(n: number | null | undefined): string {

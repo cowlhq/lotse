@@ -75,6 +75,16 @@ function timeTicks(u: uPlot, vals: number[], _axis: number, _space: number, incr
   return vals.map((v) => f.format(v * 1000));
 }
 
+// labelWidth is how wide an axis label is, in CSS pixels. It is measured on
+// a canvas of its own: setting the plot's font would leave uPlot drawing
+// with it, unscaled, which on a screen of twice the density is half the
+// size.
+const measure = document.createElement("canvas").getContext("2d")!;
+function labelWidth(text: string): number {
+  measure.font = "12px 'Fira Sans', system-ui, sans-serif";
+  return measure.measureText(text).width;
+}
+
 // Events are drawn up to these ranges; beyond, there are too many to read.
 // Those that mean trouble stay longer than the rest.
 const eventsUpTo = 6 * 3600;
@@ -130,12 +140,7 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
           values: (_u, vals, _axis, _space, incr) => vals.map((v) => format(v, digitsFor(incr))),
           incrs: binary ? binaryIncrs : undefined,
           // as wide as the widest label, so none is cut off
-          size: (u, values) => {
-            if (!values) return 50;
-            u.ctx.font = "12px 'Fira Sans', system-ui, sans-serif";
-            const widest = Math.max(...values.map((v) => u.ctx.measureText(v).width));
-            return Math.ceil(widest / devicePixelRatio) + 24;
-          },
+          size: (_u, values) => (values ? Math.ceil(Math.max(...values.map(labelWidth))) + 24 : 50),
         },
       ],
       series: [
