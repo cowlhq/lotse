@@ -77,6 +77,8 @@ export const updateHub = () => post<void>("/api/hub/update");
 export const listChecks = (envID?: number) => get<Check[]>(envID ? `/api/checks?environment=${envID}` : "/api/checks");
 export const getCheck = (id: number) => get<CheckDetail>(`/api/checks/${id}`);
 export const createCheck = (input: CheckInput) => post<Check>("/api/checks", input);
+export type CheckTryResult = Schemas["CheckTryResult"];
+export const tryCheck = (input: Schemas["CheckTry"]) => post<CheckTryResult>("/api/checks/try", input);
 export const updateCheck = (id: number, name: string, spec: Record<string, unknown>) =>
   send<Check>("PATCH", `/api/checks/${id}`, { name, spec });
 export const deleteCheck = (id: number) => send<void>("DELETE", `/api/checks/${id}`);
