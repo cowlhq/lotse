@@ -98,29 +98,29 @@ export function Overview() {
 
       {!(empty && guided) && (
         <>
-      <section className="overflow-hidden rounded-lg border bg-card">
-        <header className="flex items-baseline gap-2 border-b px-4 py-3">
-          <h2 className="font-semibold">{t("nav.hosts")}</h2>
-          <span className="text-muted-foreground tabular-nums">{shownHosts.length}</span>
-        </header>
-        {shownHosts.length === 0 ? (
-          <p className="px-4 py-10 text-center text-muted-foreground">{filter ? t("rows.noMatch") : t("overview.noHostsYet")}</p>
-        ) : (
-          <HostTable hosts={shownHosts} alerts={alerts} where={(h) => where(h.host.environment_id)} />
-        )}
-      </section>
+          <section className="overflow-hidden rounded-lg border bg-card">
+            <header className="flex items-baseline gap-2 border-b px-4 py-3">
+              <h2 className="font-semibold">{t("nav.hosts")}</h2>
+              <span className="text-muted-foreground tabular-nums">{shownHosts.length}</span>
+            </header>
+            {shownHosts.length === 0 ? (
+              <p className="px-4 py-10 text-center text-muted-foreground">{filter ? t("rows.noMatch") : t("overview.noHostsYet")}</p>
+            ) : (
+              <HostTable hosts={shownHosts} alerts={alerts} where={(h) => where(h.host.environment_id)} />
+            )}
+          </section>
 
-      <section className="overflow-hidden rounded-lg border bg-card">
-        <header className="flex items-baseline gap-2 border-b px-4 py-3">
-          <h2 className="font-semibold">{t("nav.checks")}</h2>
-          <span className="text-muted-foreground tabular-nums">{shownChecks.length}</span>
-        </header>
-        {shownChecks.length === 0 ? (
-          <p className="px-4 py-10 text-center text-muted-foreground">{filter ? t("rows.noMatch") : t("overview.noChecksYet")}</p>
-        ) : (
-          <CheckTable checks={shownChecks} where={(c) => where(c.environment_id)} />
-        )}
-      </section>
+          <section className="overflow-hidden rounded-lg border bg-card">
+            <header className="flex items-baseline gap-2 border-b px-4 py-3">
+              <h2 className="font-semibold">{t("nav.checks")}</h2>
+              <span className="text-muted-foreground tabular-nums">{shownChecks.length}</span>
+            </header>
+            {shownChecks.length === 0 ? (
+              <p className="px-4 py-10 text-center text-muted-foreground">{filter ? t("rows.noMatch") : t("overview.noChecksYet")}</p>
+            ) : (
+              <CheckTable checks={shownChecks} where={(c) => where(c.environment_id)} />
+            )}
+          </section>
         </>
       )}
     </div>

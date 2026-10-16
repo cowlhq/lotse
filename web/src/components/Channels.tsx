@@ -6,8 +6,8 @@ import { useTranslation } from "react-i18next";
 import { createChannel, deleteChannel, listChannels, testChannel, updateChannel, type Channel, type SecretInput, type TestResult } from "@/api";
 import { emptySecret, SecretField, secretInput, type SecretDraft } from "@/components/Secret";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Panel } from "@/components/shell/Panel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,36 +37,30 @@ export function Channels({ scopeID }: { scopeID: number }) {
   const here = (channels.data ?? []).filter((c) => c.scope_id === scopeID);
   const above = (channels.data ?? []).filter((c) => c.scope_id !== scopeID);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("channel.title")}</CardTitle>
-        <CardDescription>{t("channel.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        {here.length === 0 && above.length === 0 && <p className="text-muted-foreground">{t("channel.none")}</p>}
-        {here.length > 0 && (
-          <ul className="divide-y">
-            {here.map((c) => (
-              <ChannelRow key={c.id} channel={c} />
+    <Panel title={t("channel.title")} count={here.length} right={isAdmin && <ChannelDialog scopeID={scopeID} />} flush>
+      <p className="border-b px-4 py-3 text-muted-foreground">{t("channel.description")}</p>
+      {here.length === 0 && above.length === 0 && <p className="px-4 py-8 text-center text-muted-foreground">{t("channel.none")}</p>}
+      {here.length > 0 && (
+        <ul className="divide-y">
+          {here.map((c) => (
+            <ChannelRow key={c.id} channel={c} />
+          ))}
+        </ul>
+      )}
+      {above.length > 0 && (
+        <div className="space-y-1 border-t px-4 py-3">
+          <p className="text-mini text-muted-foreground">{t("channel.above")}</p>
+          <ul className="space-y-1">
+            {above.map((c) => (
+              <li key={c.id} className="text-muted-foreground">
+                <code className="text-foreground">{c.key}</code> · {c.name} · {t(`channel.type.${c.type}`)} ·{" "}
+                {c.scope_path || t("config.kinds.global")}
+              </li>
             ))}
           </ul>
-        )}
-        {above.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">{t("channel.above")}</p>
-            <ul className="space-y-1">
-              {above.map((c) => (
-                <li key={c.id} className="text-muted-foreground">
-                  <code className="text-foreground">{c.key}</code> · {c.name} · {t(`channel.type.${c.type}`)} ·{" "}
-                  {c.scope_path || t("config.kinds.global")}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {isAdmin && <ChannelDialog scopeID={scopeID} />}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -82,7 +76,7 @@ function ChannelRow({ channel: c }: { channel: Channel }) {
   });
   const spec = c.spec as { to?: string[]; smtp?: { host: string }; server?: string; chat_id?: string };
   return (
-    <li className="space-y-1 py-2">
+    <li className="space-y-1 px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         <span className="min-w-0">
           <code>{c.key}</code> <span className="font-medium">{c.name}</span>

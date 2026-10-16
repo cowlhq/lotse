@@ -7,8 +7,8 @@ import { Command } from "@/components/Command";
 import { StatusIcon } from "@/components/shell/Dot";
 import { PageTabs } from "@/components/shell/PageTabs";
 import { Online } from "@/components/Status";
+import { Panel } from "@/components/shell/Panel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,34 +26,28 @@ export function Probes() {
   const probes = useQuery({ queryKey: ["probes"], queryFn: listProbes, refetchInterval: 15_000 });
   const revoke = useMutation({ mutationFn: revokeProbe, onSuccess: () => client.invalidateQueries({ queryKey: ["probes"] }) });
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("probe.title")}</CardTitle>
-        <CardDescription>{t("probe.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        <ul className="divide-y">
-          {probes.data?.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-4 py-2">
-              <span>
-                <span className="font-medium">{p.builtin ? t("probe.builtin") : p.name}</span>
-                {p.location && <span className="ml-2 text-muted-foreground">{p.location}</span>}
-                <span className="ml-2 text-xs text-muted-foreground">{p.version}</span>
-              </span>
-              <span className="flex items-center gap-3">
-                {p.revoked ? <span className="text-muted-foreground">{t("probe.revoked")}</span> : <Online online={p.online} />}
-                {isAdmin && !p.builtin && !p.revoked && (
-                  <Button variant="ghost" size="sm" onClick={() => confirm(t("probe.revokeConfirm")) && revoke.mutate(p.id)}>
-                    {t("probe.revoke")}
-                  </Button>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-        {isAdmin && <AddProbe />}
-      </CardContent>
-    </Card>
+    <Panel title={t("probe.title")} count={probes.data?.filter((p) => !p.revoked).length} right={isAdmin && <AddProbe />} flush>
+      <p className="border-b px-4 py-3 text-muted-foreground">{t("probe.description")}</p>
+      <ul className="divide-y">
+        {probes.data?.map((p) => (
+          <li key={p.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <span>
+              <span className="font-medium">{p.builtin ? t("probe.builtin") : p.name}</span>
+              {p.location && <span className="ml-2 text-muted-foreground">{p.location}</span>}
+              <span className="ml-2 text-xs text-muted-foreground">{p.version}</span>
+            </span>
+            <span className="flex items-center gap-3">
+              {p.revoked ? <span className="text-muted-foreground">{t("probe.revoked")}</span> : <Online online={p.online} />}
+              {isAdmin && !p.builtin && !p.revoked && (
+                <Button variant="ghost" size="sm" onClick={() => confirm(t("probe.revokeConfirm")) && revoke.mutate(p.id)}>
+                  {t("probe.revoke")}
+                </Button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Panel>
   );
 }
 

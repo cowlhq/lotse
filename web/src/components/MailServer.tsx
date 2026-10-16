@@ -6,8 +6,8 @@ import { deleteMailServer, getMailServer, NotFound, setMailServer, testMailServe
 import { TLSPicker } from "@/components/Channels";
 import { emptySecret, SecretField, secretInput, type SecretDraft } from "@/components/Secret";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Panel } from "@/components/shell/Panel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMe } from "@/lib/useMe";
@@ -25,45 +25,41 @@ export function MailServer() {
   if (server.isPending) return null;
   const m = server.data ?? null;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("mail.title")}</CardTitle>
-        <CardDescription>{t("mail.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+    <Panel
+      title={t("mail.title")}
+      right={
+        isAdmin &&
+        !editing && (
+          <>
+            {m && <TestMail />}
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+              {m ? t("mail.edit") : t("mail.set")}
+            </Button>
+          </>
+        )
+      }
+      flush
+    >
+      <p className="border-b px-4 py-3 text-muted-foreground">{t("mail.description")}</p>
+      <div className="px-4 py-3">
         {editing ? (
           <Form server={m} onDone={() => setEditing(false)} />
         ) : m ? (
-          <>
-            <p>
-              <span className="font-medium">{m.host}:{m.port}</span>
-              <span className="text-muted-foreground">
-                {" "}
-                · {t(`mail.tlsMode.${m.tls}`)} · {m.from}
-                {m.username && <> · {m.username}</>}
-              </span>
-            </p>
-            {isAdmin && (
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                  {t("mail.edit")}
-                </Button>
-                <TestMail />
-              </div>
-            )}
-          </>
+          <p>
+            <span className="font-medium">
+              {m.host}:{m.port}
+            </span>
+            <span className="text-muted-foreground">
+              {" "}
+              · {t(`mail.tlsMode.${m.tls}`)} · {m.from}
+              {m.username && <> · {m.username}</>}
+            </span>
+          </p>
         ) : (
-          <>
-            <p className="text-muted-foreground">{t("mail.none")}</p>
-            {isAdmin && (
-              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                {t("mail.set")}
-              </Button>
-            )}
-          </>
+          <p className="text-muted-foreground">{t("mail.none")}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   );
 }
 
