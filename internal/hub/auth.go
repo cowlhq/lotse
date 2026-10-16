@@ -60,7 +60,8 @@ func userOf(ctx context.Context) (store.User, bool) {
 func publicPath(path string) bool {
 	return path == "/api/health" || path == "/api/auth/login" || path == "/api/openapi.yaml" ||
 		strings.HasPrefix(path, "/api/setup/") || path == protocol.ConnectPath || path == protocol.EnrollPath ||
-		path == protocol.CheckPath || path == protocol.ProbeEnrollPath || path == protocol.ProbeConnectPath
+		path == protocol.CheckPath || path == protocol.ProbeEnrollPath || path == protocol.ProbeConnectPath ||
+		path == "/api/auth/link" || path == "/api/auth/link/password"
 }
 
 // guard stands before the API:
@@ -217,6 +218,9 @@ func (s apiServer) Login(ctx context.Context, req api.LoginRequestObject) (api.L
 	if err != nil {
 		return nil, err
 	}
+	if err := s.db.NoteLogin(ctx, user.ID, time.Now().Unix()); err != nil {
+		return nil, err
+	}
 	return api.Login200JSONResponse{Body: toUser(user), Headers: api.Login200ResponseHeaders{SetCookie: &cookie}}, nil
 }
 
@@ -235,5 +239,15 @@ func (s apiServer) GetMe(ctx context.Context, _ api.GetMeRequestObject) (api.Get
 }
 
 func toUser(u store.User) api.User {
-	return api.User{Id: u.ID, Email: u.Email, Name: u.Name, Role: api.UserRole(u.Role)}
+	state := api.Active
+	switch {
+	case u.DisabledAt != nil:
+		state = api.Disabled
+	case u.Invited():
+		state = api.Invited
+	}
+	return api.User{
+		Id: u.ID, Email: u.Email, Name: u.Name, Role: api.UserRole(u.Role), State: state,
+		CreatedAt: u.CreatedAt, LastLoginAt: u.LastLoginAt, LinkExpiresAt: u.LinkExpiresAt,
+	}
 }

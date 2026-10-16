@@ -42,6 +42,9 @@ type Message struct {
 	Items []Item
 	// Test marks a message sent to try a channel.
 	Test bool
+	// Subject and Body, when set, make it a message of its own, such as an
+	// invitation, instead of one about alerts.
+	Subject, Body string
 }
 
 // Sender sends messages to one channel.
@@ -51,6 +54,9 @@ type Sender interface {
 
 // Title sums a message up in a line, as for an email's subject.
 func (m Message) Title() string {
+	if m.Subject != "" {
+		return m.Subject
+	}
 	if m.Test {
 		return "[lotse] Test message"
 	}
@@ -73,6 +79,9 @@ func (m Message) Title() string {
 
 // Text writes a message out, one alert after the other.
 func (m Message) Text() string {
+	if m.Body != "" {
+		return m.Body
+	}
 	var b strings.Builder
 	if m.Test {
 		fmt.Fprintf(&b, "This is a test message from lotse at %s. The channel works.\n", m.Hub)

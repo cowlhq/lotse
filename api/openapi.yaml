@@ -186,6 +186,102 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
+    patch:
+      operationId: updateMe
+      summary: Change one's own name, or password
+      description: A new password needs the current one; it ends every other session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                password: { type: string }
+                current_password: { type: string }
+      responses:
+        "200":
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/auth/link:
+    post:
+      operationId: checkLink
+      summary: Who a link to choose a password is for
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: The link works.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [email, name, invited]
+                properties:
+                  email: { type: string }
+                  name: { type: string }
+                  invited:
+                    type: boolean
+                    description: An invitation; otherwise a new password for an account.
+        "404":
+          description: The link does not work, or not any more.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Too many failed attempts; try again later.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/auth/link/password:
+    post:
+      operationId: useLink
+      summary: Choose a password with a link, and log in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                name: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: The password is set; logged in.
+          headers:
+            Set-Cookie: { $ref: "#/components/headers/SetCookie" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404":
+          description: The link does not work, or not any more.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          description: Too many failed attempts; try again later.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
 
   /api/scopes:
     get:
@@ -1174,6 +1270,98 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /api/users:
+    get:
+      operationId: listUsers
+      summary: Everyone who may log in, and who is invited
+      responses:
+        "200":
+          description: The users, in the order they were added.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      operationId: inviteUser
+      summary: Invite someone; the link is shown this once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email: { type: string }
+                name: { type: string }
+                role: { type: string, enum: [admin, viewer] }
+      responses:
+        "201":
+          description: The user, and the link.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserLink" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409":
+          description: There is a user with this address.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/users/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    patch:
+      operationId: updateUser
+      summary: Change a user's name or role, or disable or enable them
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                role: { type: string, enum: [admin, viewer] }
+                disabled: { type: boolean }
+      responses:
+        "200":
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      operationId: withdrawInvitation
+      summary: Withdraw an invitation nobody accepted yet
+      responses:
+        "204":
+          description: Withdrawn.
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/users/{id}/link:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      operationId: newUserLink
+      summary: A new link to choose a password with; the old one stops working
+      responses:
+        "200":
+          description: The user, and the link.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserLink" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /api/v1/status:
     get:
       operationId: readStatus
@@ -1511,12 +1699,37 @@ components:
 
     User:
       type: object
-      required: [id, email, name, role]
+      required: [id, email, name, role, state, created_at]
       properties:
         id: { type: integer, format: int64 }
         email: { type: string }
         name: { type: string }
         role: { type: string, enum: [admin, viewer] }
+        state:
+          type: string
+          enum: [active, invited, disabled]
+          description: Invited until they choose a password.
+        created_at: { type: integer, format: int64 }
+        last_login_at: { type: integer, format: int64 }
+        link_expires_at:
+          type: integer
+          format: int64
+          description: Until when a link to choose a password works, if there is one.
+
+    UserLink:
+      type: object
+      required: [user, link, mailed]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        link:
+          type: string
+          description: The link to choose a password with; it is not shown again.
+        mailed:
+          type: boolean
+          description: Whether the hub sent the link by email.
+        mail_error:
+          type: string
+          description: Why sending the email failed, if it did.
 
     Scope:
       type: object
