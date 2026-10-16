@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.17](https://github.com/cowlhq/lotse/compare/v0.1.16...v0.1.17) (2026-10-16)
+
+
+### Features
+
+* **install:** install a probe as the service lotse-probe ([b0f7d4e](https://github.com/cowlhq/lotse/commit/b0f7d4e883131d5ed63c3e74a6e9b300c0df8334))
+* **probe:** lotse probe enroll, to enroll once and keep the credential ([16e181d](https://github.com/cowlhq/lotse/commit/16e181d8dcbbbb5e7d248205ab3275f7d6c10587))
+* **web:** the install command for a probe, and wait for it to connect ([1d9ade7](https://github.com/cowlhq/lotse/commit/1d9ade7c04c390cfdbee5ea5966ac7f2eeca49a2))
+
 ## [0.1.16](https://github.com/cowlhq/lotse/compare/v0.1.15...v0.1.16) (2026-10-15)
 
 
