@@ -61,6 +61,10 @@ type Enrollment struct {
 	TookOver bool
 }
 
+// ErrElsewhere is returned for enrolling a machine that is a host in
+// another environment, or in none.
+var ErrElsewhere = errors.New("the machine is a host in another environment")
+
 // Enroll enrolls a machine with an enrollment token, given as its hash: it
 // becomes a host of the token's environment, or takes over the host with
 // its machine ID (design 7), and gets the credential credHash.
@@ -121,26 +125,16 @@ func (s *Store) Enroll(ctx context.Context, tokenHash, machineID, hostname, cred
 			}
 		case err != nil:
 			return err
+		case h.EnvironmentID == nil || *h.EnvironmentID != envID:
+			// Taking over moves no host: whoever may enroll in one
+			// environment may not take a machine, and its history, from
+			// another (decision 0023).
+			return ErrElsewhere
 		default:
 			out.TookOver = true
 			if _, err := tx.ExecContext(ctx, s.rebind(`UPDATE agents SET revoked_at = ?
 				WHERE host_id = ? AND revoked_at IS NULL`), now, h.ID); err != nil {
 				return err
-			}
-			var from any
-			if h.EnvironmentID != nil {
-				var p string
-				tx.QueryRowContext(ctx, s.rebind(`SELECT path FROM scopes WHERE id = ?`), *h.EnvironmentID).Scan(&p)
-				from = p
-			}
-			if h.EnvironmentID == nil || *h.EnvironmentID != envID {
-				if _, err := tx.ExecContext(ctx, s.rebind(`UPDATE hosts SET environment_id = ? WHERE id = ?`), envID, h.ID); err != nil {
-					return err
-				}
-				h.EnvironmentID = &envID
-				if err := r.record(ctx, "host", h.ID, h.Name, "environment", from, env.Path); err != nil {
-					return err
-				}
 			}
 			if err := r.record(ctx, "host", h.ID, h.Name, "enrolled again", nil, env.Path); err != nil {
 				return err

@@ -144,6 +144,10 @@ func (h *hub) enroll(w http.ResponseWriter, r *http.Request) {
 	credential, credHash := auth.NewToken("lotse_agt_")
 	e, err := h.db.Enroll(r.Context(), auth.HashToken(req.Token), req.MachineID,
 		cmp.Or(req.Hostname, req.MachineID), credHash, time.Now().Unix())
+	if errors.Is(err, store.ErrElsewhere) {
+		writeError(w, http.StatusConflict, "this machine is a host in another environment already; move it there in lotse first")
+		return
+	}
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusUnauthorized, "this enrollment token is not accepted")
 		return

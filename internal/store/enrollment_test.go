@@ -32,10 +32,14 @@ func TestEnrollment(t *testing.T) {
 		if h, err := s.AgentHost(ctx, "cred-1", 4); err != nil || h.ID != e.Host.ID {
 			t.Errorf("credential: %+v, %v", h, err)
 		}
-		// Reinstalled, into staging: the same host, moved; the first
-		// credential is revoked.
-		again, err := s.Enroll(ctx, "staging-hash", "m1", "web1", "cred-2", 5)
-		if err != nil || !again.TookOver || again.Host.ID != e.Host.ID || *again.Host.EnvironmentID != staging.ID {
+		// Enrolled with staging's token, it stays where it is: taking over
+		// moves no host.
+		if _, err := s.Enroll(ctx, "staging-hash", "m1", "web1", "cred-x", 5); err != store.ErrElsewhere {
+			t.Fatalf("enroll into another environment: %v", err)
+		}
+		// Reinstalled: the same host; the first credential is revoked.
+		again, err := s.Enroll(ctx, "prod-hash", "m1", "web1", "cred-2", 5)
+		if err != nil || !again.TookOver || again.Host.ID != e.Host.ID || *again.Host.EnvironmentID != prod.ID {
 			t.Fatalf("enroll again: %+v, %v", again, err)
 		}
 		if _, err := s.AgentHost(ctx, "cred-1", 6); err != store.ErrNotFound {
@@ -52,7 +56,7 @@ func TestEnrollment(t *testing.T) {
 		for _, c := range changes {
 			fields = append(fields, c.Field)
 		}
-		want := "agent revoked,enrolled again,environment,enrolled"
+		want := "agent revoked,enrolled again,enrolled"
 		if got := join(fields); got != want {
 			t.Errorf("history %q, want %q", got, want)
 		}
