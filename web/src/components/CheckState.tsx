@@ -18,7 +18,7 @@ export function CheckState({ state }: { state: Check["state"] }) {
 // target is what a check looks at, for lists.
 export function target(c: Check): string {
   const spec = c.spec as Record<string, string> & { expect?: string[] };
-  if (c.type === "http") return spec.url;
+  if (c.type === "http") return spec.method ? `${spec.method} ${spec.url}` : spec.url;
   if (c.type === "heartbeat") return `${spec.period} + ${spec.grace}`;
   if (c.type === "dns") return `${spec.name} ${spec.type}${spec.expect?.length ? ` → ${spec.expect.join(", ")}` : ""}`;
   if (c.type === "domain") return spec.domain;
