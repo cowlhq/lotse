@@ -3,7 +3,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Download, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { deleteScope, exportURL, getScope, listChecks, listHosts, listScopes, NotFound, renameScope, updateScope, type HostSummary } from "@/api";
+import { deleteScope, exportURL, getScope, listChecks, listHosts, listScopes, NotFound, renameScope, setHostEnvironment, updateScope, type HostSummary } from "@/api";
+import { toast } from "sonner";
 import { AlertHistory, useAlerts } from "@/components/Alerts";
 import { Incidents } from "@/components/Incidents";
 import { CheckTable, HostTable } from "@/components/Tables";
@@ -26,6 +27,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/lib/useMe";
 import { useUpdates } from "@/lib/useUpdates";
 
+// useMoveHost moves a host to another environment, with a toast that can
+// take it back.
+function useMoveHost() {
+  const { t } = useTranslation();
+  const client = useQueryClient();
+  const move = useMutation({
+    mutationFn: ({ h, envID }: { h: HostSummary; envID: number | null; to: string; undo?: boolean }) => setHostEnvironment(h.host.id, envID),
+    onSuccess: (_, { h, to, undo }) => {
+      client.invalidateQueries({ queryKey: ["hosts"] });
+      client.invalidateQueries({ queryKey: ["host", h.host.id] });
+      client.invalidateQueries({ queryKey: ["changes"] });
+      if (undo) return;
+      const from = h.host.environment_id ?? null;
+      toast.success(t("move.moved", { name: h.host.name, to }), {
+        action: { label: t("move.undo"), onClick: () => move.mutate({ h, envID: from, to: "", undo: true }) },
+      });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  return (h: HostSummary, envID: number, to: string) => move.mutate({ h, envID, to });
+}
+
 // Scope is the page of a customer, project or environment: how it stands
 // and what is in it first; its alerts, notifications, maintenance, settings
 // and history in tabs.
@@ -37,6 +60,7 @@ export function Scope({ id }: { id: number }) {
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts });
   const checks = useQuery({ queryKey: ["checks", "all"], queryFn: () => listChecks() });
   const alerts = useAlerts().data ?? [];
+  const moveHost = useMoveHost();
 
   if (scope.isPending) return <Skeleton className="m-6 h-32" />;
   if (scope.error instanceof NotFound) return <p className="p-6">{t("tree.notFound")}</p>;
@@ -64,6 +88,7 @@ export function Scope({ id }: { id: number }) {
     for (let x = e; x && x.id !== id; x = x.parent_id ? byID.get(x.parent_id) : undefined) names.unshift(x.name);
     return {
       key: e?.path ?? "",
+      name: names.join(" / "),
       label: e ? (
         <Link to="/scopes/$id" params={{ id: String(e.id) }} className="hover:underline" onClick={(ev) => ev.stopPropagation()}>
           {names.join(" / ")}
@@ -145,7 +170,20 @@ export function Scope({ id }: { id: number }) {
             {mine.length === 0 ? (
               <Empty>{env ? t("overview.noHostsAdd") : t("overview.noHostsYet")}</Empty>
             ) : (
-              <HostTable hosts={mine} alerts={alerts} where={(h) => h.host.platform || h.host.os} group={env ? undefined : (h) => groupOf(h.host.environment_id)} />
+              <HostTable
+                hosts={mine}
+                alerts={alerts}
+                where={(h) => h.host.platform || h.host.os}
+                group={env ? undefined : (h) => groupOf(h.host.environment_id)}
+                move={
+                  isAdmin && !env
+                    ? {
+                        groups: all.filter((s) => s.kind === "environment" && below(s.id)).map((s) => ({ ...groupOf(s.id), envID: s.id })),
+                        onMove: (h, envID) => moveHost(h, envID, groupOf(envID).name),
+                      }
+                    : undefined
+                }
+              />
             )}
           </Panel>
           <Panel title={t("nav.checks")} count={myChecks.length} flush>

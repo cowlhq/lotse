@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { AlertState, Check, HostSummary } from "@/api";
@@ -13,15 +13,23 @@ import { ago, rate } from "@/lib/format";
 // Group puts rows under headings, such as an environment's name.
 export type Grouping<T> = (x: T) => { key: string; label: ReactNode };
 
-function GroupRow({ label, span }: { label: ReactNode; span: number }) {
+function GroupRow({ label, span, drop, hint }: { label: ReactNode; span: number; drop?: DropProps; hint?: ReactNode }) {
   return (
-    <tr className="border-b bg-group">
-      <td colSpan={span} className="px-4 py-2 font-medium">
+    <tr className={`border-b transition-colors ${drop?.over ? "bg-brand/10" : "bg-group"}`} {...drop?.handlers}>
+      <td colSpan={span} className={`px-4 py-2 font-medium ${drop?.over ? "shadow-[inset_0_0_0_2px_var(--brand)]" : ""}`}>
         {label}
+        {hint && <span className="ml-2 text-mini font-normal text-muted-foreground">{hint}</span>}
       </td>
     </tr>
   );
 }
+
+// MoveTo lets hosts be dragged from one group to another: the groups there
+// are, such as every environment of a customer, empty ones too, and what a
+// drop does.
+export type MoveTo = { groups: { key: string; label: ReactNode; envID: number }[]; onMove: (h: HostSummary, envID: number) => void };
+
+type DropProps = { over: boolean; handlers: Pick<React.HTMLAttributes<HTMLElement>, "onDragOver" | "onDragLeave" | "onDrop"> };
 
 // The two tables of the home page, as Beszel has one: every host with its
 // load as bars, and every check with its last day. A row leads to the
@@ -60,10 +68,30 @@ export function Bar({ pct }: { pct: number | null | undefined }) {
 
 type HostKey = "name" | "cpu" | "mem" | "disk" | "net" | "containers";
 
-export function HostTable({ hosts, alerts, where, group }: { hosts: HostSummary[]; alerts: AlertState[]; where: (h: HostSummary) => string; group?: Grouping<HostSummary> }) {
+export function HostTable({ hosts, alerts, where, group, move }: { hosts: HostSummary[]; alerts: AlertState[]; where: (h: HostSummary) => string; group?: Grouping<HostSummary>; move?: MoveTo }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [sort, setSort] = useState<Sort<HostKey>>({ key: "name", desc: false });
+  const [dragging, setDragging] = useState<HostSummary | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  // While a host is dragged, every group takes it but its own.
+  const drop = (key: string): DropProps | undefined => {
+    if (!move || !dragging || !group || group(dragging).key === key) return undefined;
+    return {
+      over: over === key,
+      handlers: {
+        onDragOver: (e) => (e.preventDefault(), (e.dataTransfer.dropEffect = "move"), setOver(key)),
+        onDragLeave: () => setOver((o) => (o === key ? null : o)),
+        onDrop: (e) => {
+          e.preventDefault();
+          const target = move.groups.find((g) => g.key === key);
+          if (target) move.onMove(dragging, target.envID);
+          setDragging(null);
+          setOver(null);
+        },
+      },
+    };
+  };
   const mem = (h: HostSummary) => (h.latest?.mem_used != null && h.host.mem_total > 0 ? (100 * h.latest.mem_used) / h.host.mem_total : null);
   const net = (h: HostSummary) => (h.latest ? (h.latest.net_rx ?? 0) + (h.latest.net_tx ?? 0) : null);
   const value: Record<HostKey, (h: HostSummary) => number | string | null> = {
@@ -106,11 +134,25 @@ export function HostTable({ hosts, alerts, where, group }: { hosts: HostSummary[
           {sorted.map((h, i) => {
             const go = () => navigate({ to: "/hosts/$id", params: { id: String(h.host.id) } });
             const g = group?.(h);
-            const heading = g && (i === 0 || group!(sorted[i - 1]).key !== g.key) ? <GroupRow key={`g-${g.key}`} label={g.label} span={7} /> : null;
+            const heading = g && (i === 0 || group!(sorted[i - 1]).key !== g.key) ? <GroupRow key={`g-${g.key}`} label={g.label} span={7} drop={drop(g.key)} hint={drop(g.key) && t("move.here")} /> : null;
+            const target = g ? drop(g.key) : undefined;
             return [
               heading,
-              <tr key={h.host.id} onClick={go} className="cursor-pointer border-b transition-colors last:border-b-0 hover:bg-accent/60">
-                <td className="py-3 pr-3 pl-4">
+              <tr
+                key={h.host.id}
+                onClick={go}
+                draggable={!!move}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", h.host.name);
+                  setDragging(h);
+                }}
+                onDragEnd={() => (setDragging(null), setOver(null))}
+                {...target?.handlers}
+                className={`group/row cursor-pointer border-b transition-colors last:border-b-0 hover:bg-accent/60 ${dragging?.host.id === h.host.id ? "opacity-40" : ""} ${target?.over ? "bg-brand/5" : ""}`}
+              >
+                <td className="relative py-3 pr-3 pl-4">
+                  {move && <GripVertical className="absolute top-1/2 left-0.5 size-3.5 -translate-y-1/2 text-muted-foreground opacity-0 group-hover/row:opacity-60" aria-hidden />}
                   <div className="flex items-center gap-2.5">
                     <StatusIcon level={hostLevel(h, alerts)} />
                     <div className="min-w-0">
@@ -139,6 +181,18 @@ export function HostTable({ hosts, alerts, where, group }: { hosts: HostSummary[
               </tr>,
             ];
           })}
+          {/* Groups with no host yet appear while one is dragged. */}
+          {dragging &&
+            move?.groups
+              .filter((g) => !sorted.some((h) => group?.(h).key === g.key))
+              .map((g) => [
+                <GroupRow key={`e-${g.key}`} label={g.label} span={7} drop={drop(g.key)} />,
+                <tr key={`p-${g.key}`} className="border-b last:border-b-0" {...drop(g.key)?.handlers}>
+                  <td colSpan={7} className="px-4 py-3 text-mini text-muted-foreground">
+                    {t("move.empty")}
+                  </td>
+                </tr>,
+              ])}
         </tbody>
       </table>
     </div>
