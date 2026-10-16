@@ -28,3 +28,4 @@ old one.
 | [0020](0020-read-api.md) | The read API is its own, stable part of the API | 2026-10-14 |
 | [0021](0021-retention.md) | Readings are averaged before they are deleted | 2026-10-14 |
 | [0022](0022-website.md) | lotse.sh presents lotse and carries its documentation | 2026-10-16 |
+| [0023](0023-users.md) | Users are invited, and may be kept to one customer | 2026-10-16 |
