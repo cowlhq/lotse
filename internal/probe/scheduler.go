@@ -15,10 +15,13 @@ type Assignment struct {
 	Spec     json.RawMessage `json:"spec"`
 	Interval time.Duration   `json:"interval"`
 	Timeout  time.Duration   `json:"timeout"`
+	// Fail, which the hub gives its own probe, is an error to report
+	// instead of running the check, such as a secret it cannot resolve.
+	Fail string `json:"-"`
 }
 
 func (a Assignment) same(b Assignment) bool {
-	return a.Type == b.Type && string(a.Spec) == string(b.Spec) && a.Interval == b.Interval && a.Timeout == b.Timeout
+	return a.Type == b.Type && string(a.Spec) == string(b.Spec) && a.Interval == b.Interval && a.Timeout == b.Timeout && a.Fail == b.Fail
 }
 
 // Scheduler runs each assignment at its interval, starting at a random
@@ -86,7 +89,10 @@ func (s *Scheduler) loop(ctx context.Context, a Assignment) {
 		case <-time.After(wait):
 		}
 		at := time.Now()
-		r := s.Runner.Run(ctx, a.Type, a.Spec, a.Timeout)
+		r := Result{Error: a.Fail}
+		if a.Fail == "" {
+			r = s.Runner.Run(ctx, a.Type, a.Spec, a.Timeout)
+		}
 		if ctx.Err() != nil {
 			return
 		}

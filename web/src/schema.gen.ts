@@ -1437,9 +1437,13 @@ export interface components {
             name: string;
             /** @enum {string} */
             type: "http" | "tls" | "tcp" | "dns" | "domain" | "heartbeat";
-            /** @description http: url, method, headers, body, follow_redirects, ip, keyword, absent, json (path, equals), max_latency, status (such as 200-299); tls: address (host:port), server_name; tcp: address; dns: name, type, expect, server; domain: domain; heartbeat: period, grace (such as 24h and 1h). */
+            /** @description http: url, method, headers, basic_auth (username), body, follow_redirects, ip, keyword, absent, json (path, equals), max_latency, status (such as 200-299); tls: address (host:port), server_name; tcp: address; dns: name, type, expect, server; domain: domain; heartbeat: period, grace (such as 24h and 1h). http also takes basic_auth (username); its password is a secret. */
             spec: {
                 [key: string]: unknown;
+            };
+            /** @description An http check's secrets: headers.NAME, a header's value, such as headers.Authorization; and basic_auth.password. */
+            secrets?: {
+                [key: string]: components["schemas"]["SecretInput"];
             };
         };
         Check: {
@@ -1479,6 +1483,10 @@ export interface components {
             last_ping?: number;
             /** @description Where a heartbeat is pinged; shown to admins only. */
             ping_url?: string;
+            /** @description An http check's secrets, such as headers.Authorization; shown to admins only. */
+            secrets?: {
+                [key: string]: components["schemas"]["SecretInfo"];
+            };
         };
         CheckDetail: components["schemas"]["Check"] & {
             /** @description Each probe's newest result. */
@@ -2969,6 +2977,10 @@ export interface operations {
                     name: string;
                     spec: {
                         [key: string]: unknown;
+                    };
+                    /** @description The secrets to change; those not named stay as they are. */
+                    secrets?: {
+                        [key: string]: components["schemas"]["SecretInput"];
                     };
                 };
             };

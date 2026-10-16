@@ -336,7 +336,7 @@ func (s apiServer) UpdateChannel(ctx context.Context, req api.UpdateChannelReque
 	if err != nil {
 		return api.UpdateChannel400JSONResponse{Error: err.Error()}, nil
 	}
-	if msg := refsStay(restricted(ctx), c.SecretRefs, c.Spec, spec); msg != "" {
+	if msg := refsStay(restricted(ctx), c.SecretRefs, c.Spec, spec, "channel"); msg != "" {
 		return api.UpdateChannel400JSONResponse{Error: msg}, nil
 	}
 	c.Name, c.Spec = name, spec

@@ -96,7 +96,7 @@ func (h *hub) exportDocument(ctx context.Context, path string) (apply.Document, 
 			}
 			switch c.Type {
 			case "http":
-				out.HTTP = spec
+				out.HTTP, out.Secrets = spec, h.exportCheckSecrets(c)
 			case "tls":
 				out.TLS = spec
 			case "tcp":
@@ -169,6 +169,23 @@ func (h *hub) exportDocument(ctx context.Context, path string) (apply.Document, 
 		}
 	}
 	return d, nil
+}
+
+// exportCheckSecrets are a check's secrets as references or placeholders.
+func (h *hub) exportCheckSecrets(c store.Check) map[string]*apply.Secret {
+	sec, _ := h.openSecrets(c.Secrets, c.SecretRefs)
+	var out map[string]*apply.Secret
+	for _, name := range sec.names() {
+		if out == nil {
+			out = map[string]*apply.Secret{}
+		}
+		if r, ok := sec.refs[name]; ok {
+			out[name] = &apply.Secret{Env: r.Env, File: r.File}
+		} else {
+			out[name] = &apply.Secret{Keep: c.Slug}
+		}
+	}
+	return out
 }
 
 // exportChannel writes a channel, its secrets as references or

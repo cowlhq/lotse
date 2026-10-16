@@ -130,3 +130,63 @@ func TestCheckTypes(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckSecrets(t *testing.T) {
+	const doc = `
+customers:
+  - key: acme
+    projects:
+      - key: shop
+        environments:
+          - key: prod
+            checks:
+              - key: api
+                http:
+                  url: https://api.acme.example
+                  headers: {X-Api-Version: "2", Authorization: {from_env: API_TOKEN}}
+                  basic_auth: {username: monitor, password: {file: api-password}}
+`
+	d, err := Parse([]byte(doc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := d.Customers[0].Projects[0].Environments[0].Checks[0]
+	if c.Secrets["headers.Authorization"].FromEnv != "API_TOKEN" || c.Secrets["basic_auth.password"].File != "api-password" {
+		t.Errorf("secrets: %+v", c.Secrets)
+	}
+	if h := c.HTTP["headers"].(map[string]any); len(h) != 1 || h["X-Api-Version"] != "2" {
+		t.Errorf("headers: %v", h)
+	}
+	if a := c.HTTP["basic_auth"].(map[string]any); len(a) != 1 {
+		t.Errorf("basic_auth: %v", a)
+	}
+	if err := d.ResolveFromEnv(func(string) string { return "Bearer x" }); err != nil || c.Secrets["headers.Authorization"].Value != "Bearer x" {
+		t.Errorf("from_env: %v %+v", err, c.Secrets["headers.Authorization"])
+	}
+
+	// Back where they stand, without the value, and the document as it was.
+	c.Secrets["headers.Authorization"] = &Secret{Keep: "api"}
+	out, err := Marshal(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Authorization:\n", "secret: api", "file: api-password", "username: monitor"} {
+		if !strings.Contains(string(out), want) {
+			t.Errorf("no %q in:\n%s", want, out)
+		}
+	}
+	if _, ok := c.HTTP["headers"].(map[string]any)["Authorization"]; ok {
+		t.Error("Marshal changed the document")
+	}
+
+	for _, bad := range []string{
+		`basic_auth: {username: monitor, password: plain}`,
+		`headers: {Authorization: {value: plain}}`,
+		`headers: {Authorization: {from: X}}`,
+	} {
+		y := strings.Replace(doc, "                  headers: {X-Api-Version: \"2\", Authorization: {from_env: API_TOKEN}}\n                  basic_auth: {username: monitor, password: {file: api-password}}", "                  "+bad, 1)
+		if _, err := Parse([]byte(y)); err == nil {
+			t.Errorf("%s: no error", bad)
+		}
+	}
+}

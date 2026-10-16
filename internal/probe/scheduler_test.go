@@ -47,3 +47,19 @@ func TestScheduler(t *testing.T) {
 		t.Errorf("check 2 ran on after it was removed: %d, then %d", two, runs[2])
 	}
 }
+
+// An assignment that fails says so every run, and runs nothing.
+func TestSchedulerFail(t *testing.T) {
+	got := make(chan Result, 1)
+	s := &Scheduler{Runner: &Runner{}, Report: func(_ int64, _ time.Time, r Result) {
+		select {
+		case got <- r:
+		default:
+		}
+	}}
+	s.Set(t.Context(), []Assignment{{CheckID: 1, Type: "http", Spec: []byte(`{"url":"http://127.0.0.1:1"}`), Interval: 100 * time.Millisecond, Timeout: time.Second, Fail: "the environment variable X is not set"}})
+	defer s.Stop()
+	if r := <-got; r.OK || r.Error != "the environment variable X is not set" {
+		t.Errorf("%+v", r)
+	}
+}

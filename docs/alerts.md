@@ -48,8 +48,26 @@ http:
 moves: the name still goes in the request and decides the certificate.
 `json` follows the `path` through objects and lists (`checks.0` is the
 first), and compares what it finds with `equals`, a string, number, `true`,
-`false` or `null`. Headers are kept as they are, so keep tokens out of
-them for now.
+`false` or `null`.
+
+A token goes in as a secret, as a channel's do: typed into **Add check**,
+where it is kept sealed, or in a `lotse.yaml` where it stands, read where
+`lotse apply` runs, or from the hub's environment or secret files when it
+hands the check to its probes:
+
+```yaml
+http:
+  url: https://api.acme.de/health
+  headers:
+    Authorization: {from_env: ACME_API_TOKEN}   # read by lotse apply, sealed
+    X-Api-Version: "2"
+  basic_auth: {username: monitor, password: {env: ACME_API_PASSWORD}}   # read by the hub
+```
+
+The probes get the secrets as headers. If the hub cannot read one, its own
+probe reports that as the check's error, and the check goes down. Exports
+write `{secret: KEY}` for a secret the hub keeps sealed, which `lotse
+apply` then leaves as it is.
 
 A probe older than these options does not get the checks that use them;
 the hub's own probe and up-to-date probes run them.

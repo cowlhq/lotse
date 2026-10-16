@@ -32,6 +32,10 @@ type HTTP struct {
 	Method  string            `json:"method,omitempty"`
 	Headers map[string]string `json:"headers,omitempty"`
 	Body    string            `json:"body,omitempty"`
+	// BasicAuth logs in with a user name and a password, which is a
+	// secret: the hub keeps it apart, and gives probes the check with an
+	// Authorization header instead.
+	BasicAuth *BasicAuth `json:"basic_auth,omitempty"`
 	// FollowRedirects is true unless set to false: then a redirect is the
 	// answer, and its status what counts.
 	FollowRedirects *Bool `json:"follow_redirects,omitempty"`
@@ -50,6 +54,11 @@ type HTTP struct {
 	// Status is the range that counts as up, such as 200-299; default
 	// 200-399.
 	Status string `json:"status,omitempty"`
+}
+
+// BasicAuth is the user name to log in with.
+type BasicAuth struct {
+	Username string `json:"username"`
 }
 
 // JSONValue says that the value at Path, such as status or
@@ -108,7 +117,7 @@ func (s *HTTP) normalize() error {
 		return errors.New("http: a HEAD request has no body to look into")
 	}
 	for k, v := range s.Headers {
-		if !validHeaderName(k) {
+		if !ValidHeaderName(k) {
 			return fmt.Errorf("http: %q is not a header name", k)
 		}
 		if strings.ContainsAny(v, "\r\n") {
@@ -117,6 +126,9 @@ func (s *HTTP) normalize() error {
 	}
 	if len(s.Headers) == 0 {
 		s.Headers = nil
+	}
+	if s.BasicAuth != nil && s.HasHeader("Authorization") {
+		return errors.New("http: basic_auth or an Authorization header, not both")
 	}
 	if s.FollowRedirects != nil && *s.FollowRedirects {
 		s.FollowRedirects = nil
@@ -136,8 +148,18 @@ func (s *HTTP) normalize() error {
 	return err
 }
 
-// validHeaderName says whether k is a token, as RFC 9110 has header names.
-func validHeaderName(k string) bool {
+// HasHeader says whether the check sends a header, in any case.
+func (s *HTTP) HasHeader(name string) bool {
+	for k := range s.Headers {
+		if strings.EqualFold(k, name) {
+			return true
+		}
+	}
+	return false
+}
+
+// ValidHeaderName says whether k is a token, as RFC 9110 has header names.
+func ValidHeaderName(k string) bool {
 	if k == "" {
 		return false
 	}
@@ -183,7 +205,7 @@ func Needs(typ string, spec json.RawMessage) string {
 	}
 	var s HTTP
 	json.Unmarshal(spec, &s)
-	if s.Method != "" || s.Headers != nil || s.Body != "" || s.FollowRedirects != nil || s.IP != "" ||
+	if s.Method != "" || s.Headers != nil || s.BasicAuth != nil || s.Body != "" || s.FollowRedirects != nil || s.IP != "" ||
 		s.Absent != "" || s.JSON != nil || s.MaxLatency != "" {
 		return "http.v2"
 	}

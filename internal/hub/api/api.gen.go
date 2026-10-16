@@ -1258,7 +1258,10 @@ type Check struct {
 	Path string `json:"path"`
 
 	// PingUrl Where a heartbeat is pinged; shown to admins only.
-	PingUrl    *string                `json:"ping_url,omitempty"`
+	PingUrl *string `json:"ping_url,omitempty"`
+
+	// Secrets An http check's secrets, such as headers.Authorization; shown to admins only.
+	Secrets    *map[string]SecretInfo `json:"secrets,omitempty"`
 	Slug       string                 `json:"slug"`
 	Spec       map[string]interface{} `json:"spec"`
 	State      CheckState             `json:"state"`
@@ -1296,7 +1299,10 @@ type CheckDetail struct {
 	PingUrl *string `json:"ping_url,omitempty"`
 
 	// Probes Each probe's newest result.
-	Probes     []CheckResult          `json:"probes"`
+	Probes []CheckResult `json:"probes"`
+
+	// Secrets An http check's secrets, such as headers.Authorization; shown to admins only.
+	Secrets    *map[string]SecretInfo `json:"secrets,omitempty"`
 	Slug       string                 `json:"slug"`
 	Spec       map[string]interface{} `json:"spec"`
 	State      CheckDetailState       `json:"state"`
@@ -1315,10 +1321,13 @@ type CheckInput struct {
 	EnvironmentId int64  `json:"environment_id"`
 	Name          string `json:"name"`
 
+	// Secrets An http check's secrets: headers.NAME, a header's value, such as headers.Authorization; and basic_auth.password.
+	Secrets *map[string]SecretInput `json:"secrets,omitempty"`
+
 	// Slug Its key in the environment; made from the name if missing.
 	Slug *string `json:"slug,omitempty"`
 
-	// Spec http: url, method, headers, body, follow_redirects, ip, keyword, absent, json (path, equals), max_latency, status (such as 200-299); tls: address (host:port), server_name; tcp: address; dns: name, type, expect, server; domain: domain; heartbeat: period, grace (such as 24h and 1h).
+	// Spec http: url, method, headers, basic_auth (username), body, follow_redirects, ip, keyword, absent, json (path, equals), max_latency, status (such as 200-299); tls: address (host:port), server_name; tcp: address; dns: name, type, expect, server; domain: domain; heartbeat: period, grace (such as 24h and 1h). http also takes basic_auth (username); its password is a secret.
 	Spec map[string]interface{} `json:"spec"`
 	Type CheckInputType         `json:"type"`
 }
@@ -1971,8 +1980,11 @@ type ListChecksParams struct {
 
 // UpdateCheckJSONBody defines parameters for UpdateCheck.
 type UpdateCheckJSONBody struct {
-	Name string                 `json:"name"`
-	Spec map[string]interface{} `json:"spec"`
+	Name string `json:"name"`
+
+	// Secrets The secrets to change; those not named stay as they are.
+	Secrets *map[string]SecretInput `json:"secrets,omitempty"`
+	Spec    map[string]interface{}  `json:"spec"`
 }
 
 // ListCheckResultsParams defines parameters for ListCheckResults.
