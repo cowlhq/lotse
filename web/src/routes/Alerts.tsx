@@ -29,6 +29,7 @@ function settingValue(t: TFunction, key: string, v: unknown, unit: Alert["unit"]
   if (v === "off") return t("config.off");
   if (key.endsWith(".level") && typeof v === "string") return t(`config.levels.${v}`);
   if (key === "notify.repeat" && (v === "0s" || v === "0")) return t("why.never");
+  if ((key.endsWith(".for") || key.endsWith(".recover")) && (v === "0s" || v === "0")) return t("why.atOnce");
   if (typeof v === "number" && (key.endsWith(".warn") || key.endsWith(".crit")) && unit) return value(v, unit);
   return String(v);
 }
@@ -83,7 +84,7 @@ export function AlertDetail({ id }: { id: number }) {
         above={
           <>
             <SubjectLink kind={a.subject_kind} id={a.subject_id} path={a.subject_path} />
-            {a.instance && <span className="ml-1 font-mono text-mini">{a.instance}</span>}
+            {a.instance && <code className="ml-1.5 rounded bg-muted px-1 py-px font-mono text-mini">{a.instance}</code>}
           </>
         }
         icon={<StatusIcon level={a.to === "ok" ? "ok" : a.to} size={22} />}
@@ -158,6 +159,7 @@ export function AlertDetail({ id }: { id: number }) {
             </ul>
           )}
         </Panel>
+        <AlertHistory subject={`${a.subject_kind}:${a.subject_id}`} always />
       </Page>
     </>
   );
