@@ -20,7 +20,7 @@ export function AddMenu({ compact = false, direct }: { compact?: boolean; direct
   const [what, setWhat] = useState<What | null>(null);
   const dialog = (
     <Dialog open={what !== null} onOpenChange={(open) => !open && setWhat(null)}>
-      <DialogContent className={what === "host" ? "sm:max-w-2xl" : undefined}>{what && <Body what={what} done={() => setWhat(null)} />}</DialogContent>
+      <DialogContent className={what === "host" ? "sm:max-w-2xl" : what === "check" ? "sm:max-w-xl" : undefined}>{what && <Body what={what} done={() => setWhat(null)} />}</DialogContent>
     </Dialog>
   );
   if (direct) {

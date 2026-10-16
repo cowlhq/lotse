@@ -10,7 +10,7 @@ export function Command({ text, hint }: { text: string; hint: string }) {
   return (
     <div className="space-y-2 pt-2">
       <div className="relative">
-        <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/60 p-3 pr-12 font-mono text-mini leading-relaxed whitespace-pre-wrap break-all">
+        <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/60 p-3 pr-12 font-mono text-mini leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
           {text}
         </pre>
         <Button
