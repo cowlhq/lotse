@@ -19,7 +19,7 @@ import { Settings } from "@/routes/Settings";
 import { Host } from "@/routes/Host";
 import { Login } from "@/routes/Login";
 import { Overview } from "@/routes/Overview";
-import { Setup } from "@/routes/Setup";
+import { NoSetupToken, Setup } from "@/routes/Setup";
 
 // Gate shows setup while the hub is not set up, the login page without a
 // session, and the app otherwise.
@@ -43,7 +43,7 @@ function Gate() {
       <Outlet />
     ) : (
       <Centered title={t("setup.title")}>
-        <p>{t("setup.noToken")}</p>
+        <NoSetupToken />
       </Centered>
     );
   }

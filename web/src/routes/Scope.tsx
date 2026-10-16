@@ -95,7 +95,7 @@ export function Scope({ id }: { id: number }) {
             </span>
           )
         }
-        icon={<StatusIcon level={levelUnder(alerts, scope.data.path)} size={22} />}
+        icon={mine.length + myChecks.length > 0 ? <StatusIcon level={levelUnder(alerts, scope.data.path)} size={22} /> : null}
         title={scope.data.name}
         actions={
           isAdmin &&

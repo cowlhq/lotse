@@ -6,7 +6,7 @@
   "setup": {
     "title": "Set up lotse",
     "step": "Step {{n}} of {{of}}",
-    "noToken": "This hub is not set up yet. Open the setup link from its log: docker compose logs hub.",
+    "noToken": "This hub is not set up yet. Open the setup link from its log; where the install script put it, this shows it:",
     "checking": "Checking the setup link…",
     "invalid": "This setup link is not valid. Take the current one from the hub's log; it changes when the hub restarts.",
     "done": "This hub is already set up.",
@@ -739,7 +739,7 @@
     },
     "notify": {
       "title": "Decide where alerts go",
-      "hint": "An email address, a Google Chat space or a webhook, so that you hear about problems.",
+      "hint": "Email, Slack, Telegram, ntfy or another channel, so that you hear about problems.",
       "action": "Set up notifications"
     }
   },

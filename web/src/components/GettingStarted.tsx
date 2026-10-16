@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Check, X } from "lucide-react";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listChannels, type Check as CheckData, type HostSummary, type Scope } from "@/api";
 import { AddMenu } from "@/components/shell/AddMenu";
@@ -10,10 +9,9 @@ import { Button } from "@/components/ui/button";
 // GettingStarted takes a new hub from nothing to being told: an
 // environment, a host, a check, and somewhere for alerts to go. Each step
 // ticks itself off when it is done; the list can be put away.
-export function GettingStarted({ scopes, hosts, checks }: { scopes: Scope[]; hosts: HostSummary[]; checks: CheckData[] }) {
+export function GettingStarted({ scopes, hosts, checks, onHide }: { scopes: Scope[]; hosts: HostSummary[]; checks: CheckData[]; onHide: () => void }) {
   const { t } = useTranslation();
   const channels = useQuery({ queryKey: ["channels", 1], queryFn: () => listChannels(1) });
-  const [hidden, setHidden] = useState(() => localStorage.getItem("lotse.started") === "hidden");
   const steps = [
     { key: "environment", done: scopes.some((s) => s.kind === "environment") },
     { key: "host", done: hosts.length > 0 },
@@ -21,7 +19,7 @@ export function GettingStarted({ scopes, hosts, checks }: { scopes: Scope[]; hos
     { key: "notify", done: (channels.data?.length ?? 0) > 0 },
   ];
   const left = steps.filter((s) => !s.done).length;
-  if (hidden || left === 0 || channels.isPending) return null;
+  if (left === 0 || channels.isPending) return null;
   const next = steps.find((s) => !s.done)!.key;
   return (
     <section className="overflow-hidden rounded-lg border bg-card">
@@ -34,7 +32,7 @@ export function GettingStarted({ scopes, hosts, checks }: { scopes: Scope[]; hos
           className="ml-auto"
           aria-label={t("start.hide")}
           title={t("start.hide")}
-          onClick={() => (localStorage.setItem("lotse.started", "hidden"), setHidden(true))}
+          onClick={onHide}
         >
           <X />
         </Button>
