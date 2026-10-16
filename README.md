@@ -1,4 +1,4 @@
-# lotse
+<h1><picture><source media="(prefers-color-scheme: dark)" srcset="site/logo-dark.svg"><img src="site/logo.svg" alt="lotse" height="40"></picture></h1>
 
 A lean, self-hosted monitoring tool for machines across several customers and
 projects: host and Docker metrics from an agent, HTTP, TLS, TCP and heartbeat
