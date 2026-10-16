@@ -147,6 +147,25 @@ func TestHeartbeat(t *testing.T) {
 	if state, _ := heartbeatState(stored, time.Now()); state != "" {
 		t.Errorf("pinged 2 h ago: %q", state)
 	}
+	late := time.Now().Add(-(25*time.Hour + 12*time.Minute)).Unix()
+	stored.LastPing = &late
+	if _, reason := heartbeatState(stored, time.Now()); reason != "no ping for 25h 12m, expected every 24h" {
+		t.Errorf("reason: %q", reason)
+	}
+}
+
+func TestRoughly(t *testing.T) {
+	for d, want := range map[time.Duration]string{
+		25 * time.Minute:              "25m",
+		3*time.Hour + 10*time.Minute:  "3h 10m",
+		26 * time.Hour:                "26h",
+		52*time.Hour + 20*time.Minute: "2d 4h",
+		72 * time.Hour:                "3d",
+	} {
+		if got := roughly(d); got != want {
+			t.Errorf("%v: %s, want %s", d, got, want)
+		}
+	}
 }
 
 func TestQuorum(t *testing.T) {
