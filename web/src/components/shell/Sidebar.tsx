@@ -9,7 +9,7 @@ import { useAlerts } from "@/components/Alerts";
 import { Logo } from "@/components/Logo";
 import { AddMenu } from "@/components/shell/AddMenu";
 import { StatusIcon } from "@/components/shell/Dot";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
 import { firing, levelUnder } from "@/lib/status";
 import { useMe } from "@/lib/useMe";
@@ -112,7 +112,10 @@ function UserMenu() {
         <span className="flex-1 truncate text-left">{name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-56">
-        <DropdownMenuLabel className="truncate text-mini text-muted-foreground">{me?.email}</DropdownMenuLabel>
+        {/* A label belongs in a group, or the menu does not open. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="truncate text-mini text-muted-foreground">{me?.email}</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={(v) => setTheme(v as string)}>
           <DropdownMenuRadioItem value="system">
