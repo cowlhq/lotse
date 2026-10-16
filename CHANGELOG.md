@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.20](https://github.com/cowlhq/lotse/compare/v0.1.19...v0.1.20) (2026-10-16)
+
+
+### Features
+
+* **web:** the lotse logo, and the favicons with it ([f731b89](https://github.com/cowlhq/lotse/commit/f731b89e69c5ea81b30247e033bc73138c2fde16))
+
 ## [0.1.19](https://github.com/cowlhq/lotse/compare/v0.1.18...v0.1.19) (2026-10-16)
 
 
