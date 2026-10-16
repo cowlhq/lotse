@@ -723,6 +723,7 @@
     "channels": "Sent to",
     "repeat": "Repeated every",
     "never": "never",
+    "atOnce": "at once",
     "nowhere": "nowhere"
   },
   "start": {
