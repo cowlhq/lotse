@@ -1225,6 +1225,29 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /api/apply/parse:
+    post:
+      operationId: parseDocument
+      summary: Read a lotse.yaml as lotse apply does, without applying it
+      description: >
+        For the interface, which takes a file dropped on it: the document as
+        the apply API takes it, and the environment variables its from_env
+        secrets name, which lotse apply would read where it runs, and the
+        interface asks for instead.
+      requestBody:
+        required: true
+        content:
+          application/yaml:
+            schema: { type: string }
+      responses:
+        "200":
+          description: The document, and what it needs.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ParsedDocument" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /api/v1/export:
     get:
       operationId: exportScope
@@ -2504,6 +2527,16 @@ components:
         ends_at: { type: integer, format: int64 }
         schedule: { type: string }
         reason: { type: string }
+
+    ParsedDocument:
+      type: object
+      required: [document, from_env]
+      properties:
+        document: { type: object, additionalProperties: true }
+        from_env:
+          type: array
+          description: The environment variables from_env names, each once.
+          items: { type: string }
 
     ApplyResult:
       type: object

@@ -282,3 +282,29 @@ func TestApplyWaitingHost(t *testing.T) {
 		t.Errorf("the waiting host stayed: %+v", hosts)
 	}
 }
+
+// A lotse.yaml dropped on the interface is read as lotse apply reads it,
+// with the variables its from_env secrets need.
+func TestParseDocument(t *testing.T) {
+	_, server := newTestHub(t)
+	post := func(body string) (int, string) {
+		req, _ := http.NewRequestWithContext(t.Context(), "POST", server.URL+"/api/apply/parse", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/yaml")
+		res, err := server.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b, _ := io.ReadAll(res.Body)
+		return res.StatusCode, string(b)
+	}
+	status, body := post(shopYAML)
+	var out api.ParsedDocument
+	json.Unmarshal([]byte(body), &out)
+	if status != 200 || len(out.FromEnv) != 1 || out.FromEnv[0] != "OPS_HOOK" || out.Document["customers"] == nil {
+		t.Errorf("parse: %d %s", status, body)
+	}
+	if status, body := post("customers: [{key: acme, colour: red}]"); status != http.StatusBadRequest || !strings.Contains(body, "colour") {
+		t.Errorf("an unknown field: %d %s", status, body)
+	}
+}

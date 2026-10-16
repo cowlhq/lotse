@@ -969,6 +969,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/apply/parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read a lotse.yaml as lotse apply does, without applying it
+         * @description For the interface, which takes a file dropped on it: the document as the apply API takes it, and the environment variables its from_env secrets name, which lotse apply would read where it runs, and the interface asks for instead.
+         */
+        post: operations["parseDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/export": {
         parameters: {
             query?: never;
@@ -1994,6 +2014,13 @@ export interface components {
             ends_at?: number;
             schedule?: string;
             reason?: string;
+        };
+        ParsedDocument: {
+            document: {
+                [key: string]: unknown;
+            };
+            /** @description The environment variables from_env names, each once. */
+            from_env: string[];
         };
         ApplyResult: {
             changes: components["schemas"]["ApplyChange"][];
@@ -3860,6 +3887,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApplyResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    parseDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/yaml": string;
+            };
+        };
+        responses: {
+            /** @description The document, and what it needs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParsedDocument"];
                 };
             };
             400: components["responses"]["BadRequest"];
