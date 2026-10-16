@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { createCheck, type Check } from "@/api";
+import { emptySecret, SecretField, secretInput } from "@/components/Secret";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -54,6 +55,8 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
   const [name, setName] = useState("");
   const [f, setF] = useState<Record<string, string>>({ period: "24h", grace: "1h", type: "A", method: "GET" });
   const [follow, setFollow] = useState(true);
+  const [headerSecret, setHeaderSecret] = useState(emptySecret);
+  const [password, setPassword] = useState(emptySecret);
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const hasBody = !["GET", "HEAD"].includes(f.method);
   const parsedHeaders = headers(f.headers ?? "");
@@ -67,6 +70,7 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
         ...(parsedHeaders && Object.keys(parsedHeaders).length ? { headers: parsedHeaders } : {}),
         ...(f.json_path?.trim() ? { json: { path: f.json_path.trim(), equals: f.json_equals ?? "" } } : {}),
         ...(follow ? {} : { follow_redirects: false }),
+        ...(f.username?.trim() ? { basic_auth: { username: f.username.trim() } } : {}),
       };
     if (kind === "tls") return pick("address", "server_name");
     if (kind === "tcp") return pick("address");
@@ -85,8 +89,19 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
     if (kind === "domain") return f.domain ?? "";
     return f.address ?? "";
   })();
+  // A secret header's value and basic_auth's password, which the hub keeps
+  // apart from the spec.
+  const secrets = () => {
+    if (kind !== "http") return undefined;
+    const out: Record<string, NonNullable<ReturnType<typeof secretInput>>> = {};
+    const header = secretInput(headerSecret);
+    if (header) out[`headers.${f.secret_header?.trim() || "Authorization"}`] = header;
+    const pass = secretInput(password);
+    if (pass && f.username?.trim()) out["basic_auth.password"] = pass;
+    return Object.keys(out).length ? out : undefined;
+  };
   const save = useMutation({
-    mutationFn: () => createCheck({ environment_id: envID, name: name.trim() || suggested, type: kind, spec: spec() }),
+    mutationFn: () => createCheck({ environment_id: envID, name: name.trim() || suggested, type: kind, spec: spec(), secrets: secrets() }),
     onSuccess: async (c) => {
       await client.invalidateQueries({ queryKey: ["checks"] });
       onDone?.();
@@ -144,6 +159,14 @@ export function CheckForm({ envID, onDone }: { envID: number; onDone?: () => voi
                 <Label htmlFor="headers">{t("check.headers")}</Label>
                 <Textarea id="headers" spellCheck={false} value={f.headers ?? ""} onChange={set("headers")} placeholder="X-Api-Version: 2" className="min-h-10 py-2 font-mono text-mini" aria-invalid={!parsedHeaders} />
                 <p className={parsedHeaders ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>{parsedHeaders ? t("check.headersHint") : t("check.headersInvalid")}</p>
+              </div>
+              <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+                {field("secret_header", t("check.secretHeader"), "Authorization")}
+                <SecretField id="header-secret" label={t("check.secretHeaderValue")} draft={headerSecret} onChange={setHeaderSecret} placeholder="Bearer …" />
+              </div>
+              <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+                {field("username", t("check.username"), t("check.optional"), t("check.usernameHint"))}
+                {f.username?.trim() ? <SecretField id="basic-password" label={t("check.password")} draft={password} onChange={setPassword} /> : <div />}
               </div>
               {hasBody && (
                 <div className="space-y-1.5">
