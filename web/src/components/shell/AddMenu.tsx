@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, FolderPlus, Plus, Server } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useMe } from "@/lib/useMe";
 import { listScopes, type Scope } from "@/api";
 import { AgentBody } from "@/components/AddAgent";
 import { CheckForm } from "@/components/AddCheck";
@@ -17,6 +18,7 @@ export type What = "host" | "check" | "environment";
 // environment for them. Hosts and checks ask first where they belong.
 export function AddMenu({ compact = false, direct }: { compact?: boolean; direct?: What }) {
   const { t } = useTranslation();
+  const { user } = useMe();
   const [what, setWhat] = useState<What | null>(null);
   const dialog = (
     <Dialog open={what !== null} onOpenChange={(open) => !open && setWhat(null)}>
@@ -56,10 +58,13 @@ export function AddMenu({ compact = false, direct }: { compact?: boolean; direct
             <Activity />
             {t("add.check")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setWhat("environment")}>
-            <FolderPlus />
-            {t("add.environment")}
-          </DropdownMenuItem>
+          {/* Kept to one environment, there is no other to add. */}
+          {(user?.scope_path ?? "").split("/").length < 3 && (
+            <DropdownMenuItem onClick={() => setWhat("environment")}>
+              <FolderPlus />
+              {t("add.environment")}
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       {dialog}

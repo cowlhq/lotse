@@ -42,9 +42,9 @@ function Choose({ token, email, name: given, invited }: { token: string; email: 
   const submit = useMutation({
     mutationFn: () => acceptLink(token, invited ? name.trim() : "", password),
     onSuccess: async () => {
-      history.replaceState(null, "", "/welcome");
+      // Away first: the spent link is not asked about again.
+      await navigate({ to: "/" });
       await client.invalidateQueries();
-      navigate({ to: "/" });
     },
   });
   return (

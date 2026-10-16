@@ -663,7 +663,8 @@
     "menu": "Menu",
     "home": "Home",
     "customers": "Customers",
-    "noCustomers": "No customers yet."
+    "noCustomers": "No customers yet.",
+    "projects": "Projects"
   },
   "tabs": {
     "overview": "Overview",
@@ -822,7 +823,19 @@
     "linkMailed": "The link went by email to {{email}}. You can also pass it on yourself.",
     "linkMailFailed": "Sending the email failed ({{error}}). Copy the link and pass it on.",
     "linkNoMail": "This hub has no mail server, so copy the link and pass it on.",
-    "linkHint": "It works once, until {{time}}. It is not shown again; a new one can be made at any time."
+    "linkHint": "It works once, until {{time}}. It is not shown again; a new one can be made at any time.",
+    "only": "only {{path}}",
+    "access": "Sees",
+    "everything": "Everything",
+    "everythingHint": "Every customer, and what belongs to the whole hub.",
+    "scopeHint": "Only this and what is in it. What belongs to the whole hub, such as users, tokens and probes, stays with admins of everything.",
+    "roleHintScoped": {
+      "admin": "Changes anything in it: hosts, checks, settings, channels, maintenance.",
+      "viewer": "Sees what is in it, changes nothing."
+    },
+    "changeAccess": "Change what they see",
+    "accessTitle": "What {{who}} sees",
+    "accessHint": "Changes at once, for every session."
   },
   "welcome": {
     "title": "Welcome to lotse",

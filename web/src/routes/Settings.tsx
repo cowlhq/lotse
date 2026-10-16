@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Navigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { checkUpdates, getHealth, listHosts, updateHub } from "@/api";
 import { Page } from "@/components/shell/PageHeader";
@@ -27,8 +28,10 @@ import { UpdateAgents } from "./Scope";
 // project, environment or host says otherwise; and the hub's version.
 export function Settings({ tab }: { tab?: string }) {
   const { t } = useTranslation();
-  const { isAdmin } = useMe();
+  const { isHubAdmin: isAdmin, scoped } = useMe();
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts });
+  // These settings are the whole hub's; a user kept to a customer has none.
+  if (scoped) return <Navigate to="/" />;
   const sections = [
     { value: "general", label: t("settings.general"), icon: <SlidersHorizontal /> },
     { value: "notifications", label: t("settings.notifications"), icon: <Send /> },
@@ -101,7 +104,7 @@ export function Settings({ tab }: { tab?: string }) {
 
 function HubVersion() {
   const { t } = useTranslation();
-  const { isAdmin } = useMe();
+  const { isHubAdmin: isAdmin } = useMe();
   const client = useQueryClient();
   const { updates } = useUpdates();
   const [restarting, setRestarting] = useState(false);

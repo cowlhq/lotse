@@ -126,8 +126,8 @@ export type LinkCheck = { email: string; name: string; invited: boolean };
 export const checkLink = (token: string) => post<LinkCheck>("/api/auth/link", { token });
 export const acceptLink = (token: string, name: string, password: string) => post<User>("/api/auth/link/password", { token, name, password });
 export const listUsers = () => get<User[]>("/api/users");
-export const inviteUser = (email: string, name: string, role: User["role"]) => post<UserLink>("/api/users", { email, name, role });
-export const updateUser = (id: number, change: { name?: string; role?: User["role"]; disabled?: boolean }) => send<User>("PATCH", `/api/users/${id}`, change);
+export const inviteUser = (email: string, name: string, role: User["role"], scopeID: number) => post<UserLink>("/api/users", { email, name, role, scope_id: scopeID });
+export const updateUser = (id: number, change: { name?: string; role?: User["role"]; scope_id?: number; disabled?: boolean }) => send<User>("PATCH", `/api/users/${id}`, change);
 export const withdrawInvitation = (id: number) => send<void>("DELETE", `/api/users/${id}`);
 export const newUserLink = (id: number) => post<UserLink>(`/api/users/${id}/link`);
 
