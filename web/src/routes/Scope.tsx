@@ -74,6 +74,13 @@ export function Scope({ id }: { id: number }) {
     };
   };
   const mine = (hosts.data ?? []).filter((h) => below(h.host.environment_id));
+  // Where a check is, below this scope: nothing for one of the environment's
+  // own, the host and container for one a container's labels made, whose
+  // key goes on through them (web-01/shop-app/web).
+  const within = (path: string) => {
+    const parts = path.slice(scope.data.path.length + 1).split("/");
+    return env ? parts.slice(0, -1).join("/") : "";
+  };
   const subject = `${scope.data.kind}:${id}`;
   const env = scope.data.kind === "environment";
   const problems = alerts.filter((a) => isFiring(a) && (a.subject_path === scope.data.path || a.subject_path.startsWith(scope.data.path + "/")));
@@ -145,7 +152,7 @@ export function Scope({ id }: { id: number }) {
             {myChecks.length === 0 ? (
               <Empty>{env ? t("check.none") : t("overview.noChecksYet")}</Empty>
             ) : (
-              <CheckTable checks={myChecks} where={() => ""} group={env ? undefined : (c) => groupOf(c.environment_id)} />
+              <CheckTable checks={myChecks} where={(c) => within(c.path)} group={env ? undefined : (c) => groupOf(c.environment_id)} />
             )}
           </Panel>
           {isAdmin && <UpdateAgents scopeID={id} hosts={mine} />}

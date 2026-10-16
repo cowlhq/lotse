@@ -67,7 +67,7 @@ export function Overview() {
           {empty
             ? t("overview.welcome")
             : crit
-              ? t("overview.critical", { count: crit })
+              ? [t("overview.critical", { count: crit }), problems.length > crit && t("overview.warnings", { count: problems.length - crit })].filter(Boolean).join(", ")
               : problems.length
                 ? t("overview.warnings", { count: problems.length })
                 : t("overview.allGood")}
