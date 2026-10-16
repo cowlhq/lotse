@@ -437,6 +437,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checks/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a check once, from the hub, without adding it
+         * @description What a check would see, for a form to show before the check is added. Heartbeats wait for their job, so there is nothing to try.
+         */
+        post: operations["tryCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/checks/{id}": {
         parameters: {
             query?: never;
@@ -1445,6 +1465,30 @@ export interface components {
             secrets?: {
                 [key: string]: components["schemas"]["SecretInput"];
             };
+        };
+        CheckTry: {
+            /** Format: int64 */
+            environment_id: number;
+            /** @enum {string} */
+            type: "http" | "tls" | "tcp" | "dns" | "domain" | "heartbeat";
+            spec: {
+                [key: string]: unknown;
+            };
+            secrets?: {
+                [key: string]: components["schemas"]["SecretInput"];
+            };
+        };
+        CheckTryResult: {
+            ok: boolean;
+            /** Format: double */
+            latency_ms: number;
+            status_code?: number;
+            /**
+             * Format: int64
+             * @description When the certificate expires, if there is one.
+             */
+            cert_not_after?: number;
+            error?: string;
         };
         Check: {
             /** Format: int64 */
@@ -2915,6 +2959,32 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+        };
+    };
+    tryCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckTry"];
+            };
+        };
+        responses: {
+            /** @description How the run went. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckTryResult"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
         };
     };
     getCheck: {

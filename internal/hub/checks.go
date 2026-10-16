@@ -389,6 +389,59 @@ func (s apiServer) CreateCheck(ctx context.Context, req api.CreateCheckRequestOb
 	return api.CreateCheck201JSONResponse(s.toCheck(ctx, c)), nil
 }
 
+// TryCheck runs a check once from the hub's own probe, as it would be
+// added: what "Test now" in the form shows. Its secrets are resolved as
+// for probes, and kept nowhere.
+func (s apiServer) TryCheck(ctx context.Context, req api.TryCheckRequestObject) (api.TryCheckResponseObject, error) {
+	b := req.Body
+	if ok, err := s.mayChange(ctx, "environment", b.EnvironmentId); notFound(err) {
+		return api.TryCheck400JSONResponse{Error: "no such environment"}, nil
+	} else if err != nil {
+		return nil, err
+	} else if !ok {
+		return api.TryCheck403JSONResponse{Error: forbidden}, nil
+	}
+	typ := string(b.Type)
+	if typ == "heartbeat" {
+		return api.TryCheck400JSONResponse{Error: "a heartbeat waits for its job; there is nothing to try"}, nil
+	}
+	raw, _ := json.Marshal(b.Spec)
+	spec, err := probe.Normalize(typ, raw)
+	if err != nil {
+		return api.TryCheck400JSONResponse{Error: err.Error()}, nil
+	}
+	sec := secrets{sealed: map[string]string{}, refs: map[string]secretRef{}}
+	in := ptrValue(b.Secrets)
+	if err := sec.apply(checkSecretFields(typ, sec, in), in, !restricted(ctx), nil); err != nil {
+		return api.TryCheck400JSONResponse{Error: err.Error()}, nil
+	}
+	if err := checkSecrets(typ, spec, sec); err != nil {
+		return api.TryCheck400JSONResponse{Error: err.Error()}, nil
+	}
+	c := store.Check{Type: typ, Spec: spec}
+	c.Secrets, c.SecretRefs = s.closeSecrets(sec)
+	spec, err = s.probeSpec(c)
+	if err != nil {
+		return api.TryCheck200JSONResponse{Error: ptr(err.Error())}, nil
+	}
+	timeout := 10 * time.Second
+	if typ == "domain" {
+		timeout = 30 * time.Second
+	}
+	r := s.builtinProbe.Runner.Run(ctx, typ, spec, timeout)
+	out := api.TryCheck200JSONResponse{Ok: r.OK, LatencyMs: r.LatencyMS}
+	if r.StatusCode != 0 {
+		out.StatusCode = &r.StatusCode
+	}
+	if r.CertNotAfter != 0 {
+		out.CertNotAfter = &r.CertNotAfter
+	}
+	if r.Error != "" {
+		out.Error = &r.Error
+	}
+	return out, nil
+}
+
 func (s apiServer) GetCheck(ctx context.Context, req api.GetCheckRequestObject) (api.GetCheckResponseObject, error) {
 	c, err := s.db.Check(ctx, req.Id)
 	if err == nil {

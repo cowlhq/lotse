@@ -631,6 +631,27 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/checks/try:
+    post:
+      operationId: tryCheck
+      summary: Run a check once, from the hub, without adding it
+      description: >
+        What a check would see, for a form to show before the check is
+        added. Heartbeats wait for their job, so there is nothing to try.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckTry" }
+      responses:
+        "200":
+          description: How the run went.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckTryResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
   /api/checks/{id}:
     parameters:
       - $ref: "#/components/parameters/ID"
@@ -1903,6 +1924,30 @@ components:
             An http check's secrets: headers.NAME, a header's value, such as
             headers.Authorization; and basic_auth.password.
           additionalProperties: { $ref: "#/components/schemas/SecretInput" }
+
+    CheckTry:
+      type: object
+      required: [environment_id, type, spec]
+      properties:
+        environment_id: { type: integer, format: int64 }
+        type: { type: string, enum: [http, tls, tcp, dns, domain, heartbeat] }
+        spec: { type: object, additionalProperties: true }
+        secrets:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/SecretInput" }
+
+    CheckTryResult:
+      type: object
+      required: [ok, latency_ms]
+      properties:
+        ok: { type: boolean }
+        latency_ms: { type: number, format: double }
+        status_code: { type: integer }
+        cert_not_after:
+          type: integer
+          format: int64
+          description: When the certificate expires, if there is one.
+        error: { type: string }
 
     Check:
       type: object
