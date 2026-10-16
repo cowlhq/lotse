@@ -21,7 +21,7 @@ import (
 // is read from the hub's log, where a person would find it too.
 
 const (
-	adminEmail    = "demo@example.com"
+	adminEmail    = "jana@example.com"
 	adminPassword = "demo-password-1234"
 	adminName     = "Jana Petersen"
 )

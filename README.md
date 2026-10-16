@@ -51,7 +51,7 @@ pnpm --dir web build
 go run ./internal/demo -dir /tmp/lotse-demo -listen 127.0.0.1:18096
 ```
 
-Log in at http://127.0.0.1:18096 as `demo@example.com` with
+Log in at http://127.0.0.1:18096 as `jana@example.com` with
 `demo-password-1234`. Each run starts afresh in its data directory, and
 nothing leaves the machine: the web sites, DNS, mail and Slack it reaches
 are played by the demo itself, on ports 18100 to 18105 (`-ports`). Alerts
