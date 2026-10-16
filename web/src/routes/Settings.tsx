@@ -2,11 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Navigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { checkUpdates, getHealth, listHosts, updateHub } from "@/api";
+import { checkUpdates, exportURL, getHealth, listHosts, updateHub } from "@/api";
+import { ChooseFile } from "@/components/ApplyFile";
 import { Page } from "@/components/shell/PageHeader";
 import { ObjectHeader } from "@/components/shell/Panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BellRing, Cog, History, KeyRound, Radar, Send, SlidersHorizontal, Users as UsersIcon, Wrench } from "lucide-react";
+import { BellRing, Cog, Download, History, KeyRound, Radar, Send, SlidersHorizontal, Users as UsersIcon, Wrench } from "lucide-react";
 import { Tokens } from "@/components/Tokens";
 import { Users } from "@/components/Users";
 import { Channels } from "@/components/Channels";
@@ -68,6 +69,23 @@ export function Settings({ tab }: { tab?: string }) {
           <div className="min-w-0 flex-1">
             <TabsContent value="general" className="space-y-6">
               <HubVersion />
+              {isAdmin && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("applyFile.panel")}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <p className="text-muted-foreground">{t("applyFile.panelHint")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" render={<a href={exportURL("")} download="lotse.yaml" />}>
+                        <Download />
+                        {t("token.download")}
+                      </Button>
+                      <ChooseFile />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               {isAdmin && <UpdateAgents scopeID={1} hosts={hosts.data ?? []} />}
             </TabsContent>
             <TabsContent value="notifications" className="space-y-6">

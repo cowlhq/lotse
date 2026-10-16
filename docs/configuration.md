@@ -48,6 +48,12 @@ lotse apply -f lotse.yaml
 lotse apply -f lotse.yaml --prune --scope acme   # also delete what the file leaves out
 ```
 
+Or in the interface, as an admin: drop a `lotse.yaml` anywhere on it, or
+choose one in **Settings → General** or a customer's **Settings**. It shows
+what would change, and applies it with a click; what `{from_env: NAME}`
+would read where `lotse apply` runs, it asks for. It never deletes, as
+`--prune` would.
+
 Other channels take their secrets the same way:
 
 ```yaml

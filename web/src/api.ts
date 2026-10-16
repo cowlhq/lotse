@@ -146,6 +146,13 @@ export class ApiError extends Error {
   }
 }
 
+export type ApplyResult = Schemas["ApplyResult"];
+export type ApplyChange = Schemas["ApplyChange"];
+// parseDocument reads a lotse.yaml as lotse apply would.
+export const parseDocument = async (yaml: string) =>
+  answer<Schemas["ParsedDocument"]>(await fetch("/api/apply/parse", { method: "POST", headers: { "Content-Type": "application/yaml" }, body: yaml }), "/api/apply/parse");
+export const applyDocument = (doc: unknown, dryRun: boolean) => post<ApplyResult>(`/api/v1/apply${dryRun ? "?dry_run=true" : ""}`, doc);
+
 async function get<T>(path: string): Promise<T> {
   return answer<T>(await fetch(path), path);
 }

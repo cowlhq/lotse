@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { FileDrop } from "@/components/ApplyFile";
 import { createRootRoute, createRoute, createRouter, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
@@ -64,6 +65,7 @@ function Layout() {
   const [search, setSearch] = useState(false);
   const [menu, setMenu] = useState(false);
   return (
+    <FileDrop>
     <div className="flex h-dvh bg-sidebar">
       <aside className="hidden w-64 shrink-0 md:block">
         <Sidebar onSearch={() => setSearch(true)} />
@@ -87,6 +89,7 @@ function Layout() {
       <CommandMenu open={search} onOpenChange={setSearch} />
       <Toaster position="bottom-right" />
     </div>
+    </FileDrop>
   );
 }
 
