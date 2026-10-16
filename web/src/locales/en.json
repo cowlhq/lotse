@@ -441,7 +441,73 @@
     "resolverHint": "A DNS server to ask, such as 1.1.1.1:53; the system's otherwise.",
     "domain": "Domain",
     "domainHint": "Some registries, such as DENIC for .de, publish no date: those domains renew until cancelled.",
-    "domainExpires": "Registration"
+    "domainExpires": "Registration",
+    "what": "What do you want to watch? A check looks at it from outside, every minute, from the hub and its probes.",
+    "otherKind": "Something else",
+    "intent": {
+      "website": {
+        "title": "Website",
+        "hint": "Is it up, and does it show what it should?",
+        "description": "Fetches the page like a visitor: its status after redirects, how long it takes, and its certificate.",
+        "namePlaceholder": "Shop homepage"
+      },
+      "api": {
+        "title": "API or health endpoint",
+        "hint": "A JSON answer, with a token if it needs one.",
+        "description": "Asks the endpoint, and checks a value in its JSON answer, such as status: UP.",
+        "namePlaceholder": "API health"
+      },
+      "port": {
+        "title": "Port",
+        "hint": "A database, SSH, or anything that listens.",
+        "description": "Connects to the port, as a client would.",
+        "namePlaceholder": "Database"
+      },
+      "certificate": {
+        "title": "Certificate",
+        "hint": "Mail or another TLS service, before it expires.",
+        "description": "Opens a TLS connection, for services that are not websites, and warns before the certificate expires.",
+        "namePlaceholder": "Mail server"
+      },
+      "heartbeat": {
+        "title": "Cron job or backup",
+        "hint": "It calls lotse when it ran; silence is an alert.",
+        "description": "The job calls a URL when it has run. If no call comes within the period and the grace, the check goes down.",
+        "namePlaceholder": "Nightly backup"
+      },
+      "domain": {
+        "title": "Domain",
+        "hint": "When its registration runs out.",
+        "description": "Looks up when the domain's registration expires, as its registry publishes it, a few times a day.",
+        "namePlaceholder": "example.com"
+      },
+      "dns": {
+        "title": "DNS record",
+        "hint": "Does a name point where it should?",
+        "description": "Asks for a name's records, and says when it does not resolve, or not to what it should.",
+        "namePlaceholder": "Shop DNS"
+      }
+    },
+    "host": "Host",
+    "port": "Port",
+    "serverName": "Server name",
+    "serverNameHint": "The name the certificate is for, if not the host's.",
+    "periods": {
+      "1h": "hourly",
+      "6h": "every 6 hours",
+      "24h": "daily",
+      "168h": "weekly"
+    },
+    "try": "Test now",
+    "tryUp": "Up. It works as it is.",
+    "tryDown": "Down.",
+    "tryStatus": "status {{code}}",
+    "tryLatency": "{{ms}} ms",
+    "tryCert_one": "certificate valid for {{count}} more day",
+    "tryCert_other": "certificate valid for {{count}} more days",
+    "tryHint": "As the hub sees it now; it can be added like this all the same.",
+    "heartbeatName": "Job, {{period}}",
+    "tryFast": "under 1 ms"
   },
   "probe": {
     "title": "Probes",

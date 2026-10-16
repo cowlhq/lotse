@@ -9,6 +9,9 @@ wrong. Installing the hub, agents and probes is in
 
 Add a check in an environment with **Add check**, in a `lotse.yaml`
 ([Configuration as code](configuration.md)), or with a container's labels.
+**Add check** asks what to watch, a website, an API, a port, a
+certificate, a cron job, a domain or a DNS record, and **Test now** runs it
+once from the hub before it is added.
 
 | Type | What it checks |
 |---|---|
