@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.21](https://github.com/cowlhq/lotse/compare/v0.1.20...v0.1.21) (2026-10-16)
+
+
+### Features
+
+* **site:** a browser's bar above each screenshot ([26da67b](https://github.com/cowlhq/lotse/commit/26da67ba98611e96d2ee5d9ab4feb5df16a2d351))
+* **site:** a landing page, and one look for every page ([d5b36c7](https://github.com/cowlhq/lotse/commit/d5b36c7b05d59b6135dff22fe8eec410a91ff8b2))
+* **site:** lotse beside seven other tools, feature by feature ([388a8d1](https://github.com/cowlhq/lotse/commit/388a8d13e405cada028992d42750d990cc9f29db))
+* **site:** pages from docs/, made by internal/sitegen ([476a746](https://github.com/cowlhq/lotse/commit/476a7465aeeaf0fc3935bb73cba045aa041805b2))
+* **site:** screenshots from the demo hub, light and dark ([a9018d5](https://github.com/cowlhq/lotse/commit/a9018d57abd0bcd5a497d10cb340d26ddcef871f))
+* **site:** the logo, the favicons, and red for accents ([01a4b74](https://github.com/cowlhq/lotse/commit/01a4b7491cd570a66ddea4dd2eb92db0b852f0c0))
+
+
+### Bug Fixes
+
+* **web:** the user menu opens again ([9264c08](https://github.com/cowlhq/lotse/commit/9264c0892fe7b0d8ffef39b96d4795107c9417b3))
+
 ## [0.1.20](https://github.com/cowlhq/lotse/compare/v0.1.19...v0.1.20) (2026-10-16)
 
 
