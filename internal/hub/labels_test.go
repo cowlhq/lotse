@@ -1,10 +1,12 @@
 package hub
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
 
+	"lotse.sh/internal/probe"
 	"lotse.sh/internal/protocol"
 	"lotse.sh/internal/store"
 )
@@ -158,5 +160,23 @@ func TestIgnoredContainer(t *testing.T) {
 		if k.SubjectKind == "container" {
 			t.Errorf("an alert on an ignored container: %+v", st)
 		}
+	}
+}
+
+func TestLabelChecksNested(t *testing.T) {
+	checks, problems := labelChecks(map[string]string{
+		"lotse.check.api.http.url":              "https://api.acme.example/health",
+		"lotse.check.api.http.headers.X-Token":  "abc",
+		"lotse.check.api.http.json.path":        "status",
+		"lotse.check.api.http.json.equals":      "UP",
+		"lotse.check.api.http.follow_redirects": "false",
+	})
+	if len(problems) > 0 {
+		t.Fatal(problems)
+	}
+	b, _ := json.Marshal(checks["api"].spec)
+	spec, err := probe.Normalize(checks["api"].typ, b)
+	if err != nil || string(spec) != `{"url":"https://api.acme.example/health","headers":{"X-Token":"abc"},"follow_redirects":false,"json":{"path":"status","equals":"UP"}}` {
+		t.Errorf("%s %v", spec, err)
 	}
 }

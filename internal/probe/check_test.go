@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +23,20 @@ func TestNormalize(t *testing.T) {
 		{"http", `{"url":"https://example.com","status":"200-299"}`, "", true},
 		{"http", `{"url":"https://example.com","status":"299-200"}`, "", false},
 		{"http", `{"url":"https://example.com","other":1}`, "", false},
+		{"http", `{"url":"https://example.com","method":"get","follow_redirects":"true","headers":{}}`, `{"url":"https://example.com"}`, true},
+		{"http", `{"url":"https://example.com","method":"post","headers":{"X-Token":"a"},"body":"{}","follow_redirects":"false","ip":"203.0.113.10"}`,
+			`{"url":"https://example.com","method":"POST","headers":{"X-Token":"a"},"body":"{}","follow_redirects":false,"ip":"203.0.113.10"}`, true},
+		{"http", `{"url":"https://example.com","json":{"path":"status","equals":"UP"},"absent":"Error","max_latency":"800ms"}`, "", true},
+		{"http", `{"url":"https://example.com","json":{"path":"count","equals":3}}`, `{"url":"https://example.com","json":{"path":"count","equals":"3"}}`, true},
+		{"http", `{"url":"https://example.com","json":{"path":"a","equals":[1]}}`, "", false},
+		{"http", `{"url":"https://example.com","json":{"equals":"UP"}}`, "", false},
+		{"http", `{"url":"https://example.com","method":"TRACE"}`, "", false},
+		{"http", `{"url":"https://example.com","method":"HEAD","keyword":"x"}`, "", false},
+		{"http", `{"url":"https://example.com","headers":{"X Token":"a"}}`, "", false},
+		{"http", `{"url":"https://example.com","headers":{"X-Token":"a\r\nX-Other: b"}}`, "", false},
+		{"http", `{"url":"https://example.com","ip":"web1"}`, "", false},
+		{"http", `{"url":"https://example.com","max_latency":"fast"}`, "", false},
+		{"http", `{"url":"https://example.com","follow_redirects":"maybe"}`, "", false},
 		{"tls", `{"address":"mail.example.com:465"}`, "", true},
 		{"tcp", `{"address":"db.internal:5432"}`, `{"address":"db.internal:5432"}`, true},
 		{"tcp", `{"address":"db.internal"}`, "", false},
@@ -77,6 +92,18 @@ func TestHTTP(t *testing.T) {
 	if res := run(`{"url":"`+srv.URL+`/slow"}`, 200*time.Millisecond); res.OK || res.Error != "no answer in time" {
 		t.Errorf("timeout: %+v", res)
 	}
+	if res := run(`{"url":"`+srv.URL+`/","absent":"Welcome"}`, 5*time.Second); res.OK || res.Error != `the page contains "Welcome"` {
+		t.Errorf("absent: %+v", res)
+	}
+	if res := run(`{"url":"`+srv.URL+`/old","follow_redirects":false}`, 5*time.Second); !res.OK || res.StatusCode != 302 {
+		t.Errorf("no redirects: %+v", res)
+	}
+	if res := run(`{"url":"`+srv.URL+`/old","follow_redirects":false,"status":"200"}`, 5*time.Second); res.OK {
+		t.Errorf("a redirect where 200 is expected: %+v", res)
+	}
+	if res := run(`{"url":"`+srv.URL+`/slow","max_latency":"100ms"}`, 5*time.Second); res.OK || !strings.HasPrefix(res.Error, "took 2") {
+		t.Errorf("slow: %+v", res)
+	}
 	untrusted := (&Runner{}).Run(t.Context(), "http", json.RawMessage(`{"url":"`+srv.URL+`/"}`), 5*time.Second)
 	if untrusted.OK || !strings.Contains(untrusted.Error, "certificate") {
 		t.Errorf("an untrusted certificate: %+v", untrusted)
@@ -102,5 +129,73 @@ func TestTLSAndTCP(t *testing.T) {
 	l.Close()
 	if res := r.Run(t.Context(), "tcp", json.RawMessage(`{"address":"`+closed+`"}`), 5*time.Second); res.OK || !strings.Contains(res.Error, "refused") {
 		t.Errorf("tcp down: %+v", res)
+	}
+}
+
+func TestHTTPRequest(t *testing.T) {
+	var got *http.Request
+	var gotBody string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"UP","checks":[{"name":"db","status":"DOWN"}],"count":3,"ok":true}`))
+	}))
+	defer srv.Close()
+	r := &Runner{}
+	run := func(spec string) Result {
+		return r.Run(t.Context(), "http", json.RawMessage(spec), 5*time.Second)
+	}
+
+	res := run(`{"url":"` + srv.URL + `/hook","method":"POST","headers":{"X-Token":"abc","Host":"shop.example.com","User-Agent":"mine"},"body":"{\"a\":1}"}`)
+	if !res.OK || got.Method != "POST" || got.Header.Get("X-Token") != "abc" || got.Host != "shop.example.com" || got.UserAgent() != "mine" || gotBody != `{"a":1}` {
+		t.Errorf("request: %+v %s %v %s %q", res, got.Method, got.Header, got.Host, gotBody)
+	}
+	for spec, want := range map[string]string{
+		`{"path":"status","equals":"UP"}`:          "",
+		`{"path":"count","equals":3}`:              "",
+		`{"path":"count","equals":"3.0"}`:          "",
+		`{"path":"ok","equals":true}`:              "",
+		`{"path":"checks.0.status","equals":"UP"}`: "checks.0.status is DOWN, not UP",
+		`{"path":"checks.1.status","equals":"UP"}`: "the answer has no checks.1.status",
+		`{"path":"version","equals":"1"}`:          "the answer has no version",
+		`{"path":"checks","equals":"UP"}`:          "checks is not a single value",
+	} {
+		res := run(`{"url":"` + srv.URL + `","json":` + spec + `}`)
+		if res.Error != want || res.OK != (want == "") {
+			t.Errorf("json %s: %+v, want %q", spec, res, want)
+		}
+	}
+	if res := run(`{"url":"` + srv.URL + `","method":"HEAD"}`); !res.OK || got.Method != "HEAD" {
+		t.Errorf("head: %+v", res)
+	}
+
+	// The URL names a host that does not exist; the IP says where it is.
+	_, port, _ := net.SplitHostPort(strings.TrimPrefix(srv.URL, "http://"))
+	if res := run(`{"url":"http://shop.invalid:` + port + `/","ip":"127.0.0.1"}`); !res.OK || got.Host != "shop.invalid:"+port {
+		t.Errorf("ip: %+v %s", res, got.Host)
+	}
+}
+
+func TestCheckBodyNotJSON(t *testing.T) {
+	if got := checkBody(HTTP{JSON: &JSONValue{Path: "status", Equals: "UP"}}, []byte("<html>")); got != "the answer is not JSON" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestNeeds(t *testing.T) {
+	for spec, want := range map[string]string{
+		`{"url":"https://example.com","keyword":"a","status":"200"}`:     "http",
+		`{"url":"https://example.com","method":"POST"}`:                  "http.v2",
+		`{"url":"https://example.com","json":{"path":"a","equals":"b"}}`: "http.v2",
+		`{"url":"https://example.com","follow_redirects":false}`:         "http.v2",
+	} {
+		if got := Needs("http", json.RawMessage(spec)); got != want {
+			t.Errorf("%s: %s, want %s", spec, got, want)
+		}
+	}
+	if got := Needs("dns", json.RawMessage(`{}`)); got != "dns" {
+		t.Errorf("dns: %s", got)
 	}
 }

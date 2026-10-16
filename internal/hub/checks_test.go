@@ -295,6 +295,7 @@ func TestCheckTypesPerProbe(t *testing.T) {
 	}{
 		{7, "dns", true}, {7, "domain", false}, {8, "http", true}, {8, "dns", false},
 		{store.BuiltinProbe, "dns", true}, {store.BuiltinProbe, "domain", true},
+		{7, "http.v2", false}, {store.BuiltinProbe, "http.v2", true},
 	} {
 		if got := p.runs(c.id, c.typ); got != c.runs {
 			t.Errorf("probe %d runs %s: %v", c.id, c.typ, got)

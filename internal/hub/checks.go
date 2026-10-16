@@ -95,7 +95,7 @@ func (h *hub) reassign(ctx context.Context) {
 			a.Interval, a.Timeout = max(a.Interval, domainEvery), max(a.Timeout, 30*time.Second)
 		}
 		for _, p := range probes {
-			if p.RevokedAt != nil || !(slices.Contains(names, "all") || slices.Contains(names, p.Slug)) || !h.probes.runs(p.ID, c.Type) {
+			if p.RevokedAt != nil || !(slices.Contains(names, "all") || slices.Contains(names, p.Slug)) || !h.probes.runs(p.ID, probe.Needs(c.Type, c.Spec)) {
 				continue
 			}
 			a.probes = append(a.probes, p.ID)

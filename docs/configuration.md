@@ -82,7 +82,8 @@ services:
   app:
     labels:
       lotse.check.web.http.url: https://shop.acme.de/health   # a check of its own
-      lotse.check.web.http.keyword: ok
+      lotse.check.web.http.json.path: status                    # a field of a field
+      lotse.check.web.http.json.equals: UP
       lotse.rules.container.restarting.enabled: "false"         # its own alert rules
       lotse.ignore: "true"                                      # or no alerts at all
       lotse.env: acme/shop/staging     # another environment of its host's customer
