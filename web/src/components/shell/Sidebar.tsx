@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Bell, Home, LogOut, Monitor, Moon, Search, Settings, Sun } from "lucide-react";
+import { Bell, Home, LogOut, Monitor, Moon, Search, Settings, Sun, UserRound } from "lucide-react";
 import { useTheme } from "next-themes";
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listScopes, logout } from "@/api";
+import { Account } from "@/components/Account";
 import { useAlerts } from "@/components/Alerts";
 import { Logo } from "@/components/Logo";
 import { AddMenu } from "@/components/shell/AddMenu";
@@ -105,39 +106,47 @@ function UserMenu() {
   const client = useQueryClient();
   const out = useMutation({ mutationFn: logout, onSuccess: () => client.invalidateQueries({ queryKey: ["me"] }) });
   const name = me?.name || me?.email || "";
+  const [account, setAccount] = useState(false);
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className={item}>
-        <span className="flex size-5 items-center justify-center rounded-full bg-muted-foreground/25 text-[10px] font-semibold text-foreground">{name.slice(0, 1).toUpperCase()}</span>
-        <span className="flex-1 truncate text-left">{name}</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-56">
-        {/* A label belongs in a group, or the menu does not open. */}
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className="truncate text-mini text-muted-foreground">{me?.email}</DropdownMenuLabel>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={(v) => setTheme(v as string)}>
-          <DropdownMenuRadioItem value="system">
-            <Monitor />
-            {t("nav.themeSystem")}
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="light">
-            <Sun />
-            {t("nav.themeLight")}
-          </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark">
-            <Moon />
-            {t("nav.themeDark")}
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => out.mutate()}>
-          <LogOut />
-          {t("login.logout")}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger className={item}>
+          <span className="flex size-5 items-center justify-center rounded-full bg-muted-foreground/25 text-[10px] font-semibold text-foreground">{name.slice(0, 1).toUpperCase()}</span>
+          <span className="flex-1 truncate text-left">{name}</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="start" className="w-56">
+          {/* A label belongs in a group, or the menu does not open. */}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="truncate text-mini text-muted-foreground">{me?.email}</DropdownMenuLabel>
+          </DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => setAccount(true)}>
+            <UserRound />
+            {t("account.title")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={(v) => setTheme(v as string)}>
+            <DropdownMenuRadioItem value="system">
+              <Monitor />
+              {t("nav.themeSystem")}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="light">
+              <Sun />
+              {t("nav.themeLight")}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="dark">
+              <Moon />
+              {t("nav.themeDark")}
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => out.mutate()}>
+            <LogOut />
+            {t("login.logout")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {me && <Account me={me} open={account} onOpenChange={setAccount} />}
+    </>
   );
 }
 
