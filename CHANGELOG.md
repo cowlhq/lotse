@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.23](https://github.com/cowlhq/lotse/compare/v0.1.22...v0.1.23) (2026-10-16)
+
+
+### Features
+
+* **hub:** http checks keep secrets, for a header or basic_auth ([fc6d978](https://github.com/cowlhq/lotse/commit/fc6d978420cad4bc85d2aad7053cee71d810e52f))
+* **hub:** read a lotse.yaml for the interface, as lotse apply does ([dce45b7](https://github.com/cowlhq/lotse/commit/dce45b750a819e73e85c6a3643bdbfb7f85a9f70))
+* **hub:** try a check once, before it is added ([515e7e6](https://github.com/cowlhq/lotse/commit/515e7e6b354023b1a61fea0c0d63baf2406b95af))
+* **probe:** http checks with a method, headers, a body, a fixed ip, and conditions on the answer ([670b320](https://github.com/cowlhq/lotse/commit/670b3201774b8eda1a60e260aaedcba2e67c155b))
+* **web:** a guide for a new hub, step by step ([b93b4dc](https://github.com/cowlhq/lotse/commit/b93b4dc0d23c63c5a39c1a526de034cb18b7a23e))
+* **web:** a secret header and basic auth in the check form ([28882de](https://github.com/cowlhq/lotse/commit/28882deac5c141a7f7eb42ba39e7b7935d551bbe))
+* **web:** add a check by what it is for, and test it before it is added ([0ca9dd0](https://github.com/cowlhq/lotse/commit/0ca9dd0e4b77d57a21909215afc5bff5a8d8bcda))
+* **web:** drag a host to another environment ([16347a4](https://github.com/cowlhq/lotse/commit/16347a416e076f5e22dce32c5527d4995e33e919))
+* **web:** drop a lotse.yaml to see what it changes, and apply it ([ba83821](https://github.com/cowlhq/lotse/commit/ba8382144c316e6585d48a0ddff18ac3cff7777c))
+* **web:** more options for an http check: method, headers, body, conditions ([1706fdb](https://github.com/cowlhq/lotse/commit/1706fdb976080ead1f0ab870b155f382aafd7d68))
+* **web:** settings by picking, not typing ([4f9fd07](https://github.com/cowlhq/lotse/commit/4f9fd071e10557dde5c29228767167d2f1d4bae5))
+* **web:** where alerts go, a switch on each channel ([5dc8097](https://github.com/cowlhq/lotse/commit/5dc80970cdf1f0d55253fddad634bb593fc89514))
+
 ## [0.1.22](https://github.com/cowlhq/lotse/compare/v0.1.21...v0.1.22) (2026-10-16)
 
 
