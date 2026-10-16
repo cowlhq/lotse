@@ -261,7 +261,7 @@
     "on": "on",
     "off": "off",
     "rules": "Alert rules",
-    "rulesDescription": "When something fires, and how bad it is. Values in bold are set here; the others are inherited, and say from where on hover. Click one to change it here.",
+    "rulesDescription": "When something fires, and how bad it is, for everything here unless it says otherwise. Under a rule it says whether it is set here, or where it comes from.",
     "rule": "Rule",
     "enabled": "On",
     "for": "Alert after",
@@ -662,7 +662,12 @@
     "reason": "Reason",
     "reasonPlaceholder": "Moving to the new server",
     "save": "Add",
-    "added": "Maintenance window added."
+    "added": "Maintenance window added.",
+    "days": "Days",
+    "everyDay": "Every day",
+    "noDays": "None",
+    "daily": "Every day",
+    "scheduleIs": "{{what}}, in the hub's time zone."
   },
   "nav": {
     "search": "Search",
@@ -899,5 +904,20 @@
     "newSwitch": "Send alerts for {{who}} here",
     "newSwitchHint": "Besides where they go now. A switch on the list changes it later.",
     "inheritedGlobal": "As in the global settings. Switching one here sets it here instead."
+  },
+  "rule": {
+    "level": "Level",
+    "recover": "Clear after",
+    "groups": {
+      "host": "Hosts",
+      "container": "Containers",
+      "check": "Checks",
+      "probe": "Probes",
+      "channel": "Channels"
+    }
+  },
+  "setting": {
+    "allProbes": "All probes",
+    "remove": "Remove {{name}}"
   }
 }

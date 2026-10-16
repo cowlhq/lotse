@@ -1,21 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Undo2 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getConfig, setSetting, type ConfigValue } from "@/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/shell/Panel";
+import { Rule } from "@/components/Rules";
+import { ChannelsEditor, DurationEditor, ProbesEditor, TagsEditor, WindowEditor, wide } from "@/components/SettingEditors";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMe } from "@/lib/useMe";
 
 // Config shows an object's settings as they apply to it: the value, and
 // where it comes from, the object itself, a scope above, or the default
 // (principle 4: every object shows its effective configuration). The alert
 // rules come last, as a table, one rule a row.
-export function Config({ subject, part }: { subject: string; part?: "general" | "rules" }) {
+export function Config({ subject, part, envID }: { subject: string; part?: "general" | "rules"; envID?: number }) {
   const { t } = useTranslation();
   const values = useQuery({ queryKey: ["config", subject], queryFn: () => getConfig(subject) });
   const all = values.data ?? [];
@@ -41,7 +42,7 @@ export function Config({ subject, part }: { subject: string; part?: "general" | 
                 <Panel key={g.key} title={t(`config.groups.${g.key}`)} flush>
                   <div className="divide-y">
                     {list.map((v) => (
-                      <Row key={v.key} subject={subject} value={v} />
+                      <Row key={v.key} subject={subject} value={v} envID={envID} />
                     ))}
                   </div>
                 </Panel>
@@ -53,103 +54,28 @@ export function Config({ subject, part }: { subject: string; part?: "general" | 
       {part !== "general" && rules.size > 0 && (
         <div className="space-y-4">
           <p className="text-muted-foreground">{t("config.rulesDescription")}</p>
-          <Panel title={t("config.rules")} flush>
-            {/* On a phone, a rule is a line with its switch and its values
-                named below; from md on, a table. */}
-            <ul className="divide-y md:hidden">
-              {[...rules].map(([name, f]) => (
-                <li key={name} className={`space-y-2 px-4 py-3 ${f.enabled?.value ? "" : "text-muted-foreground"}`}>
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{t(`alert.titles.${name}`)}</p>
-                      <p className="text-mini text-muted-foreground">{t(`rules.${name}`)}</p>
-                    </div>
-                    {f.enabled && <Cell subject={subject} value={f.enabled} />}
-                  </div>
-                  <dl className="flex flex-wrap gap-x-4 gap-y-1 text-mini">
-                    {f.level ? (
-                      <Fact label={t("config.level")}>
-                        <Cell subject={subject} value={f.level} />
-                      </Fact>
-                    ) : (
-                      <>
-                        {f.warn && (
-                          <Fact label={t("config.warning")}>
-                            <Cell subject={subject} value={f.warn} unit={unitOf(f.warn)} />
-                          </Fact>
-                        )}
-                        {f.crit && (
-                          <Fact label={t("config.critical")}>
-                            <Cell subject={subject} value={f.crit} unit={unitOf(f.crit)} />
-                          </Fact>
-                        )}
-                      </>
-                    )}
-                    {f.for && (
-                      <Fact label={t("config.for")}>
-                        <Cell subject={subject} value={f.for} />
-                      </Fact>
-                    )}
-                    {f.recover && (
-                      <Fact label={t("config.recover")}>
-                        <Cell subject={subject} value={f.recover} />
-                      </Fact>
-                    )}
-                  </dl>
-                </li>
-              ))}
-            </ul>
-            <Table className="max-md:hidden [&_td:first-child]:pl-4 [&_th:first-child]:pl-4">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("config.rule")}</TableHead>
-                  <TableHead>{t("config.enabled")}</TableHead>
-                  <TableHead>{t("config.warning")}</TableHead>
-                  <TableHead>{t("config.critical")}</TableHead>
-                  <TableHead>{t("config.for")}</TableHead>
-                  <TableHead>{t("config.recover")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...rules].map(([name, f]) => (
-                  <TableRow key={name} className={f.enabled?.value ? undefined : "text-muted-foreground"}>
-                    <TableCell>
-                      <p className="font-medium">{t(`alert.titles.${name}`)}</p>
-                      <p className="text-mini text-muted-foreground">{t(`rules.${name}`)}</p>
-                    </TableCell>
-                    <TableCell>{f.enabled && <Cell subject={subject} value={f.enabled} />}</TableCell>
-                    {f.level ? (
-                      <TableCell colSpan={2}>
-                        <Cell subject={subject} value={f.level} />
-                      </TableCell>
-                    ) : (
-                      <>
-                        <TableCell>{f.warn && <Cell subject={subject} value={f.warn} unit={unitOf(f.warn)} />}</TableCell>
-                        <TableCell>{f.crit && <Cell subject={subject} value={f.crit} unit={unitOf(f.crit)} />}</TableCell>
-                      </>
-                    )}
-                    <TableCell>{f.for && <Cell subject={subject} value={f.for} />}</TableCell>
-                    <TableCell>{f.recover && <Cell subject={subject} value={f.recover} />}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Panel>
+          {ruleGroups.map((g) => {
+            const names = [...rules.keys()].filter((n) => n.startsWith(g + "."));
+            return (
+              names.length > 0 && (
+                <Panel key={g} title={t(`rule.groups.${g}`)} flush>
+                  <ul className="divide-y">
+                    {names.map((n) => (
+                      <Rule key={n} subject={subject} rule={n} values={all} className="px-4 py-3.5" />
+                    ))}
+                  </ul>
+                </Panel>
+              )
+            );
+          })}
         </div>
       )}
     </>
   );
 }
 
-// Fact is one named value of a rule, on a phone.
-function Fact({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-foreground">{children}</dd>
-    </div>
-  );
-}
+// ruleGroups are what rules watch, in the order they are shown.
+const ruleGroups = ["host", "container", "check", "probe", "channel"];
 
 // groups order the settings by what they are about. A setting that fits
 // none is not left out: the last group takes the rest.
@@ -163,11 +89,6 @@ const groups: { key: string; match: (key: string) => boolean }[] = [
   { key: "retention", match: (k) => k.startsWith("retention.") },
   { key: "other", match: (k) => !/^(agent\.|host\.|check\.|notify\.|deadman\.|retention\.|ignore$)/.test(k) },
 ];
-
-// unitOf reads a threshold's unit from its description: "… (percent), or off."
-function unitOf(v: ConfigValue): string {
-  return /\((\w+)\)/.exec(v.description)?.[1] ?? "";
-}
 
 // useSetting saves a setting, or unsets it with null.
 function useSetting(subject: string, key: string, onSaved?: () => void) {
@@ -197,31 +118,39 @@ function show(v: unknown): string {
   return Array.isArray(v) ? v.join(", ") : String(v);
 }
 
-function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
+function Row({ subject, value: v, envID }: { subject: string; value: ConfigValue; envID?: number }) {
   const { t } = useTranslation();
   const { isAdmin } = useMe();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
   const { here, from } = useFrom(subject, v);
   const save = useSetting(subject, v.key, () => setEditing(false));
+  const disabled = !isAdmin || save.isPending;
+  const label = t(`config.keys.${v.key}`, { defaultValue: v.key });
+  const props = { value: v, onChange: (x: unknown) => save.mutate(x), disabled };
 
-  return (
-    <div className="grid gap-x-6 gap-y-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
-      <div className="min-w-0">
-        <p className="font-medium">
-          {t(`config.keys.${v.key}`, { defaultValue: v.key })}
-          {/* The key, as lotse.yaml and the API name it. */}
-          <span className="ml-2 hidden font-mono text-mini font-normal text-muted-foreground/70 sm:inline">{v.key}</span>
-        </p>
-        <p className="text-mini text-muted-foreground">{v.description}</p>
-      </div>
-      {v.type === "bool" ? (
-        <div className="flex items-center gap-3">
-          <p className="text-mini text-muted-foreground sm:text-right">{from}</p>
-          <Switch checked={Boolean(v.value)} disabled={!isAdmin || save.isPending} onCheckedChange={(on) => save.mutate(on)} aria-label={t(`config.keys.${v.key}`, { defaultValue: v.key })} />
-          {isAdmin && here && <Reset onClick={() => save.mutate(null)} />}
-        </div>
-      ) : editing ? (
+  let control;
+  switch (v.type) {
+    case "bool":
+      control = <Switch checked={Boolean(v.value)} disabled={disabled} onCheckedChange={(on) => save.mutate(on)} aria-label={label} />;
+      break;
+    case "duration":
+      control = <DurationEditor {...props} />;
+      break;
+    case "window":
+      control = <WindowEditor key={String(v.value)} {...props} />;
+      break;
+    case "probes":
+      control = <ProbesEditor {...props} />;
+      break;
+    case "channels":
+      control = <ChannelsEditor {...props} envID={envID} />;
+      break;
+    case "services":
+      control = <TagsEditor {...props} placeholder={v.key === "host.ignore_units" ? "systemd-networkd-wait-online.service" : "nginx.service"} />;
+      break;
+    default:
+      control = editing ? (
         <form
           className="flex items-center gap-2"
           onSubmit={(e) => {
@@ -229,31 +158,55 @@ function Row({ subject, value: v }: { subject: string; value: ConfigValue }) {
             save.mutate(parse(v.type, text));
           }}
         >
-          <Input value={text} onChange={(e) => setText(e.target.value)} className={v.type === "url" || v.type === "channels" || v.type === "services" ? "h-8 w-64" : "h-8 w-28"} autoFocus />
+          <Input value={text} onChange={(e) => setText(e.target.value)} className="h-8 w-64" autoFocus onKeyDown={(e) => e.key === "Escape" && setEditing(false)} />
           <Button type="submit" size="sm" disabled={save.isPending}>
             {t("tree.save")}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
-            {t("tree.cancel")}
-          </Button>
         </form>
       ) : (
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 sm:text-right">
-            <p className="truncate font-medium tabular-nums">{show(v.value) || "–"}</p>
-            <p className="text-xs text-muted-foreground">
-              {from}
-              {v.overrides.length > 0 && <> · {t("config.overrides", { value: show(v.overrides[0].value), name: v.overrides[0].level.name || t(`config.kinds.${v.overrides[0].level.kind}`) })}</>}
-            </p>
-          </div>
+        <span className="flex items-center gap-1">
+          <span className="max-w-64 truncate font-medium">{show(v.value) || "–"}</span>
           {isAdmin && (
-            <>
-              <Button variant="ghost" size="icon-sm" aria-label={t("config.set")} onClick={() => (setText(show(v.value)), setEditing(true))}>
-                <Pencil className="size-3.5" />
-              </Button>
-              {here && <Reset onClick={() => save.mutate(null)} />}
-            </>
+            <Button variant="ghost" size="icon-sm" aria-label={t("config.set")} onClick={() => (setText(show(v.value)), setEditing(true))}>
+              <Pencil className="size-3.5" />
+            </Button>
           )}
+        </span>
+      );
+  }
+  const origin = (
+    <p className="text-xs text-muted-foreground sm:text-right">
+      {from}
+      {v.overrides.length > 0 && <> · {t("config.overrides", { value: show(v.overrides[0].value), name: v.overrides[0].level.name || t(`config.kinds.${v.overrides[0].level.kind}`) })}</>}
+    </p>
+  );
+  return (
+    <div className={`grid gap-x-6 gap-y-2 px-4 py-3 ${wide(v.type) ? "" : "sm:grid-cols-[1fr_auto] sm:items-center"}`}>
+      <div className="flex min-w-0 items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium">
+            {label}
+            {/* The key, as lotse.yaml and the API name it. */}
+            <span className="ml-2 hidden font-mono text-mini font-normal text-muted-foreground/70 sm:inline">{v.key}</span>
+          </p>
+          <p className="text-mini text-muted-foreground">{v.description}</p>
+        </div>
+        {wide(v.type) && (
+          <span className="flex shrink-0 items-center gap-1">
+            {origin}
+            {isAdmin && here && <Reset onClick={() => save.mutate(null)} />}
+          </span>
+        )}
+      </div>
+      {wide(v.type) ? (
+        control
+      ) : (
+        <div className="flex items-center gap-2 sm:justify-end">
+          <div className="space-y-1">
+            <div className="flex justify-end">{control}</div>
+            {origin}
+          </div>
+          {isAdmin && here ? <Reset onClick={() => save.mutate(null)} /> : <span className="hidden w-8 sm:block" />}
         </div>
       )}
       {save.isError && (
@@ -271,69 +224,6 @@ function Reset({ onClick }: { onClick: () => void }) {
     <Button variant="ghost" size="icon-sm" aria-label={t("config.reset")} title={t("config.reset")} onClick={onClick}>
       <Undo2 className="size-3.5" />
     </Button>
-  );
-}
-
-// Cell is one setting of a rule: its value, set here in bold, and where it
-// comes from on hover; a click to change it.
-function Cell({ subject, value: v, unit }: { subject: string; value: ConfigValue; unit?: string }) {
-  const { t } = useTranslation();
-  const { isAdmin } = useMe();
-  const [editing, setEditing] = useState(false);
-  const [text, setText] = useState("");
-  const { here, from } = useFrom(subject, v);
-  const save = useSetting(subject, v.key, () => setEditing(false));
-  const label =
-    v.type === "bool" ? (v.value ? t("config.on") : t("config.off")) : v.type === "level" ? t(`config.levels.${v.value}`) : v.value === "off" ? t("config.off") : `${show(v.value)}${unit === "percent" ? " %" : unit === "days" ? " d" : ""}`;
-  const error = save.isError && <p className="text-xs text-destructive">{save.error.message}</p>;
-
-  if (editing) {
-    return (
-      <form
-        className="flex items-center gap-1"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate(parse(v.type, text));
-        }}
-      >
-        <Input value={text} onChange={(e) => setText(e.target.value)} className="h-7 w-20" autoFocus onKeyDown={(e) => e.key === "Escape" && setEditing(false)} />
-        <Button type="submit" size="sm" variant="outline" disabled={save.isPending}>
-          {t("tree.save")}
-        </Button>
-        {error}
-      </form>
-    );
-  }
-  if (v.type === "bool") {
-    return (
-      <span className="inline-flex items-center gap-1" title={from}>
-        <Switch size="sm" checked={Boolean(v.value)} disabled={!isAdmin || save.isPending} onCheckedChange={(on) => save.mutate(on)} aria-label={t("config.enabled")} />
-        {isAdmin && here && <Reset onClick={() => save.mutate(null)} />}
-        {error}
-      </span>
-    );
-  }
-  const change = () => {
-    if (v.type === "level") save.mutate(v.value === "crit" ? "warn" : "crit");
-    else {
-      setText(show(v.value));
-      setEditing(true);
-    }
-  };
-  return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap">
-      {isAdmin ? (
-        <button type="button" className={`tabular-nums underline-offset-4 hover:underline ${here ? "font-semibold" : ""}`} title={from} onClick={change} disabled={save.isPending}>
-          {label}
-        </button>
-      ) : (
-        <span className={`tabular-nums ${here ? "font-semibold" : ""}`} title={from}>
-          {label}
-        </span>
-      )}
-      {isAdmin && here && <Reset onClick={() => save.mutate(null)} />}
-      {error}
-    </span>
   );
 }
 
