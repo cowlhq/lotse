@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-var href = regexp.MustCompile(`(?:href|src)="([^"]*)"`)
+var href = regexp.MustCompile(`(?:href|src|srcset)="([^"]*)"`)
 
 // The site builds from the repository; every page can serve go get, no
 // link is left pointing at a Markdown file, and every link within the site
@@ -48,8 +48,8 @@ func TestBuild(t *testing.T) {
 			if strings.Contains(link, ".md") && !strings.HasPrefix(link, "https://github.com/") {
 				t.Errorf("%s links to %s", rel, link)
 			}
-			if !strings.HasPrefix(link, "/") || strings.HasPrefix(link, "/img/") {
-				continue // the screenshots come from their own step
+			if !strings.HasPrefix(link, "/") {
+				continue
 			}
 			target := filepath.Join(out, filepath.FromSlash(strings.SplitN(link, "#", 2)[0]))
 			if strings.HasSuffix(link, "/") || !strings.Contains(filepath.Base(target), ".") {
