@@ -985,5 +985,11 @@
   "setting": {
     "allProbes": "All probes",
     "remove": "Remove {{name}}"
+  },
+  "move": {
+    "here": "Drop to move here",
+    "empty": "No hosts yet. Drop one here.",
+    "moved": "{{name}} moved to {{to}}.",
+    "undo": "Undo"
   }
 }
