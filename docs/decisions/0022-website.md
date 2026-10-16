@@ -19,6 +19,10 @@ tag and the install script.
   pages beside `site/` when the site is published: the guides, the design,
   and every decision. Links between the files become links between the
   pages; links to anything else in the repository go to GitHub.
+- The logo, the favicons and the image shown with links to the site come
+  from lotse's brand kit: the pilot flag, white and red, and the name. The
+  site uses the flag's red sparingly, for accents. The interface keeps it
+  to the logo, because there red means critical.
 - The screenshots on the landing page come from a hub with made-up
   customers, machines and checks, never from real data.
 - GitHub Pages publishes it, as before, whenever `site/`, `docs/` or the
