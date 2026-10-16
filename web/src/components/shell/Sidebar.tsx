@@ -6,6 +6,7 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { listScopes, logout } from "@/api";
 import { useAlerts } from "@/components/Alerts";
+import { Logo } from "@/components/Logo";
 import { AddMenu } from "@/components/shell/AddMenu";
 import { StatusIcon } from "@/components/shell/Dot";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -137,12 +138,11 @@ function UserMenu() {
   );
 }
 
-// Wordmark is lotse's name, set plainly.
-export function Wordmark() {
+// Wordmark is lotse's logo, leading home.
+export function Wordmark({ className = "h-[22px]" }: { className?: string }) {
   return (
-    <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight text-foreground">
-      <span className="flex size-5 items-center justify-center rounded-[5px] bg-foreground text-[11px] font-bold text-background">l</span>
-      lotse
+    <Link to="/" className="flex items-center text-foreground">
+      <Logo className={`w-auto ${className}`} />
     </Link>
   );
 }
