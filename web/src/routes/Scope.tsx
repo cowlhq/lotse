@@ -161,7 +161,7 @@ export function Scope({ id }: { id: number }) {
           <AlertHistory subject={subject} always />
       </TabsContent>
       <TabsContent value="notifications">
-          <Channels scopeID={id} />
+          <Channels scopeID={id} subject={subject} name={scope.data.name} />
       </TabsContent>
       <TabsContent value="maintenance">
           <Maintenance subject={subject} />

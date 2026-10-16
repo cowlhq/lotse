@@ -520,9 +520,7 @@
   },
   "channel": {
     "title": "Channels",
-    "description": "Where alerts go. A channel set up here can be used here and everywhere below; the setting Channels says which ones alerts go to.",
     "none": "No channels yet.",
-    "above": "From above, usable here:",
     "type": {
       "email": "Email",
       "googlechat": "Google Chat",
@@ -858,5 +856,26 @@
     "save": "Save",
     "saved": "Saved.",
     "passwordChanged": "Password changed. Other sessions are logged out."
+  },
+  "route": {
+    "title": "Where alerts go",
+    "everything": "everything",
+    "to": "Alerts for {{who}} go to {{list}}.",
+    "nowhere": "Alerts for {{who}} go nowhere yet.",
+    "nowhereHint": "Switch on a channel below, and the next alert reaches it.",
+    "nowhereAdd": "Add a channel, such as an email address or a Slack channel.",
+    "setHere": "Set here. What is set below wins there.",
+    "inherited": "As set for {{from}}. Switching one here sets it here instead.",
+    "inherit": "As above",
+    "from": "from {{from}}",
+    "switch": "Alerts to {{name}}",
+    "missing": "There is no channel {{key}} here or above, so alerts for it go nowhere.",
+    "drop": "Remove",
+    "repeat": "Remind",
+    "repeatHint": "Sends an alert again until someone acknowledges it.",
+    "never": "never",
+    "newSwitch": "Send alerts for {{who}} here",
+    "newSwitchHint": "Besides where they go now. A switch on the list changes it later.",
+    "inheritedGlobal": "As in the global settings. Switching one here sets it here instead."
   }
 }

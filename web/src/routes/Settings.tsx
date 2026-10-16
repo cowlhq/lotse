@@ -72,7 +72,7 @@ export function Settings({ tab }: { tab?: string }) {
             </TabsContent>
             <TabsContent value="notifications" className="space-y-6">
               <MailServer />
-              <Channels scopeID={1} />
+              <Channels scopeID={1} subject="global:1" />
             </TabsContent>
             <TabsContent value="rules">
               <Config subject="global:1" part="rules" />

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { listChannels, type Check as CheckData, type HostSummary, type Scope } from "@/api";
+import { getConfig, type Check as CheckData, type HostSummary, type Scope } from "@/api";
 import { AddMenu } from "@/components/shell/AddMenu";
 import { Button } from "@/components/ui/button";
 
@@ -11,15 +11,18 @@ import { Button } from "@/components/ui/button";
 // ticks itself off when it is done; the list can be put away.
 export function GettingStarted({ scopes, hosts, checks, onHide }: { scopes: Scope[]; hosts: HostSummary[]; checks: CheckData[]; onHide: () => void }) {
   const { t } = useTranslation();
-  const channels = useQuery({ queryKey: ["channels", 1], queryFn: () => listChannels(1) });
+  // Alerts reach someone only once a channel is switched on, not when one
+  // exists.
+  const config = useQuery({ queryKey: ["config", "global:1"], queryFn: () => getConfig("global:1") });
+  const routed = (config.data?.find((v) => v.key === "notify.channels")?.value as string[] | undefined) ?? [];
   const steps = [
     { key: "environment", done: scopes.some((s) => s.kind === "environment") },
     { key: "host", done: hosts.length > 0 },
     { key: "check", done: checks.length > 0 },
-    { key: "notify", done: (channels.data?.length ?? 0) > 0 },
+    { key: "notify", done: routed.length > 0 },
   ];
   const left = steps.filter((s) => !s.done).length;
-  if (left === 0 || channels.isPending) return null;
+  if (left === 0 || config.isPending) return null;
   const next = steps.find((s) => !s.done)!.key;
   return (
     <section className="overflow-hidden rounded-lg border bg-card">
