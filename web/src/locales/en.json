@@ -432,7 +432,7 @@
     "addHint": "Run this on a machine in another place. It needs no ports and only reaches out to the hub.",
     "name": "Name",
     "location": "Location",
-    "tokenHint": "The token is the hub's probe token; it is needed once per probe. A check runs on all probes unless its setting check.probes says otherwise.",
+    "tokenHint": "The token is the hub's probe token; it is needed once per probe. A check runs on all probes, unless its setting Probes names some.",
     "nameFirst": "Give the probe a name, and the command to run appears here.",
     "systemdHint": "Installs lotse to /usr/local/bin and starts it as the service lotse-probe, as user lotse. Checks the download's checksum. Run it again to update the probe.",
     "dockerHint": "Runs the probe as a container. Pull the image and run it again to update the probe.",
@@ -516,7 +516,7 @@
   },
   "channel": {
     "title": "Channels",
-    "description": "Where alerts go. Channels defined here can be used here and below, by their key, in notify.channels.",
+    "description": "Where alerts go. A channel set up here can be used here and everywhere below; the setting Channels says which ones alerts go to.",
     "none": "No channels yet.",
     "above": "From above, usable here:",
     "type": {

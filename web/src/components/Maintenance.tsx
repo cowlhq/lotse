@@ -5,8 +5,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createMaintenance, deleteMaintenance, listMaintenance, type Maintenance as Window } from "@/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Panel } from "@/components/shell/Panel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -35,55 +35,59 @@ export function Maintenance({ subject }: { subject: string }) {
   const own = (w: Window) => `${w.subject_kind}:${w.subject_id}` === subject;
   if (!isAdmin && list.length === 0) return null;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("maintenance.title")}</CardTitle>
-        <CardDescription>{t("maintenance.description")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        {list.length === 0 && <p className="text-muted-foreground">{t("maintenance.none")}</p>}
-        <ul className="divide-y">
-          {list.map((w) => (
-            <li key={w.id} className="flex items-center justify-between gap-4 py-2">
-              <span className="min-w-0">
-                {w.active && (
-                  <span className="mr-2 inline-flex items-center gap-1 font-medium">
-                    <Wrench className="size-3.5" />
-                    {t("maintenance.now")}
-                  </span>
-                )}
-                {w.schedule ? (
-                  <code>{w.schedule}</code>
-                ) : (
-                  <span className="tabular-nums">
-                    {dateTime(w.starts_at!)} – {dateTime(w.ends_at!)}
-                  </span>
-                )}
-                {w.reason && <span className="ml-2">{w.reason}</span>}
-                <span className="ml-2 text-muted-foreground">
-                  {!own(w) && <>{t("maintenance.on", { path: w.subject_path })} · </>}
-                  {w.created_by}
+    <Panel
+      title={t("maintenance.title")}
+      count={list.length}
+      right={
+        isAdmin &&
+        !adding && (
+          <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+            <Plus className="size-4" />
+            {t("maintenance.add")}
+          </Button>
+        )
+      }
+      flush
+    >
+      <p className="border-b px-4 py-3 text-muted-foreground">{t("maintenance.description")}</p>
+      {adding && (
+        <div className="border-b px-4 py-3">
+          <Add subject={subject} onDone={() => setAdding(false)} />
+        </div>
+      )}
+      {list.length === 0 && <p className="px-4 py-8 text-center text-muted-foreground">{t("maintenance.none")}</p>}
+      <ul className="divide-y">
+        {list.map((w) => (
+          <li key={w.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <span className="min-w-0">
+              {w.active && (
+                <span className="mr-2 inline-flex items-center gap-1 font-medium">
+                  <Wrench className="size-3.5" />
+                  {t("maintenance.now")}
                 </span>
-              </span>
-              {isAdmin && own(w) && (
-                <Button variant="ghost" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(w.id)}>
-                  {w.active && !w.schedule ? t("maintenance.end") : t("maintenance.remove")}
-                </Button>
               )}
-            </li>
-          ))}
-        </ul>
-        {isAdmin &&
-          (adding ? (
-            <Add subject={subject} onDone={() => setAdding(false)} />
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
-              <Plus className="size-4" />
-              {t("maintenance.add")}
-            </Button>
-          ))}
-      </CardContent>
-    </Card>
+              {w.schedule ? (
+                <code>{w.schedule}</code>
+              ) : (
+                <span className="tabular-nums">
+                  {dateTime(w.starts_at!)} – {dateTime(w.ends_at!)}
+                </span>
+              )}
+              {w.reason && <span className="ml-2">{w.reason}</span>}
+              <span className="ml-2 text-muted-foreground">
+                {!own(w) && <>{t("maintenance.on", { path: w.subject_path })} · </>}
+                {w.created_by}
+              </span>
+            </span>
+            {isAdmin && own(w) && (
+              <Button variant="ghost" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(w.id)}>
+                {w.active && !w.schedule ? t("maintenance.end") : t("maintenance.remove")}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Panel>
   );
 }
 
