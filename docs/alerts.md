@@ -57,12 +57,17 @@ certificate that expires, a heartbeat that did not come. To be told:
    - **Pushover**: your user key and an application's token. Critical
      alerts sound even in quiet hours.
    - **Webhook**: any address, which gets the alerts as JSON.
-3. Set **`notify.channels`** to the channels' keys, where alerts should go
-   to them: globally for all, on a customer for theirs. The nearest setting
-   wins, so customer X's alerts can go to X's space and nowhere else.
+3. **Switch on** the channels that should get the alerts, under
+   **Where alerts go**: in Settings → Notifications for everything, on a
+   customer, project or environment for what is in it. A new channel gets
+   them right away, unless you switch that off. What is switched on nearest
+   wins, so customer X's alerts can go to X's space and nowhere else;
+   **As above** goes back to what applies further up. In a `lotse.yaml` this
+   is the setting `notify.channels`, a list of the channels' keys.
 
 Alerts that come within 30 seconds of each other arrive as one message.
-`notify.repeat` sends a firing alert again, until someone acknowledges it.
+**Remind** (`notify.repeat`) sends a firing alert again, until someone
+acknowledges it.
 A **maintenance window**, on any object or scope, holds alerts back while it
 lasts; what still fires afterwards is sent then.
 

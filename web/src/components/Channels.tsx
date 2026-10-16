@@ -1,9 +1,9 @@
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Send, Trash2 } from "lucide-react";
+import { BellRing, Hash, Mail, MessageSquare, MessagesSquare, Pencil, Plus, Send, Smartphone, Trash2, TriangleAlert, Undo2, Webhook } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { createChannel, deleteChannel, listChannels, testChannel, updateChannel, type Channel, type SecretInput, type TestResult } from "@/api";
+import { createChannel, deleteChannel, getConfig, listChannels, setSetting, testChannel, updateChannel, type Channel, type ConfigValue, type SecretInput, type TestResult } from "@/api";
 import { emptySecret, SecretField, secretInput, type SecretDraft } from "@/components/Secret";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Panel } from "@/components/shell/Panel";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { slugify } from "@/lib/slug";
 import { useMe } from "@/lib/useMe";
@@ -29,42 +30,143 @@ const hookPlaceholder: Partial<Record<Type, string>> = {
 };
 
 // Channels are where alerts go, defined on a scope: those of this scope,
-// and those from above that can be used here. notify.channels names them.
-export function Channels({ scopeID }: { scopeID: number }) {
-  const { t } = useTranslation();
+// and those from above that can be used here. A switch on each says whether
+// the alerts of this scope go to it, which is the setting notify.channels:
+// the nearest that sets it wins, so a customer's alerts can go to its own
+// channel and nowhere else.
+export function Channels({ scopeID, subject, name }: { scopeID: number; subject: string; name?: string }) {
+  const { t, i18n } = useTranslation();
   const { isAdmin } = useMe();
   const channels = useQuery({ queryKey: ["channels", scopeID], queryFn: () => listChannels(scopeID) });
-  const here = (channels.data ?? []).filter((c) => c.scope_id === scopeID);
-  const above = (channels.data ?? []).filter((c) => c.scope_id !== scopeID);
+  const config = useQuery({ queryKey: ["config", subject], queryFn: () => getConfig(subject) });
+  const route = config.data?.find((v) => v.key === "notify.channels");
+  const repeat = config.data?.find((v) => v.key === "notify.repeat");
+  const on = (route?.value as string[] | undefined) ?? [];
+  const all = channels.data ?? [];
+  // The nearest channel of a key is the one alerts reach; one further up
+  // with the same key is hidden by it.
+  const usable = all
+    .filter((c, i) => all.findIndex((d) => d.key === c.key) === i || c.scope_id === scopeID)
+    .sort((a, b) => Number(b.scope_id === scopeID) - Number(a.scope_id === scopeID));
+  const missing = on.filter((k) => !usable.some((c) => c.key === k));
+  const save = useSetting(subject, "notify.channels");
+  const set = (keys: string[]) => save.mutate(keys);
+  const here = route?.from !== undefined && `${route.from.kind}:${route.from.id}` === subject;
+  const global = subject.startsWith("global:");
+  const who = name ?? t("route.everything");
+  const names = on.map((k) => usable.find((c) => c.key === k)?.name ?? k);
+
   return (
-    <Panel title={t("channel.title")} count={here.length} right={isAdmin && <ChannelDialog scopeID={scopeID} />} flush>
-      <p className="border-b px-4 py-3 text-muted-foreground">{t("channel.description")}</p>
-      {here.length === 0 && above.length === 0 && <p className="px-4 py-8 text-center text-muted-foreground">{t("channel.none")}</p>}
-      {here.length > 0 && (
-        <ul className="divide-y">
-          {here.map((c) => (
-            <ChannelRow key={c.id} channel={c} />
-          ))}
-        </ul>
-      )}
-      {above.length > 0 && (
-        <div className="space-y-1 border-t px-4 py-3">
-          <p className="text-mini text-muted-foreground">{t("channel.above")}</p>
-          <ul className="space-y-1">
-            {above.map((c) => (
-              <li key={c.id} className="text-muted-foreground">
-                <code className="text-foreground">{c.key}</code> · {c.name} · {t(`channel.type.${c.type}`)} ·{" "}
-                {c.scope_path || t("config.kinds.global")}
-              </li>
-            ))}
-          </ul>
+    <Panel title={t("route.title")} count={usable.length} right={isAdmin && <ChannelDialog scopeID={scopeID} subject={subject} routed={on} who={who} />} flush>
+      {route && (
+        <div className={`flex items-start gap-3 border-b px-4 py-3 ${on.length === 0 ? "bg-warn/10" : ""}`}>
+          {on.length === 0 ? <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" /> : <Send className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
+          <div className="min-w-0 flex-1">
+            <p className={on.length === 0 ? "font-medium" : undefined}>
+              {on.length === 0 ? t("route.nowhere", { who }) : t("route.to", { who, list: new Intl.ListFormat(i18n.language, { type: "conjunction" }).format(names) })}
+            </p>
+            <p className="text-mini text-muted-foreground">
+              {on.length === 0 ? t(usable.length ? "route.nowhereHint" : "route.nowhereAdd") : here || global ? t("route.setHere") : !route.from || route.from.kind === "global" ? t("route.inheritedGlobal") : t("route.inherited", { from: route.from.name || route.from.path })}
+            </p>
+          </div>
+          {isAdmin && here && !global && (
+            <Button variant="ghost" size="sm" onClick={() => save.mutate(null)} disabled={save.isPending}>
+              <Undo2 className="size-3.5" />
+              {t("route.inherit")}
+            </Button>
+          )}
         </div>
       )}
+      {usable.length === 0 && <p className="px-4 py-8 text-center text-muted-foreground">{t("channel.none")}</p>}
+      <ul className="divide-y">
+        {usable.map((c) => (
+          <ChannelRow
+            key={c.id}
+            channel={c}
+            scopeID={scopeID}
+            subject={subject}
+            on={on.includes(c.key)}
+            onChange={(v) => set(v ? [...on, c.key] : on.filter((k) => k !== c.key))}
+            busy={save.isPending}
+          />
+        ))}
+        {missing.map((k) => (
+          <li key={k} className="flex items-center gap-3 px-4 py-3">
+            <TriangleAlert className="size-4 shrink-0 text-warn" />
+            <p className="min-w-0 flex-1">{t("route.missing", { key: k })}</p>
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={() => set(on.filter((x) => x !== k))}>
+                {t("route.drop")}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {repeat && <Repeat subject={subject} value={repeat} />}
+      {save.isError && <p className="border-t px-4 py-2 text-xs text-destructive">{save.error.message}</p>}
     </Panel>
   );
 }
 
-function ChannelRow({ channel: c }: { channel: Channel }) {
+// repeats are the choices for reminding of an alert nobody acknowledged.
+const repeats = ["0s", "30m", "1h", "4h", "12h", "24h"];
+
+// Repeat is notify.repeat: how often an alert that still fires is sent
+// again until someone acknowledges it.
+function Repeat({ subject, value: v }: { subject: string; value: ConfigValue }) {
+  const { t } = useTranslation();
+  const { isAdmin } = useMe();
+  const save = useSetting(subject, "notify.repeat");
+  const current = String(v.value);
+  const here = v.from !== undefined && `${v.from.kind}:${v.from.id}` === subject;
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t px-4 py-3">
+      <div className="min-w-0 flex-1 basis-56">
+        <p className="font-medium">{t("route.repeat")}</p>
+        <p className="text-mini text-muted-foreground">{t("route.repeatHint")}</p>
+      </div>
+      <span className="flex items-center gap-1">
+        <ToggleGroup value={[repeats.includes(current) ? current : ""]} onValueChange={(x: string[]) => x[0] && save.mutate(x[0])} variant="segmented" size="sm" disabled={!isAdmin || save.isPending}>
+          {repeats.map((r) => (
+            <ToggleGroupItem key={r} value={r} className="text-xs">
+              {r === "0s" ? t("route.never") : r}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        {isAdmin && here && !subject.startsWith("global:") && (
+          <Button variant="ghost" size="icon-sm" aria-label={t("config.reset")} title={t("config.reset")} onClick={() => save.mutate(null)}>
+            <Undo2 className="size-3.5" />
+          </Button>
+        )}
+      </span>
+    </div>
+  );
+}
+
+// useSetting saves a setting, or unsets it with null.
+function useSetting(subject: string, key: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (value: unknown) => setSetting(subject, key, value),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["config"] });
+      client.invalidateQueries({ queryKey: ["changes"] });
+    },
+  });
+}
+
+const typeIcon: Record<Type, typeof Mail> = {
+  email: Mail,
+  slack: Hash,
+  discord: MessagesSquare,
+  telegram: Send,
+  ntfy: BellRing,
+  pushover: Smartphone,
+  googlechat: MessageSquare,
+  webhook: Webhook,
+};
+
+function ChannelRow({ channel: c, scopeID, subject, on, onChange, busy }: { channel: Channel; scopeID: number; subject: string; on: boolean; onChange: (on: boolean) => void; busy: boolean }) {
   const { t } = useTranslation();
   const { isAdmin } = useMe();
   const client = useQueryClient();
@@ -75,33 +177,45 @@ function ChannelRow({ channel: c }: { channel: Channel }) {
     onSuccess: () => (client.invalidateQueries({ queryKey: ["channels"] }), toast.success(t("channel.deleted"))),
   });
   const spec = c.spec as { to?: string[]; smtp?: { host: string }; server?: string; chat_id?: string };
+  const Icon = typeIcon[c.type];
+  const mine = c.scope_id === scopeID;
   return (
-    <li className="space-y-1 px-4 py-3">
-      <div className="flex items-center justify-between gap-4">
-        <span className="min-w-0">
-          <code>{c.key}</code> <span className="font-medium">{c.name}</span>
-          <span className="ml-2 text-muted-foreground">
+    <li className={`space-y-1 px-4 py-3 ${on ? "" : "text-muted-foreground"}`}>
+      <div className="flex items-center gap-3">
+        <span className={`flex size-8 shrink-0 items-center justify-center rounded-md border ${on ? "bg-background text-foreground" : "bg-muted/60"}`}>
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate">
+            <span className={on ? "font-medium text-foreground" : "font-medium"}>{c.name}</span>
+            <span className="ml-2 font-mono text-mini text-muted-foreground/80">{c.key}</span>
+          </p>
+          <p className="truncate text-mini text-muted-foreground">
             {t(`channel.type.${c.type}`)}
             {spec.to && <> · {spec.to.join(", ")}</>}
             {spec.smtp && <> · {spec.smtp.host}</>}
             {spec.server && <> · {spec.server}</>}
-          </span>
-        </span>
+            {!mine && <> · {t("route.from", { from: c.scope_path || t("config.kinds.global") })}</>}
+          </p>
+        </div>
         {isAdmin && (
           <span className="flex shrink-0 items-center gap-1">
             <Button variant="ghost" size="sm" disabled={test.isPending} onClick={() => (setResult(null), test.mutate())}>
               <Send className="size-3.5" />
               {t("channel.test")}
             </Button>
-            <ChannelDialog scopeID={c.scope_id} channel={c} />
-            <Button variant="ghost" size="icon-sm" aria-label={t("channel.delete")} onClick={() => confirm(t("channel.deleteConfirm", { key: c.key })) && remove.mutate()}>
-              <Trash2 className="size-3.5" />
-            </Button>
+            {mine && <ChannelDialog scopeID={c.scope_id} subject={subject} channel={c} />}
+            {mine && (
+              <Button variant="ghost" size="icon-sm" aria-label={t("channel.delete")} onClick={() => confirm(t("channel.deleteConfirm", { key: c.key })) && remove.mutate()}>
+                <Trash2 className="size-3.5" />
+              </Button>
+            )}
           </span>
         )}
+        <Switch checked={on} disabled={!isAdmin || busy} onCheckedChange={onChange} aria-label={t("route.switch", { name: c.name })} />
       </div>
       {result && (
-        <p className={result.sent ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
+        <p className={result.sent ? "pl-11 text-xs text-muted-foreground" : "pl-11 text-xs text-destructive"}>
           {result.sent ? t("channel.testSent") : t("channel.testFailed", { error: result.error })}
         </p>
       )}
@@ -109,7 +223,7 @@ function ChannelRow({ channel: c }: { channel: Channel }) {
   );
 }
 
-function ChannelDialog({ scopeID, channel }: { scopeID: number; channel?: Channel }) {
+function ChannelDialog({ scopeID, subject, routed, who, channel }: { scopeID: number; subject: string; routed?: string[]; who?: string; channel?: Channel }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
@@ -124,14 +238,14 @@ function ChannelDialog({ scopeID, channel }: { scopeID: number; channel?: Channe
           {t("channel.add")}
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-lg">{open && <ChannelForm scopeID={scopeID} channel={channel} onDone={() => setOpen(false)} />}</DialogContent>
+      <DialogContent className="sm:max-w-lg">{open && <ChannelForm scopeID={scopeID} subject={subject} routed={routed} who={who} channel={channel} onDone={() => setOpen(false)} />}</DialogContent>
     </Dialog>
   );
 }
 
 type SMTPDraft = { host: string; port: string; username: string; from: string; tls: "starttls" | "tls" | "none" };
 
-function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: Channel; onDone: () => void }) {
+function ChannelForm({ scopeID, subject, routed, who, channel, onDone }: { scopeID: number; subject: string; routed?: string[]; who?: string; channel?: Channel; onDone: () => void }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   const spec = (channel?.spec ?? {}) as { to?: string[]; smtp?: { host: string; port: number; username?: string; from: string; tls: SMTPDraft["tls"] }; server?: string; chat_id?: string };
@@ -149,12 +263,14 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
     from: spec.smtp?.from ?? "",
     tls: spec.smtp?.tls ?? "starttls",
   });
+  // A new channel gets the alerts from here, besides those it got so far.
+  const [route, setRoute] = useState(true);
   const [secrets, setSecrets] = useState<Record<string, SecretDraft>>({});
   const draft = (field: string) => secrets[field] ?? emptySecret;
   const setDraft = (field: string) => (d: SecretDraft) => setSecrets({ ...secrets, [field]: d });
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const out: Record<string, unknown> = {};
       if (type === "email") {
         out.to = to.split(/[\s,;]+/).filter(Boolean);
@@ -169,12 +285,14 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
       }
       if (type === "email" && !ownServer && channel?.secrets.password?.set) sec.password = {};
       const n = name.trim();
-      return channel
-        ? updateChannel(channel.id, { name: n, spec: out, secrets: sec })
-        : createChannel({ scope_id: scopeID, key: key.trim() || slugify(n), name: n, type, spec: out, secrets: sec });
+      if (channel) return updateChannel(channel.id, { name: n, spec: out, secrets: sec });
+      const c = await createChannel({ scope_id: scopeID, key: key.trim() || slugify(n), name: n, type, spec: out, secrets: sec });
+      if (route && routed && !routed.includes(c.key)) await setSetting(subject, "notify.channels", [...routed, c.key]);
+      return c;
     },
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: ["channels"] });
+      client.invalidateQueries({ queryKey: ["config"] });
       client.invalidateQueries({ queryKey: ["changes"] });
       toast.success(t("channel.saved"));
       onDone();
@@ -282,6 +400,15 @@ function ChannelForm({ scopeID, channel, onDone }: { scopeID: number; channel?: 
       )}
       {type === "webhook" && (
         <SecretField id="channel-signing" label={t("channel.signingKey")} hint={t("channel.signingHint")} info={channel?.secrets.signing_key} draft={draft("signing_key")} onChange={setDraft("signing_key")} placeholder={t("check.optional")} />
+      )}
+      {!channel && routed && (
+        <div className="flex items-start justify-between gap-4 rounded-lg border px-3 py-2.5">
+          <div className="space-y-0.5">
+            <Label htmlFor="channel-route">{t("route.newSwitch", { who })}</Label>
+            <p className="text-xs text-muted-foreground">{t("route.newSwitchHint")}</p>
+          </div>
+          <Switch id="channel-route" checked={route} onCheckedChange={setRoute} />
+        </div>
       )}
       {save.isError && (
         <Alert variant="destructive">

@@ -19,7 +19,9 @@ export function Config({ subject, part }: { subject: string; part?: "general" | 
   const { t } = useTranslation();
   const values = useQuery({ queryKey: ["config", subject], queryFn: () => getConfig(subject) });
   const all = values.data ?? [];
-  const general = all.filter((v) => !v.key.startsWith("rules."));
+  // A scope's notifications have a tab of their own, with its channels.
+  const scope = /^(global|customer|project|environment):/.test(subject);
+  const general = all.filter((v) => !v.key.startsWith("rules.") && !(scope && v.key.startsWith("notify.")));
   const rules = new Map<string, Record<string, ConfigValue>>();
   for (const v of all) {
     if (!v.key.startsWith("rules.")) continue;
