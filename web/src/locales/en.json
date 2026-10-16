@@ -824,20 +824,49 @@
     "hide": "Hide",
     "environment": {
       "title": "Create an environment",
-      "hint": "Hosts and checks belong to one, such as a shop's production: customer, project, environment."
+      "hint": "Hosts and checks belong to one, such as a shop's production: customer, project, environment.",
+      "heading": "Who is it for?",
+      "text": "Hosts and checks belong to an environment of a project of a customer, such as your own company's website in production. More come later.",
+      "existing": "There are environments already. Go on with one of them:"
     },
     "host": {
       "title": "Add a host",
-      "hint": "One line on the machine; it appears here within seconds, with its containers."
+      "hint": "One line on the machine; it appears here within seconds, with its containers.",
+      "heading": "Add a machine",
+      "text": "Run one line on a server. The agent connects on its own, and the machine and its containers show up here within seconds."
     },
     "check": {
       "title": "Add a check",
-      "hint": "A website, a port, or a heartbeat from a backup job."
+      "hint": "A website, a port, or a heartbeat from a backup job.",
+      "heading": "Watch something from outside",
+      "text": "A website, a port, or a backup job that calls in. Test it before you add it."
     },
     "notify": {
       "title": "Decide where alerts go",
       "hint": "Email, Slack, Telegram, ntfy or another channel, so that you hear about problems.",
-      "action": "Set up notifications"
+      "action": "Set up notifications",
+      "heading": "Where should alerts go?",
+      "text": "Add a channel and switch it on: email, Slack, Telegram, ntfy or another. Test sends a message right away."
+    },
+    "guide": "Step by step",
+    "next": "Next",
+    "skip": "Skip",
+    "later": "Finish later",
+    "finish": "Finish",
+    "toOverview": "To the overview",
+    "steps": {
+      "environment": "Customer",
+      "host": "Machine",
+      "check": "Check",
+      "notify": "Alerts",
+      "done": "Done"
+    },
+    "done": {
+      "heading": "lotse is watching.",
+      "headingPartly": "That is enough for a start.",
+      "text": "Machines report, checks run, and alerts reach you. Everything else is in the settings.",
+      "left": "Still to do, whenever you like: {{list}}. The overview keeps a list.",
+      "invite": "Invite colleagues"
     }
   },
   "token": {

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { FileDrop } from "@/components/ApplyFile";
+import { Start } from "@/routes/Start";
 import { createRootRoute, createRoute, createRouter, Navigate, Outlet, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
@@ -57,6 +58,8 @@ function Gate() {
     return path === "/login" ? <Outlet /> : <Navigate to="/login" search={{ next: path }} />;
   }
   if (path === "/login") return <Navigate to="/" />;
+  // The guide for a new hub has the whole page.
+  if (path === "/start") return <Outlet />;
   return <Layout />;
 }
 
@@ -159,6 +162,8 @@ const settings = createRoute({
   },
 });
 
+const start = createRoute({ getParentRoute: () => root, path: "/start", component: Start });
+
 const setup = createRoute({
   getParentRoute: () => root,
   path: "/setup",
@@ -185,7 +190,7 @@ const login = createRoute({
 
 const welcome = createRoute({ getParentRoute: () => root, path: "/welcome", component: Welcome });
 
-export const router = createRouter({ routeTree: root.addChildren([overview, hostList, checkList, host, container, scope, check, alerts, alertDetail, settings, setup, login, welcome]) });
+export const router = createRouter({ routeTree: root.addChildren([overview, hostList, checkList, host, container, scope, check, alerts, alertDetail, settings, start, setup, login, welcome]) });
 
 declare module "@tanstack/react-router" {
   interface Register {

@@ -28,7 +28,7 @@ export function AddAgent({ envID }: { envID: number }) {
   );
 }
 
-export function AgentBody({ envID, onDone }: { envID: number; onDone?: () => void }) {
+export function AgentBody({ envID, onDone, onArrived, bare = false }: { envID: number; onDone?: () => void; onArrived?: () => void; bare?: boolean }) {
   const { t } = useTranslation();
   const client = useQueryClient();
   // An environment gets its token the first time someone adds an agent.
@@ -49,7 +49,7 @@ export function AgentBody({ envID, onDone }: { envID: number; onDone?: () => voi
   const cmds = enrollment.data && installCommands(enrollment.data.hub, enrollment.data.token, dev);
   return (
     <div className="min-w-0 space-y-4">
-      <DialogHeader>
+      <DialogHeader className={bare ? "hidden" : undefined}>
         <DialogTitle>{t("agent.add")}</DialogTitle>
         <DialogDescription>{t("agent.addHint")}</DialogDescription>
       </DialogHeader>
@@ -79,7 +79,7 @@ export function AgentBody({ envID, onDone }: { envID: number; onDone?: () => voi
           )}
         </Tabs>
       )}
-      <Waiting envID={envID} onDone={onDone} />
+      <Waiting envID={envID} onDone={onDone} onArrived={onArrived} />
       <div className="flex items-center justify-between gap-4 text-mini text-muted-foreground">
         <span>{t("agent.tokenHint")}</span>
         <Button
@@ -98,7 +98,7 @@ export function AgentBody({ envID, onDone }: { envID: number; onDone?: () => voi
 
 // Waiting watches for the machine to arrive: a host in this environment
 // that was not there when the dialog opened.
-function Waiting({ envID, onDone }: { envID: number; onDone?: () => void }) {
+function Waiting({ envID, onDone, onArrived }: { envID: number; onDone?: () => void; onArrived?: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const hosts = useQuery({ queryKey: ["hosts"], queryFn: listHosts, refetchInterval: 3000 });
@@ -115,9 +115,15 @@ function Waiting({ envID, onDone }: { envID: number; onDone?: () => void }) {
       <div className="flex items-center gap-3 rounded-lg border px-4 py-3" style={{ borderColor: "color-mix(in oklch, var(--ok) 40%, transparent)" }}>
         <StatusIcon level="ok" size={18} />
         <p className="flex-1">{t("agent.arrived", { name: arrived.host.name })}</p>
-        <Button size="sm" onClick={() => (onDone?.(), navigate({ to: "/hosts/$id", params: { id: String(arrived.host.id) } }))}>
-          {t("agent.open", { name: arrived.host.name })}
-        </Button>
+        {onArrived ? (
+          <Button size="sm" onClick={onArrived}>
+            {t("start.next")}
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => (onDone?.(), navigate({ to: "/hosts/$id", params: { id: String(arrived.host.id) } }))}>
+            {t("agent.open", { name: arrived.host.name })}
+          </Button>
+        )}
       </div>
     );
   }

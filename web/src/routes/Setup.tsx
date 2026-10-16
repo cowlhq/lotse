@@ -115,7 +115,9 @@ function AdminStep({ token }: { token: string }) {
     mutationFn: () => setupAdmin(token, form),
     onSuccess: async () => {
       await client.invalidateQueries();
-      navigate({ to: "/" });
+      // A new hub goes on with the guide: a customer, a machine, a check,
+      // and where alerts go.
+      navigate({ to: "/start" });
     },
   });
   const field = (key: keyof typeof form, type = "text", autoComplete?: string) => (
