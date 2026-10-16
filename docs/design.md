@@ -53,12 +53,13 @@ internal/
 client/                 public Go client for the read API (Apache-2.0)
 api/openapi.yaml        the HTTP API, source for server types, client, UI types
 web/                    the SPA (Vite); builds into internal/ui/dist
-site/                   lotse.sh: index.html, 404.html, install
+site/                   lotse.sh: the landing page, style.css, fonts/, install;
+                        internal/sitegen adds the pages made from docs/
 deploy/
   Dockerfile            one image for every mode
   compose.yml           what the install script writes to /opt/lotse
   lotse-agent.service   systemd unit
-docs/                   design.md, decisions/, user documentation later
+docs/                   design.md, decisions/, the user documentation
 compose.yml             local development: hub, agent, Postgres profile, demo
 mise.toml, .goreleaser.yaml, release-please-config.json, .github/workflows/
 LICENSE (AGPL-3.0), client/LICENSE (Apache-2.0), NOTICE, README.md, AGENTS.md

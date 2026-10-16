@@ -1,11 +1,11 @@
-# lotse.sh is site/, published by GitHub Pages (decision 0012). Pages needs
-# the repository to be public, so until it is, this does nothing.
+# lotse.sh is site/ and the pages internal/sitegen makes from docs/,
+# published by GitHub Pages (decision 0022).
 name: site
 
 on:
   push:
     branches: [main]
-    paths: [site/**, .github/workflows/site.yml]
+    paths: [site/**, docs/**, internal/sitegen/**, go.mod, .github/workflows/site.yml]
   workflow_dispatch:
 
 permissions:
@@ -26,9 +26,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          install_args: go
+      - run: go run ./internal/sitegen -out _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

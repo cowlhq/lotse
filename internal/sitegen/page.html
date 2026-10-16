@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="go-import" content="lotse.sh git https://github.com/cowlhq/lotse">
+<meta name="go-source" content="lotse.sh https://github.com/cowlhq/lotse https://github.com/cowlhq/lotse/tree/main{/dir} https://github.com/cowlhq/lotse/blob/main{/dir}/{file}#L{line}">
+<title>{{.Title}} · lotse</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="logo" href="/"><span class="mark">l</span>lotse</a>
+    <nav>
+      <a href="/docs/" aria-current="page">Docs</a>
+      <a href="https://github.com/cowlhq/lotse/releases">Releases</a>
+      <a href="https://github.com/cowlhq/lotse">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+  <nav class="side" aria-label="Documentation">
+    {{- range .Nav}}
+    <p>{{.Name}}</p>
+    <ul>
+      {{- range .Pages}}
+      <li><a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a></li>
+      {{- end}}
+    </ul>
+    {{- end}}
+  </nav>
+  <main class="prose">
+    {{.Body}}
+    <p class="edit"><a href="{{.EditURL}}">Edit this page on GitHub</a></p>
+  </main>
+  {{- if .TOC}}
+  <nav class="toc" aria-label="On this page">
+    <p>On this page</p>
+    <ul>
+      {{- range .TOC}}
+      <li><a href="#{{.ID}}">{{.Text}}</a></li>
+      {{- end}}
+    </ul>
+  </nav>
+  {{- end}}
+</div>
+<footer class="foot">
+  <div class="foot-in">
+    <span>lotse is free software under the AGPL-3.0.</span>
+    <a href="https://github.com/cowlhq/lotse">GitHub</a>
+  </div>
+</footer>
+</body>
+</html>
