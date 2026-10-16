@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/cowlhq/lotse/compare/v0.1.18...v0.1.19) (2026-10-16)
+
+
+### Bug Fixes
+
+* **web:** axis labels at their size on high-density screens, and steps of 2.5 with their decimal ([1ba9adf](https://github.com/cowlhq/lotse/commit/1ba9adf95fb24f26ab9b9445cc38fba739e76ff3))
+
 ## [0.1.18](https://github.com/cowlhq/lotse/compare/v0.1.17...v0.1.18) (2026-10-16)
 
 
