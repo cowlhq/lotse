@@ -117,7 +117,9 @@ export function Chart({ data, lines, format, range, events = [], max, binary, he
           grid: { stroke: css(chrome.grid), width: 1 },
           ticks: { stroke: css(chrome.axis), width: 1 },
           values: timeTicks,
-          space: 64,
+          // Over more than a day, a tick may need its weekday too, which
+          // takes more room than a time alone.
+          space: (_u, _axis, min, max) => (max - min > day ? 110 : 64),
           size: 32,
         },
         {
