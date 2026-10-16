@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -138,7 +139,29 @@ func heartbeatState(c store.Check, now time.Time) (state, reason string) {
 		if c.LastPing == nil {
 			return "down", "no ping since it was created"
 		}
-		return "down", "no ping since " + time.Unix(last, 0).UTC().Format(time.RFC3339)
+		// How long, not since when: the hub does not know the reader's time
+		// zone, and a time in UTC reads wrong to most.
+		return "down", fmt.Sprintf("no ping for %s, expected every %s", roughly(now.Sub(time.Unix(last, 0))), s.Period)
 	}
 	return "", ""
+}
+
+// roughly writes a duration to the minute, in at most two parts: 25m,
+// 3h 10m, 2d 4h.
+func roughly(d time.Duration) string {
+	d = d.Round(time.Minute)
+	two := func(a int, au string, b int, bu string) string {
+		if b == 0 {
+			return fmt.Sprintf("%d%s", a, au)
+		}
+		return fmt.Sprintf("%d%s %d%s", a, au, b, bu)
+	}
+	switch {
+	case d < time.Hour:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 48*time.Hour:
+		return two(int(d/time.Hour), "h", int(d%time.Hour/time.Minute), "m")
+	default:
+		return two(int(d/(24*time.Hour)), "d", int(d%(24*time.Hour)/time.Hour), "h")
+	}
 }
