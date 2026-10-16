@@ -37,7 +37,10 @@ function settingValue(t: TFunction, key: string, v: unknown, unit: Alert["unit"]
 export function Alerts() {
   const { t } = useTranslation();
   const alerts = useAlerts();
-  const now = (alerts.data ?? []).filter((a) => isFiring(a) || a.pending);
+  const now = (alerts.data ?? []).filter(isFiring);
+  // Conditions that hold, but not yet for as long as their rule asks: they
+  // are not sent, and may never be.
+  const waiting = (alerts.data ?? []).filter((a) => !isFiring(a) && a.pending);
   return (
     <>
       <ObjectHeader icon={<StatusIcon level={now.some((a) => a.state === "crit") ? "crit" : now.some((a) => a.state === "warn") ? "warn" : "ok"} size={22} />} title={t("alert.title")} />
@@ -45,6 +48,11 @@ export function Alerts() {
         <Panel title={t("alert.firing")} count={now.length} flush>
           {now.length === 0 ? <p className="px-4 py-10 text-center text-muted-foreground">{t("alert.allGood")}</p> : <Incidents alerts={now} />}
         </Panel>
+        {waiting.length > 0 && (
+          <Panel title={t("alert.waiting")} count={waiting.length} right={<span className="text-mini">{t("alert.waitingHint")}</span>} flush>
+            <Incidents alerts={waiting} />
+          </Panel>
+        )}
         <AlertHistory always />
       </Page>
     </>

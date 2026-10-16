@@ -109,7 +109,7 @@ function Transition({ alert: a, showSubject }: { alert: Alert; showSubject: bool
         <span className="min-w-0 flex-1 sm:truncate">
           <span className="font-medium">{alertTitle(t, a)}</span>
           {showSubject && <span> {name}</span>}
-          {a.instance && <span className="font-mono text-mini"> {a.instance}</span>}
+          {a.instance && <code className="ml-1.5 rounded bg-muted px-1 py-px font-mono text-mini">{a.instance}</code>}
           <span className="block text-muted-foreground sm:inline">
             {/* The reason says the value in words; without one, the value. */}
             {a.reason ? <span className="sm:before:content-['_·_']">{a.reason}</span> : a.value != null && a.unit && <span className="sm:before:content-['_·_']">{value(a.value, a.unit)}</span>}
