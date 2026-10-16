@@ -1037,7 +1037,7 @@ export interface paths {
         delete: operations["withdrawInvitation"];
         options?: never;
         head?: never;
-        /** Change a user's name or role, or disable or enable them */
+        /** Change a user's name, role or access, or disable or enable them */
         patch: operations["updateUser"];
         trace?: never;
     };
@@ -1299,6 +1299,13 @@ export interface components {
             name: string;
             /** @enum {string} */
             role: "admin" | "viewer";
+            /**
+             * Format: int64
+             * @description The scope the user is kept to, with what is below it; 1 for the whole hub.
+             */
+            scope_id: number;
+            /** @description Its path; empty for the whole hub. */
+            scope_path: string;
             /**
              * @description Invited until they choose a password.
              * @enum {string}
@@ -3009,6 +3016,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
         };
     };
     listCheckResults: {
@@ -3234,6 +3242,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
         };
     };
     getContainer: {
@@ -3287,6 +3296,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
         };
     };
     listEvents: {
@@ -3912,6 +3922,11 @@ export interface operations {
                     name?: string;
                     /** @enum {string} */
                     role: "admin" | "viewer";
+                    /**
+                     * Format: int64
+                     * @description The customer, project or environment the user is kept to, with what is below it; 1, or none, for the whole hub.
+                     */
+                    scope_id?: number;
                 };
             };
         };
@@ -3976,6 +3991,11 @@ export interface operations {
                     name?: string;
                     /** @enum {string} */
                     role?: "admin" | "viewer";
+                    /**
+                     * Format: int64
+                     * @description The scope the user is kept to; 1 for the whole hub.
+                     */
+                    scope_id?: number;
                     disabled?: boolean;
                 };
             };

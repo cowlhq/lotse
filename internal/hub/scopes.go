@@ -25,12 +25,6 @@ func actor(ctx context.Context) store.Actor {
 	return store.Actor{Kind: "user", ID: &id, Name: u.Email, Via: "ui"}
 }
 
-// isAdmin says whether the logged-in user may change things.
-func isAdmin(ctx context.Context) bool {
-	u, ok := userOf(ctx)
-	return ok && u.Role == "admin"
-}
-
 const forbidden = "only an admin may do this"
 
 // toScope leaves out the global scope as a parent: to the API, customers
@@ -50,16 +44,25 @@ func (s apiServer) ListScopes(ctx context.Context, _ api.ListScopesRequestObject
 	if err != nil {
 		return nil, err
 	}
-	out := make(api.ListScopes200JSONResponse, len(list))
-	for i, x := range list {
-		out[i] = toScope(x)
+	t, err := s.treeFor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := api.ListScopes200JSONResponse{}
+	for _, x := range list {
+		if visible(ctx, t, x.Kind, x.ID) {
+			out = append(out, toScope(x))
+		}
 	}
 	return out, nil
 }
 
 func (s apiServer) GetScope(ctx context.Context, req api.GetScopeRequestObject) (api.GetScopeResponseObject, error) {
 	x, err := s.db.Scope(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) || x.Kind == "global" {
+	if err == nil {
+		err = s.see(ctx, x.Kind, x.ID)
+	}
+	if notFound(err) || x.Kind == "global" {
 		return api.GetScope404JSONResponse{Error: "no such scope"}, nil
 	}
 	if err != nil {
@@ -69,35 +72,53 @@ func (s apiServer) GetScope(ctx context.Context, req api.GetScopeRequestObject) 
 }
 
 func (s apiServer) RenameScope(ctx context.Context, req api.RenameScopeRequestObject) (api.RenameScopeResponseObject, error) {
-	if !isAdmin(ctx) {
+	x, err := s.db.Scope(ctx, req.Id)
+	ok := false
+	if err == nil {
+		ok, err = s.mayChange(ctx, x.Kind, x.ID)
+	}
+	if notFound(err) || x.Kind == "global" {
+		return api.RenameScope404JSONResponse{Error: "no such scope"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
 		return api.RenameScope403JSONResponse{Error: forbidden}, nil
 	}
 	name := strings.TrimSpace(req.Body.Name)
 	if msg := checkName(name); msg != "" {
 		return api.RenameScope400JSONResponse{Error: msg}, nil
 	}
-	if x, err := s.db.Scope(ctx, req.Id); errors.Is(err, store.ErrNotFound) || x.Kind == "global" {
-		return api.RenameScope404JSONResponse{Error: "no such scope"}, nil
-	}
 	if err := s.db.RenameScope(ctx, actor(ctx), req.Id, name); err != nil {
 		return nil, err
 	}
-	x, err := s.db.Scope(ctx, req.Id)
-	if err != nil {
+	if x, err = s.db.Scope(ctx, req.Id); err != nil {
 		return nil, err
 	}
 	return api.RenameScope200JSONResponse(toScope(x)), nil
 }
 
 func (s apiServer) DeleteScope(ctx context.Context, req api.DeleteScopeRequestObject) (api.DeleteScopeResponseObject, error) {
-	if !isAdmin(ctx) {
+	x, err := s.db.Scope(ctx, req.Id)
+	ok := false
+	if err == nil {
+		ok, err = s.mayChange(ctx, x.Kind, x.ID)
+	}
+	if notFound(err) {
+		return api.DeleteScope404JSONResponse{Error: "no such scope"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
 		return api.DeleteScope403JSONResponse{Error: forbidden}, nil
 	}
 	switch err := s.db.DeleteScope(ctx, actor(ctx), req.Id); {
 	case errors.Is(err, store.ErrNotFound):
 		return api.DeleteScope404JSONResponse{Error: "no such scope"}, nil
 	case errors.Is(err, store.ErrNotEmpty):
-		return api.DeleteScope409JSONResponse{Error: "it still has something in it"}, nil
+		return api.DeleteScope409JSONResponse{Error: "it still has something in it, or users are kept to it"}, nil
 	case err != nil:
 		return nil, err
 	}
@@ -105,7 +126,7 @@ func (s apiServer) DeleteScope(ctx context.Context, req api.DeleteScopeRequestOb
 }
 
 func (s apiServer) CreateEnvironment(ctx context.Context, req api.CreateEnvironmentRequestObject) (api.CreateEnvironmentResponseObject, error) {
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return api.CreateEnvironment403JSONResponse{Error: forbidden}, nil
 	}
 	var levels [3]store.ScopeName
@@ -119,6 +140,14 @@ func (s apiServer) CreateEnvironment(ctx context.Context, req api.CreateEnvironm
 		}
 		levels[i] = store.ScopeName{Slug: slug, Name: name}
 	}
+	// An admin of a scope adds only below it. Paths of scopes name them
+	// once, so here they can be compared.
+	if _, within := accessOf(ctx); within != "" {
+		path := levels[0].Slug + "/" + levels[1].Slug + "/" + levels[2].Slug
+		if path != within && !strings.HasPrefix(path, within+"/") {
+			return api.CreateEnvironment403JSONResponse{Error: "you can add environments only within " + within}, nil
+		}
+	}
 	env, err := s.db.EnsureEnvironment(ctx, actor(ctx), levels)
 	if err != nil {
 		return nil, err
@@ -127,17 +156,34 @@ func (s apiServer) CreateEnvironment(ctx context.Context, req api.CreateEnvironm
 }
 
 func (s apiServer) SetHostEnvironment(ctx context.Context, req api.SetHostEnvironmentRequestObject) (api.SetHostEnvironmentResponseObject, error) {
-	if !isAdmin(ctx) {
-		return api.SetHostEnvironment403JSONResponse{Error: forbidden}, nil
+	_, err := s.db.Host(ctx, req.Id)
+	ok := false
+	if err == nil {
+		ok, err = s.mayChange(ctx, "host", req.Id)
 	}
-	if _, err := s.db.Host(ctx, req.Id); errors.Is(err, store.ErrNotFound) {
+	if notFound(err) {
 		return api.SetHostEnvironment404JSONResponse{Error: "no such host"}, nil
 	}
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return api.SetHostEnvironment403JSONResponse{Error: forbidden}, nil
+	}
 	envID := req.Body.EnvironmentId
+	if envID == nil && restricted(ctx) {
+		return api.SetHostEnvironment400JSONResponse{Error: "a host stays in an environment you can see"}, nil
+	}
 	if envID != nil {
 		x, err := s.db.Scope(ctx, *envID)
-		if errors.Is(err, store.ErrNotFound) || x.Kind != "environment" {
+		if err == nil {
+			err = s.see(ctx, x.Kind, x.ID)
+		}
+		if notFound(err) || x.Kind != "environment" {
 			return api.SetHostEnvironment400JSONResponse{Error: "no such environment"}, nil
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 	if err := s.db.SetHostEnvironment(ctx, actor(ctx), req.Id, envID); err != nil {
@@ -151,6 +197,11 @@ func (s apiServer) ListChanges(ctx context.Context, req api.ListChangesRequestOb
 	id, err := strconv.ParseInt(idText, 10, 64)
 	if kind == "" || err != nil {
 		return api.ListChanges400JSONResponse{Error: "subject must be kind:id, such as host:3"}, nil
+	}
+	if err := s.see(ctx, kind, id); notFound(err) {
+		return api.ListChanges200JSONResponse{}, nil
+	} else if err != nil {
+		return nil, err
 	}
 	list, err := s.db.Changes(ctx, kind, id, 200)
 	if err != nil {

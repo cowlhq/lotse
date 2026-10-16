@@ -101,3 +101,37 @@ func TestUserLinks(t *testing.T) {
 		}
 	})
 }
+
+// An admin kept to a scope is not an admin of the whole hub, so the hub
+// does not rely on them; and a scope with users kept to it stays.
+func TestUserScope(t *testing.T) {
+	storetest.Each(t, func(t *testing.T, s *store.Store) {
+		ctx := t.Context()
+		sys := store.Actor{Kind: "system", Name: "test", Via: "system"}
+		env, _ := s.EnsureEnvironment(ctx, sys, [3]store.ScopeName{{Slug: "acme", Name: "ACME"}, {Slug: "web", Name: "Web"}, {Slug: "prod", Name: "Prod"}})
+		admin, _ := s.CreateUser(ctx, store.User{Email: "admin@example.com", PasswordHash: "h", Role: "admin", CreatedAt: 1})
+		scoped, err := s.CreateUser(ctx, store.User{Email: "a@acme.example", PasswordHash: "h", Role: "admin", CreatedAt: 1, ScopeID: env.ID})
+		if err != nil || scoped.ScopeID != env.ID || scoped.ScopePath != "acme/web/prod" || admin.ScopeID != store.GlobalScope {
+			t.Fatalf("users: %+v %+v, %v", admin, scoped, err)
+		}
+		yes := true
+		if _, err := s.UpdateUser(ctx, sys, admin.ID, store.UserChange{Disabled: &yes}, 5); err != store.ErrLastAdmin {
+			t.Errorf("disable the only admin of the whole hub: %v", err)
+		}
+		limit := env.ID
+		if _, err := s.UpdateUser(ctx, sys, admin.ID, store.UserChange{ScopeID: &limit}, 5); err != store.ErrLastAdmin {
+			t.Errorf("keep the only admin of the whole hub to a scope: %v", err)
+		}
+		if err := s.DeleteScope(ctx, sys, env.ID); err != store.ErrNotEmpty {
+			t.Errorf("delete an environment a user is kept to: %v", err)
+		}
+		global := int64(store.GlobalScope)
+		got, err := s.UpdateUser(ctx, sys, scoped.ID, store.UserChange{ScopeID: &global}, 5)
+		if err != nil || got.ScopeID != store.GlobalScope || got.ScopePath != "" {
+			t.Errorf("the whole hub: %+v, %v", got, err)
+		}
+		if _, _, err := s.SessionUser(ctx, "none", 1); err != store.ErrNotFound {
+			t.Errorf("no session: %v", err)
+		}
+	})
+}

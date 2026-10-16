@@ -226,6 +226,29 @@ func TestApplyToken(t *testing.T) {
 	}
 }
 
+// A token for a project applies its own export, which names the customer
+// above it; it may not rename that customer, nor refer to the hub's
+// environment for a secret.
+func TestApplyProjectToken(t *testing.T) {
+	h, server := newTestHub(t)
+	env := testEnvironment(t, h)
+	tok := token(t, server, "apply", *env.ParentID)
+	_, out := withToken(t, server, tok, "GET", "/api/v1/export", nil)
+	if status, _, body := applyYAML(t, server, tok, out, ""); status != http.StatusOK {
+		t.Fatalf("its own export: %d %s\n%s", status, body, out)
+	}
+	project, _ := h.db.Scope(t.Context(), *env.ParentID)
+	customer, _ := h.db.Scope(t.Context(), *project.ParentID)
+	for doc, want := range map[string]string{
+		"customers:\n  - key: " + customer.Slug + "\n    name: Renamed\n": "outside",
+		"customers:\n  - key: " + customer.Slug + "\n    projects:\n      - key: " + project.Slug + "\n        channels:\n          - key: chat\n            googlechat:\n              webhook: {env: OTHER_CHAT}\n": "whole hub",
+	} {
+		if status, _, body := applyYAML(t, server, tok, doc, ""); status != http.StatusBadRequest || !strings.Contains(body, want) {
+			t.Errorf("%q: %d %s", doc, status, body)
+		}
+	}
+}
+
 // A host named before its agent waits for it, with its settings; the
 // machine of that name becomes it when it enrolls.
 func TestApplyWaitingHost(t *testing.T) {

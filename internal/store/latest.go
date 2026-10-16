@@ -154,3 +154,13 @@ func (s *Store) CountEvents(ctx context.Context, kind string, since int64) (map[
 	}
 	return counts, rows.Err()
 }
+
+// FilesystemHost returns the host a filesystem is on.
+func (s *Store) FilesystemHost(ctx context.Context, id int64) (int64, error) {
+	var host int64
+	err := s.queryRow(ctx, `SELECT host_id FROM filesystems WHERE id = ?`, id).Scan(&host)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	return host, err
+}

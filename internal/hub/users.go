@@ -68,9 +68,16 @@ func (s apiServer) InviteUser(ctx context.Context, req api.InviteUserRequestObje
 	if role != "admin" && role != "viewer" {
 		return api.InviteUser400JSONResponse{Error: "the role is admin or viewer"}, nil
 	}
+	scope, msg, err := s.userScope(ctx, b.ScopeId)
+	if err != nil {
+		return nil, err
+	}
+	if msg != "" {
+		return api.InviteUser400JSONResponse{Error: msg}, nil
+	}
 	token, hash := auth.NewToken(linkPrefix)
 	now := time.Now()
-	u, err := s.db.InviteUser(ctx, actor(ctx), store.User{Email: email, Name: name, Role: role, CreatedAt: now.Unix()},
+	u, err := s.db.InviteUser(ctx, actor(ctx), store.User{Email: email, Name: name, Role: role, CreatedAt: now.Unix(), ScopeID: scope},
 		hash, now.Add(linkLifetime).Unix())
 	if errors.Is(err, store.ErrExists) {
 		return api.InviteUser409JSONResponse{Error: "there is a user with this address already"}, nil
@@ -126,9 +133,9 @@ func linkMessage(hub, from string, u store.User, link string) notify.Message {
 		return notify.Message{
 			Hub:     hub,
 			Subject: "[lotse] You are invited to " + hub,
-			Body: fmt.Sprintf("%s invites you to lotse at %s, as %s.\n\n"+
+			Body: fmt.Sprintf("%s invites you to lotse at %s, as %s%s.\n\n"+
 				"Choose your password here; the link works once, until %s:\n\n%s\n",
-				from, hub, u.Role, until, link),
+				from, hub, u.Role, forScope(u.ScopePath), until, link),
 		}
 	}
 	return notify.Message{
@@ -140,14 +147,22 @@ func linkMessage(hub, from string, u store.User, link string) notify.Message {
 	}
 }
 
+// forScope says what a user is kept to, in an invitation.
+func forScope(path string) string {
+	if path == "" {
+		return ""
+	}
+	return " for " + path
+}
+
 func (s apiServer) UpdateUser(ctx context.Context, req api.UpdateUserRequestObject) (api.UpdateUserResponseObject, error) {
 	if !isAdmin(ctx) {
 		return api.UpdateUser403JSONResponse{Error: forbidden}, nil
 	}
 	b := req.Body
 	me, _ := userOf(ctx)
-	if req.Id == me.ID && (b.Role != nil || b.Disabled != nil) {
-		return api.UpdateUser400JSONResponse{Error: "you cannot change your own role, or disable yourself"}, nil
+	if req.Id == me.ID && (b.Role != nil || b.Disabled != nil || b.ScopeId != nil) {
+		return api.UpdateUser400JSONResponse{Error: "you cannot change your own role or access, or disable yourself"}, nil
 	}
 	var c store.UserChange
 	if b.Name != nil {
@@ -163,6 +178,16 @@ func (s apiServer) UpdateUser(ctx context.Context, req api.UpdateUserRequestObje
 			return api.UpdateUser400JSONResponse{Error: "the role is admin or viewer"}, nil
 		}
 		c.Role = &role
+	}
+	if b.ScopeId != nil {
+		scope, msg, err := s.userScope(ctx, b.ScopeId)
+		if err != nil {
+			return nil, err
+		}
+		if msg != "" {
+			return api.UpdateUser400JSONResponse{Error: msg}, nil
+		}
+		c.ScopeID = &scope
 	}
 	c.Disabled = b.Disabled
 	u, err := s.db.UpdateUser(ctx, actor(ctx), req.Id, c, time.Now().Unix())
@@ -189,6 +214,19 @@ func (s apiServer) WithdrawInvitation(ctx context.Context, req api.WithdrawInvit
 		return api.WithdrawInvitation400JSONResponse{Error: "this user has accepted the invitation; disable them instead"}, nil
 	}
 	return api.WithdrawInvitation204Response{}, err
+}
+
+// userScope checks the scope a user is to be kept to: a customer, project
+// or environment, or the global scope for the whole hub.
+func (s apiServer) userScope(ctx context.Context, id *int64) (int64, string, error) {
+	if id == nil || *id == store.GlobalScope {
+		return store.GlobalScope, "", nil
+	}
+	x, err := s.db.Scope(ctx, *id)
+	if errors.Is(err, store.ErrNotFound) || x.Kind == "global" {
+		return 0, "no such customer, project or environment", nil
+	}
+	return x.ID, "", err
 }
 
 // linkKeys are what the brake on guessing counts for links: the address

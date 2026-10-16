@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"net"
@@ -115,6 +116,10 @@ func (h *hub) guard(next http.Handler) http.Handler {
 				return
 			}
 			ctx = context.WithValue(ctx, ctxUser, user)
+			if user.ScopeID != 0 && user.ScopeID != store.GlobalScope && !scopedAllowed(r) {
+				writeError(w, http.StatusForbidden, "this belongs to the whole hub")
+				return
+			}
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -248,6 +253,7 @@ func toUser(u store.User) api.User {
 	}
 	return api.User{
 		Id: u.ID, Email: u.Email, Name: u.Name, Role: api.UserRole(u.Role), State: state,
+		ScopeId: cmp.Or(u.ScopeID, store.GlobalScope), ScopePath: u.ScopePath,
 		CreatedAt: u.CreatedAt, LastLoginAt: u.LastLoginAt, LinkExpiresAt: u.LinkExpiresAt,
 	}
 }

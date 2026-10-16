@@ -85,12 +85,13 @@ func applyActor(ctx context.Context) (store.Actor, string, bool) {
 		id := t.ID
 		return store.Actor{Kind: "token", ID: &id, Name: t.Name, Via: "apply"}, t.ScopePath, true
 	}
-	if !isAdmin(ctx) {
+	if !isAnyAdmin(ctx) {
 		return store.Actor{}, "", false
 	}
 	a := actor(ctx)
 	a.Via = "apply"
-	return a, "", true
+	_, within := accessOf(ctx)
+	return a, within, true
 }
 
 func (s apiServer) ApplyDocument(ctx context.Context, req api.ApplyDocumentRequestObject) (api.ApplyDocumentResponseObject, error) {
@@ -128,15 +129,16 @@ func (s apiServer) ApplyDocument(ctx context.Context, req api.ApplyDocumentReque
 
 func (s apiServer) ExportScope(ctx context.Context, req api.ExportScopeRequestObject) (api.ExportScopeResponseObject, error) {
 	path := strings.Trim(ptrValue(req.Params.Scope), "/")
-	if t, ok := tokenOf(ctx); ok {
-		if t.ScopePath != "" && path != t.ScopePath && !strings.HasPrefix(path, t.ScopePath+"/") {
-			if req.Params.Scope != nil {
-				return api.ExportScope403JSONResponse{Error: "the token is for " + t.ScopePath}, nil
-			}
-			path = t.ScopePath
-		}
-	} else if !isAdmin(ctx) {
+	if _, ok := tokenOf(ctx); !ok && !isAnyAdmin(ctx) {
 		return api.ExportScope403JSONResponse{Error: forbidden}, nil
+	}
+	// A token, or a user, kept to a scope exports only what is in it. Paths
+	// of scopes name them once, so here they can be compared.
+	if _, within := accessOf(ctx); within != "" && path != within && !strings.HasPrefix(path, within+"/") {
+		if req.Params.Scope != nil {
+			return api.ExportScope403JSONResponse{Error: "you may export only " + within}, nil
+		}
+		path = within
 	}
 	doc, err := s.exportDocument(ctx, path)
 	if errors.Is(err, store.ErrNotFound) {

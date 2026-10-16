@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"slices"
 	"strings"
@@ -240,20 +241,40 @@ func (s apiServer) ListChannels(ctx context.Context, req api.ListChannelsRequest
 			return nil, err
 		}
 	}
+	// A request kept to a scope sees the channels in it, not those of the
+	// scopes above, which belong to others.
+	t, err := s.treeFor(ctx)
+	if err != nil {
+		return nil, err
+	}
 	out := api.ListChannels200JSONResponse{}
 	for _, c := range list {
-		if chain == nil || slices.Contains(chain, c.ScopeID) {
+		if (chain == nil || slices.Contains(chain, c.ScopeID)) && (t == nil || visible(ctx, t, t.scopes[c.ScopeID].Kind, c.ScopeID)) {
 			out = append(out, s.toChannel(c))
 		}
 	}
 	return out, nil
 }
 
+// mayChangeChannel says whether the user may change a channel: an admin
+// who sees its scope.
+func (s apiServer) mayChangeChannel(ctx context.Context, scopeID int64) (bool, error) {
+	x, err := s.db.Scope(ctx, scopeID)
+	if err != nil {
+		return false, err
+	}
+	return s.mayChange(ctx, x.Kind, x.ID)
+}
+
 func (s apiServer) CreateChannel(ctx context.Context, req api.CreateChannelRequestObject) (api.CreateChannelResponseObject, error) {
-	if !isAdmin(ctx) {
+	b := req.Body
+	if ok, err := s.mayChangeChannel(ctx, b.ScopeId); notFound(err) {
+		return api.CreateChannel400JSONResponse{Error: "no such scope"}, nil
+	} else if err != nil {
+		return nil, err
+	} else if !ok {
 		return api.CreateChannel403JSONResponse{Error: forbidden}, nil
 	}
-	b := req.Body
 	name, key := strings.TrimSpace(b.Name), strings.TrimSpace(b.Key)
 	if msg := checkName(name); msg != "" {
 		return api.CreateChannel400JSONResponse{Error: msg}, nil
@@ -262,7 +283,7 @@ func (s apiServer) CreateChannel(ctx context.Context, req api.CreateChannelReque
 		return api.CreateChannel400JSONResponse{Error: "a key has lowercase letters, digits and dashes, up to 40"}, nil
 	}
 	sec := secrets{sealed: map[string]string{}, refs: map[string]secretRef{}}
-	if err := sec.apply(secretFields[string(b.Type)], ptrValue(b.Secrets)); err != nil {
+	if err := sec.apply(secretFields[string(b.Type)], ptrValue(b.Secrets), !restricted(ctx), nil); err != nil {
 		return api.CreateChannel400JSONResponse{Error: err.Error()}, nil
 	}
 	spec, err := checkChannel(string(b.Type), b.Spec, sec)
@@ -286,15 +307,19 @@ func (s apiServer) CreateChannel(ctx context.Context, req api.CreateChannelReque
 }
 
 func (s apiServer) UpdateChannel(ctx context.Context, req api.UpdateChannelRequestObject) (api.UpdateChannelResponseObject, error) {
-	if !isAdmin(ctx) {
-		return api.UpdateChannel403JSONResponse{Error: forbidden}, nil
-	}
 	c, err := s.db.Channel(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	ok := false
+	if err == nil {
+		ok, err = s.mayChangeChannel(ctx, c.ScopeID)
+	}
+	if notFound(err) {
 		return api.UpdateChannel404JSONResponse{Error: "no such channel"}, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !ok {
+		return api.UpdateChannel403JSONResponse{Error: forbidden}, nil
 	}
 	name := strings.TrimSpace(req.Body.Name)
 	if msg := checkName(name); msg != "" {
@@ -304,12 +329,15 @@ func (s apiServer) UpdateChannel(ctx context.Context, req api.UpdateChannelReque
 	if err != nil {
 		return nil, err
 	}
-	if err := sec.apply(secretFields[c.Type], ptrValue(req.Body.Secrets)); err != nil {
+	if err := sec.apply(secretFields[c.Type], ptrValue(req.Body.Secrets), !restricted(ctx), maps.Clone(sec.refs)); err != nil {
 		return api.UpdateChannel400JSONResponse{Error: err.Error()}, nil
 	}
 	spec, err := checkChannel(c.Type, req.Body.Spec, sec)
 	if err != nil {
 		return api.UpdateChannel400JSONResponse{Error: err.Error()}, nil
+	}
+	if msg := refsStay(restricted(ctx), c.SecretRefs, c.Spec, spec); msg != "" {
+		return api.UpdateChannel400JSONResponse{Error: msg}, nil
 	}
 	c.Name, c.Spec = name, spec
 	c.Secrets, c.SecretRefs = s.closeSecrets(sec)
@@ -320,10 +348,21 @@ func (s apiServer) UpdateChannel(ctx context.Context, req api.UpdateChannelReque
 }
 
 func (s apiServer) DeleteChannel(ctx context.Context, req api.DeleteChannelRequestObject) (api.DeleteChannelResponseObject, error) {
-	if !isAdmin(ctx) {
+	c, err := s.db.Channel(ctx, req.Id)
+	ok := false
+	if err == nil {
+		ok, err = s.mayChangeChannel(ctx, c.ScopeID)
+	}
+	if notFound(err) {
+		return api.DeleteChannel404JSONResponse{Error: "no such channel"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
 		return api.DeleteChannel403JSONResponse{Error: forbidden}, nil
 	}
-	err := s.db.DeleteChannel(ctx, actor(ctx), req.Id)
+	err = s.db.DeleteChannel(ctx, actor(ctx), req.Id)
 	if errors.Is(err, store.ErrNotFound) {
 		return api.DeleteChannel404JSONResponse{Error: "no such channel"}, nil
 	}
@@ -331,12 +370,16 @@ func (s apiServer) DeleteChannel(ctx context.Context, req api.DeleteChannelReque
 }
 
 func (s apiServer) TestChannel(ctx context.Context, req api.TestChannelRequestObject) (api.TestChannelResponseObject, error) {
-	if !isAdmin(ctx) {
-		return api.TestChannel403JSONResponse{Error: forbidden}, nil
-	}
 	c, err := s.db.Channel(ctx, req.Id)
-	if errors.Is(err, store.ErrNotFound) {
+	ok := false
+	if err == nil {
+		ok, err = s.mayChangeChannel(ctx, c.ScopeID)
+	}
+	if notFound(err) {
 		return api.TestChannel404JSONResponse{Error: "no such channel"}, nil
+	}
+	if err == nil && !ok {
+		return api.TestChannel403JSONResponse{Error: forbidden}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -345,7 +388,11 @@ func (s apiServer) TestChannel(ctx context.Context, req api.TestChannelRequestOb
 	if err == nil {
 		err = sender.Send(ctx, notify.Message{Hub: s.URL(), Test: true})
 	}
-	return api.TestChannel200JSONResponse(testResult(err)), nil
+	res := testResult(err)
+	if res.Error != nil {
+		res.Error = ptr(withoutReply(ctx, *res.Error))
+	}
+	return api.TestChannel200JSONResponse(res), nil
 }
 
 func testResult(err error) api.TestResult {
@@ -427,7 +474,7 @@ func (s apiServer) SetMailServer(ctx context.Context, req api.SetMailServerReque
 		}
 	}
 	if b.Password != nil {
-		if err := m.sec.apply([]string{"password"}, map[string]api.SecretInput{"password": *b.Password}); err != nil {
+		if err := m.sec.apply([]string{"password"}, map[string]api.SecretInput{"password": *b.Password}, true, nil); err != nil {
 			return api.SetMailServer400JSONResponse{Error: err.Error()}, nil
 		}
 	}
