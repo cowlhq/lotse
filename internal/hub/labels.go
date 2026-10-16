@@ -86,7 +86,8 @@ func labelSettings(labels map[string]string) (map[string]json.RawMessage, []stri
 	return out, problems
 }
 
-// labelChecks are the checks labels ask for: lotse.check.<key>.<type>.<field>.
+// labelChecks are the checks labels ask for:
+// lotse.check.<key>.<type>.<field>[.<field>].
 func labelChecks(labels map[string]string) (map[string]labelCheck, []string) {
 	out := map[string]labelCheck{}
 	var problems []string
@@ -109,7 +110,18 @@ func labelChecks(labels map[string]string) (map[string]labelCheck, []string) {
 		if c.spec == nil {
 			c.spec = map[string]any{}
 		}
-		c.spec[parts[2]] = v
+		// A field of a field, such as http.headers.X-Token or
+		// http.json.path.
+		if field, sub, ok := strings.Cut(parts[2], "."); ok {
+			m, _ := c.spec[field].(map[string]any)
+			if m == nil {
+				m = map[string]any{}
+				c.spec[field] = m
+			}
+			m[sub] = v
+		} else {
+			c.spec[parts[2]] = v
+		}
 		out[parts[0]] = c
 	}
 	return out, problems

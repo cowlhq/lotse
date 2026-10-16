@@ -12,7 +12,7 @@ Add a check in an environment with **Add check**, in a `lotse.yaml`
 
 | Type | What it checks |
 |---|---|
-| `http` | A URL: its status after redirects (200–399 unless `status` says otherwise, such as `200-299`), optionally a `keyword` in the body, the time it takes, and over HTTPS the certificate. |
+| `http` | A URL: its status after redirects (200–399 unless `status` says otherwise, such as `200-299`), optionally what the body says (below), the time it takes, and over HTTPS the certificate. |
 | `tls` | A TLS handshake and its certificate, for what is not HTTPS, such as SMTP on port 465. |
 | `tcp` | That a port accepts connections. |
 | `dns` | That a name resolves, and with `expect`, to what: an `A`, `AAAA`, `CNAME`, `MX`, `NS` or `TXT` record, from the system's resolver or a `server` you name. |
@@ -24,6 +24,35 @@ answer (`check.timeout`). It runs on the hub's own probe and on every
 other probe, unless `check.probes` names some. It is down when most of
 the probes that run it see it fail, twice in a row; so one network having
 a bad minute does not wake anyone.
+
+### HTTP
+
+Besides `url` and `status`, an `http` check can ask in another way, and
+look closer at the answer:
+
+```yaml
+http:
+  url: https://api.acme.de/health
+  method: POST                  # GET unless set; also HEAD, PUT, PATCH, DELETE, OPTIONS
+  headers: {X-Api-Version: "2", Host: api.acme.de}
+  body: '{"deep": true}'
+  follow_redirects: false       # a redirect is then the answer, and its status counts
+  ip: 203.0.113.10              # connect here, not where the name points
+  keyword: '"db":"ok"'          # must be in the first MiB of the body
+  absent: Fatal error           # must not be
+  json: {path: checks.0.status, equals: UP}
+  max_latency: 800ms            # slower is down
+```
+
+`ip` checks one server behind a load balancer, or a new one before the DNS
+moves: the name still goes in the request and decides the certificate.
+`json` follows the `path` through objects and lists (`checks.0` is the
+first), and compares what it finds with `equals`, a string, number, `true`,
+`false` or `null`. Headers are kept as they are, so keep tokens out of
+them for now.
+
+A probe older than these options does not get the checks that use them;
+the hub's own probe and up-to-date probes run them.
 
 ## Heartbeats
 

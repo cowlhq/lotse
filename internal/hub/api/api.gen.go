@@ -1318,7 +1318,7 @@ type CheckInput struct {
 	// Slug Its key in the environment; made from the name if missing.
 	Slug *string `json:"slug,omitempty"`
 
-	// Spec http: url, keyword, status (such as 200-299); tls: address (host:port), server_name; tcp: address; heartbeat: period, grace (such as 24h and 1h).
+	// Spec http: url, method, headers, body, follow_redirects, ip, keyword, absent, json (path, equals), max_latency, status (such as 200-299); tls: address (host:port), server_name; tcp: address; dns: name, type, expect, server; domain: domain; heartbeat: period, grace (such as 24h and 1h).
 	Spec map[string]interface{} `json:"spec"`
 	Type CheckInputType         `json:"type"`
 }

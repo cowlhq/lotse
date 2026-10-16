@@ -1437,7 +1437,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             type: "http" | "tls" | "tcp" | "dns" | "domain" | "heartbeat";
-            /** @description http: url, keyword, status (such as 200-299); tls: address (host:port), server_name; tcp: address; heartbeat: period, grace (such as 24h and 1h). */
+            /** @description http: url, method, headers, body, follow_redirects, ip, keyword, absent, json (path, equals), max_latency, status (such as 200-299); tls: address (host:port), server_name; tcp: address; dns: name, type, expect, server; domain: domain; heartbeat: period, grace (such as 24h and 1h). */
             spec: {
                 [key: string]: unknown;
             };
