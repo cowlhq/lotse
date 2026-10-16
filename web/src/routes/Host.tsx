@@ -147,7 +147,7 @@ export function Host({ id }: { id: number }) {
           <Maintenance subject={subject} />
         </TabsContent>
         <TabsContent value="settings" className="space-y-6">
-          <Config subject={subject} />
+          <Config subject={subject} envID={h.environment_id ?? undefined} />
         </TabsContent>
         <TabsContent value="activity" className="space-y-6">
           <Events events={events.data ?? []} />

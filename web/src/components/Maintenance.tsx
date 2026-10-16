@@ -16,7 +16,7 @@ import { useMe } from "@/lib/useMe";
 // Maintenance lists the windows that cover an object or scope, its own and
 // those of scopes above it, and adds windows to it: once, or by schedule.
 export function Maintenance({ subject }: { subject: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAdmin } = useMe();
   const client = useQueryClient();
   const [adding, setAdding] = useState(false);
@@ -67,7 +67,7 @@ export function Maintenance({ subject }: { subject: string }) {
                 </span>
               )}
               {w.schedule ? (
-                <code>{w.schedule}</code>
+                <span title={w.schedule}>{describeSchedule(w.schedule, i18n.language, t("maintenance.daily"))}</span>
               ) : (
                 <span className="tabular-nums">
                   {dateTime(w.starts_at!)} – {dateTime(w.ends_at!)}
@@ -98,13 +98,35 @@ function local(ts: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// weekOrder is the week as schedules name its days, from Monday.
+const weekOrder = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+// dayName names a day of a schedule in the reader's language.
+function dayName(day: string, lang: string, width: "short" | "long") {
+  // 2024-01-01 was a Monday.
+  return new Intl.DateTimeFormat(lang, { weekday: width, timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, 1 + weekOrder.indexOf(day))));
+}
+
+// describeSchedule says a schedule such as "mon-fri 22:00-23:00" in words:
+// "Monday – Friday, 22:00–23:00".
+function describeSchedule(schedule: string, lang: string, daily: string): string {
+  const [days, window] = schedule.includes(" ") ? schedule.split(" ") : ["daily", schedule];
+  const when = window.replace("-", "–");
+  if (days === "daily") return `${daily}, ${when}`;
+  const parts = days.split(",").map((part) => part.split("-").map((d) => dayName(d, lang, "long")).join(" – "));
+  return `${new Intl.ListFormat(lang, { type: "conjunction" }).format(parts)}, ${when}`;
+}
+
 function Add({ subject, onDone }: { subject: string; onDone: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const client = useQueryClient();
   const [kind, setKind] = useState<"once" | "schedule">("once");
   const [start, setStart] = useState(() => local(Math.floor(Date.now() / 60_000) * 60));
   const [end, setEnd] = useState(() => local(Math.floor(Date.now() / 60_000) * 60 + 3600));
-  const [schedule, setSchedule] = useState("");
+  const [days, setDays] = useState<string[]>(["sun"]);
+  const [from, setFrom] = useState("02:00");
+  const [until, setUntil] = useState("04:00");
+  const schedule = days.length === 0 || !from || !until ? "" : `${days.length === 7 ? "daily" : weekOrder.filter((d) => days.includes(d)).join(",")} ${from}-${until}`;
   const [reason, setReason] = useState("");
   const save = useMutation({
     mutationFn: () =>
@@ -145,10 +167,37 @@ function Add({ subject, onDone }: { subject: string; onDone: () => void }) {
           </div>
         </div>
       ) : (
-        <div className="space-y-1.5">
-          <Label htmlFor="mw-schedule">{t("maintenance.schedule")}</Label>
-          <Input id="mw-schedule" value={schedule} onChange={(e) => setSchedule(e.target.value)} placeholder="sun 02:00-04:00" autoComplete="off" />
-          <p className="text-xs text-muted-foreground">{t("maintenance.scheduleHint")}</p>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>{t("maintenance.days")}</Label>
+            <div className="flex flex-wrap gap-1">
+              {weekOrder.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={days.includes(d)}
+                  onClick={() => setDays(days.includes(d) ? days.filter((x) => x !== d) : [...days, d])}
+                  className={`h-8 min-w-11 rounded-md border px-2 text-mini transition-colors ${days.includes(d) ? "border-brand/40 bg-brand/10 font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                >
+                  {dayName(d, i18n.language, "short")}
+                </button>
+              ))}
+              <button type="button" onClick={() => setDays(days.length === 7 ? [] : [...weekOrder])} className="h-8 rounded-md px-2 text-mini text-muted-foreground hover:bg-accent hover:text-foreground">
+                {days.length === 7 ? t("maintenance.noDays") : t("maintenance.everyDay")}
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="mw-from">{t("maintenance.from")}</Label>
+              <Input id="mw-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mw-until">{t("maintenance.until")}</Label>
+              <Input id="mw-until" type="time" value={until} onChange={(e) => setUntil(e.target.value)} />
+            </div>
+          </div>
+          {schedule && <p className="text-xs text-muted-foreground">{t("maintenance.scheduleIs", { what: describeSchedule(schedule, i18n.language, t("maintenance.daily")) })}</p>}
         </div>
       )}
       <div className="space-y-1.5">
