@@ -991,5 +991,30 @@
     "empty": "No hosts yet. Drop one here.",
     "moved": "{{name}} moved to {{to}}.",
     "undo": "Undo"
+  },
+  "applyFile": {
+    "drop": "Drop a lotse.yaml",
+    "dropHint": "You see what it would change before anything does.",
+    "choose": "Apply a lotse.yaml…",
+    "title": "Apply {{name}}",
+    "description": "As lotse apply does: objects are matched by key, and nothing the file leaves out is deleted.",
+    "reading": "Reading the file…",
+    "needs_one": "The file reads a secret from the environment where lotse apply runs. Give it here instead:",
+    "needs_other": "The file reads {{count}} secrets from the environment where lotse apply runs. Give them here instead:",
+    "needsHint": "The hub keeps them sealed, as lotse apply would send them.",
+    "preview": "Show what changes",
+    "nothing": "Nothing to change: the hub is as the file says.",
+    "apply_one": "Apply {{count}} change",
+    "apply_other": "Apply {{count}} changes",
+    "applied_one": "{{count}} change applied.",
+    "applied_other": "{{count}} changes applied.",
+    "last": "last changed by {{by}} {{time}} ago, via {{via}}",
+    "action": {
+      "create": "New {{kind}}",
+      "update": "Changed {{kind}}",
+      "delete": "Deleted {{kind}}"
+    },
+    "panel": "Configuration as code",
+    "panelHint": "Everything as a lotse.yaml, to keep in Git; and back, by choosing one, or dropping it anywhere here."
   }
 }

@@ -19,6 +19,7 @@ import { Maintenance } from "@/components/Maintenance";
 import { AddAgent } from "@/components/AddAgent";
 import { AddCheck } from "@/components/AddCheck";
 import { Config } from "@/components/Config";
+import { ChooseFile } from "@/components/ApplyFile";
 import { History } from "@/components/History";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -213,10 +214,13 @@ export function Scope({ id }: { id: number }) {
           </div>
           <Config subject={subject} />
           {isAdmin && (
+            <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" render={<a href={exportURL(scope.data.path)} download={`${scope.data.slug}.lotse.yaml`} />}>
               <Download />
               {t("token.download")}
             </Button>
+            <ChooseFile />
+            </div>
           )}
           {isAdmin && mine.length === 0 && children.length === 0 && myChecks.length === 0 && <Delete id={id} />}
       </TabsContent>
