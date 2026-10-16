@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.18](https://github.com/cowlhq/lotse/compare/v0.1.17...v0.1.18) (2026-10-16)
+
+
+### Features
+
+* **demo:** a hub with made-up data, for screenshots ([8626546](https://github.com/cowlhq/lotse/commit/862654695e907dae9a8b141ca47f9f766244caeb))
+* **web:** a first start without a false all-clear, and where to find the setup link ([7232c37](https://github.com/cowlhq/lotse/commit/7232c37c362406b8e79d318474872391e2a66eb1))
+* **web:** an alert shows what happened on its object before, and "at once" for no wait ([6fce0d6](https://github.com/cowlhq/lotse/commit/6fce0d67161016dec059ae3d7912c290f26db54b))
+* **web:** channels, mail server, maintenance and probes in the same panels as tokens ([bba4fed](https://github.com/cowlhq/lotse/commit/bba4fed1c53ba57a8efda18a08a78583fcb5bf44))
+
+
+### Bug Fixes
+
+* **hub:** a late heartbeat says for how long, not since when in UTC ([43f70d7](https://github.com/cowlhq/lotse/commit/43f70d78160f9c9a02ccf8930d6bb04d391b0508))
+* **probe:** a new check runs within a minute, also one that runs every few hours ([fe6ea17](https://github.com/cowlhq/lotse/commit/fe6ea175196d5da92963da60f33a417175baa9ba))
+* **web:** a page that is not there says so at once, without retries ([f72902c](https://github.com/cowlhq/lotse/commit/f72902c57152bdb69f7dbed39c18ca2ba88388be))
+* **web:** alerts that wait to fire apart from those that fire, and a mount point set apart ([2e9f375](https://github.com/cowlhq/lotse/commit/2e9f375a4043d7ad5ea7f52947305b17cd69a8a1))
+* **web:** room for every check type, placeholders that look empty, commands that break at spaces ([6d24f00](https://github.com/cowlhq/lotse/commit/6d24f00d790a69ae3b90fb12b7d8e06f231186a6))
+* **web:** room for ticks over days, warnings in the headline, and where a label's check is ([836b134](https://github.com/cowlhq/lotse/commit/836b1346d1370eedb90c9d10738b31eb55699322))
+
 ## [0.1.17](https://github.com/cowlhq/lotse/compare/v0.1.16...v0.1.17) (2026-10-16)
 
 
