@@ -429,7 +429,7 @@ func (a *applier) channels(x store.Scope, list []apply.Channel) error {
 			return fail("channel %s: %v", path, err)
 		}
 		if have != nil {
-			if msg := refsStay(!(a.opts.all || a.opts.within == ""), have.SecretRefs, have.Spec, spec); msg != "" {
+			if msg := refsStay(!(a.opts.all || a.opts.within == ""), have.SecretRefs, have.Spec, spec, "channel"); msg != "" {
 				return fail("channel %s: %s", path, msg)
 			}
 		}
@@ -632,11 +632,19 @@ func (a *applier) checks(env store.Scope, list []apply.Check) error {
 				existing = &have[i]
 			}
 		}
+		if existing != nil && existing.Type != typ {
+			return fail("check %s is %s, not %s; delete it first to change its type", path, existing.Type, typ)
+		}
+		sec, err := a.checkSecrets(path, typ, spec, existing, c.Secrets)
+		if err != nil {
+			return err
+		}
 		var check store.Check
 		switch {
 		case existing == nil:
 			a.note(change{Action: "create", Kind: "check", Path: path, New: typ})
 			check = store.Check{EnvironmentID: env.ID, Slug: c.Key, Name: name, Type: typ, Spec: spec, CreatedAt: a.now}
+			check.Secrets, check.SecretRefs = a.h.closeSecrets(sec)
 			var pingHash string
 			if typ == "heartbeat" {
 				token, hash := auth.NewToken("")
@@ -646,17 +654,31 @@ func (a *applier) checks(env store.Scope, list []apply.Check) error {
 			if check, err = a.tx.CreateCheck(a.ctx, a.actor, check, pingHash); err != nil {
 				return err
 			}
-		case existing.Type != typ:
-			return fail("check %s is %s, not %s; delete it first to change its type", path, existing.Type, typ)
 		default:
 			check = *existing
-			if existing.Name != name || !sameJSON(existing.Spec, spec) {
-				ch := change{Action: "update", Kind: "check", Path: path, Field: "spec", Old: json.RawMessage(existing.Spec), New: json.RawMessage(spec), of: store.Subject{Kind: "check", ID: existing.ID}}
-				if existing.Name != name {
+			old, err := a.h.openSecrets(existing.Secrets, existing.SecretRefs)
+			if err != nil {
+				return err
+			}
+			sameSecrets := sameSecretSets(old, sec)
+			if existing.Name != name || !sameJSON(existing.Spec, spec) || !sameSecrets {
+				ch := change{Action: "update", Kind: "check", Path: path, Field: "secrets", of: store.Subject{Kind: "check", ID: existing.ID}}
+				switch {
+				case existing.Name != name:
 					ch.Field, ch.Old, ch.New = "name", existing.Name, name
+				case !sameJSON(existing.Spec, spec):
+					ch.Field, ch.Old, ch.New = "spec", json.RawMessage(existing.Spec), json.RawMessage(spec)
 				}
 				a.note(ch)
+			}
+			if existing.Name != name || !sameJSON(existing.Spec, spec) {
 				if check, err = a.tx.UpdateCheck(a.ctx, a.actor, existing.ID, name, spec); err != nil {
+					return err
+				}
+			}
+			if !sameSecrets {
+				sealed, refs := a.h.closeSecrets(sec)
+				if check, err = a.tx.SetCheckSecrets(a.ctx, a.actor, existing.ID, sealed, refs); err != nil {
 					return err
 				}
 			}
@@ -670,6 +692,52 @@ func (a *applier) checks(env store.Scope, list []apply.Check) error {
 		}
 	}
 	return nil
+}
+
+// checkSecrets are a check's secrets as the document says: new ones, the
+// ones it keeps, and none that it leaves out.
+func (a *applier) checkSecrets(path, typ string, spec json.RawMessage, existing *store.Check, wanted map[string]*apply.Secret) (secrets, error) {
+	sec := secrets{sealed: map[string]string{}, refs: map[string]secretRef{}}
+	var old secrets
+	if existing != nil {
+		var err error
+		if old, err = a.h.openSecrets(existing.Secrets, existing.SecretRefs); err != nil {
+			return sec, err
+		}
+	}
+	inputs := map[string]api.SecretInput{}
+	for field, s := range wanted {
+		switch {
+		case s == nil:
+		case s.FromEnv != "":
+			return sec, fail("check %s: from_env %s must be read by lotse apply", path, s.FromEnv)
+		case s.Keep != "":
+			if !old.has(field) {
+				return sec, fail("check %s: there is no secret %s to keep", path, field)
+			}
+			if v, ok := old.sealed[field]; ok {
+				sec.sealed[field] = v
+			}
+			if r, ok := old.refs[field]; ok {
+				sec.refs[field] = r
+			}
+		default:
+			inputs[field] = api.SecretInput{Value: nonEmpty(s.Value), Env: nonEmpty(s.Env), File: nonEmpty(s.File)}
+		}
+	}
+	whole := a.opts.all || a.opts.within == ""
+	if err := sec.apply(checkSecretFields(typ, sec, inputs), inputs, whole, old.refs); err != nil {
+		return sec, fail("check %s: %v", path, err)
+	}
+	if err := checkSecrets(typ, spec, sec); err != nil {
+		return sec, fail("check %s: %v", path, err)
+	}
+	if existing != nil {
+		if msg := refsStay(!whole, existing.SecretRefs, existing.Spec, spec, "check"); msg != "" {
+			return sec, fail("check %s: %s", path, msg)
+		}
+	}
+	return sec, nil
 }
 
 // hosts sets what the document says on an environment's hosts and their

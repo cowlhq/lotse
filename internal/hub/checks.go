@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -71,7 +72,13 @@ func (h *hub) reassign(ctx context.Context) {
 		if err != nil {
 			continue
 		}
-		a := assignment{Assignment: probe.Assignment{CheckID: c.ID, Type: c.Type, Spec: c.Spec, Interval: time.Minute, Timeout: 10 * time.Second}}
+		spec, err := h.probeSpec(c)
+		a := assignment{Assignment: probe.Assignment{CheckID: c.ID, Type: c.Type, Spec: spec, Interval: time.Minute, Timeout: 10 * time.Second}}
+		if err != nil {
+			// The hub's own probe says so, every run, so that the check
+			// goes down rather than quiet.
+			a.Spec, a.Fail = c.Spec, err.Error()
+		}
 		names := []string{"all"}
 		for _, v := range values {
 			switch v.Key {
@@ -95,7 +102,11 @@ func (h *hub) reassign(ctx context.Context) {
 			a.Interval, a.Timeout = max(a.Interval, domainEvery), max(a.Timeout, 30*time.Second)
 		}
 		for _, p := range probes {
-			if p.RevokedAt != nil || !(slices.Contains(names, "all") || slices.Contains(names, p.Slug)) || !h.probes.runs(p.ID, probe.Needs(c.Type, c.Spec)) {
+			if a.Fail != "" {
+				if p.ID != store.BuiltinProbe {
+					continue
+				}
+			} else if p.RevokedAt != nil || !(slices.Contains(names, "all") || slices.Contains(names, p.Slug)) || !h.probes.runs(p.ID, probe.Needs(c.Type, a.Spec)) {
 				continue
 			}
 			a.probes = append(a.probes, p.ID)
@@ -277,6 +288,9 @@ func (s apiServer) toCheck(ctx context.Context, c store.Check) api.Check {
 			out.PingUrl = ptr(s.URL() + "/ping/" + token)
 		}
 	}
+	if isAnyAdmin(ctx) {
+		out.Secrets = s.checkSecretInfo(c)
+	}
 	s.checks.mu.Lock()
 	results := s.checks.latest[c.ID]
 	var newest *resultAt
@@ -346,7 +360,16 @@ func (s apiServer) CreateCheck(ctx context.Context, req api.CreateCheckRequestOb
 	if err != nil {
 		return api.CreateCheck400JSONResponse{Error: err.Error()}, nil
 	}
+	sec := secrets{sealed: map[string]string{}, refs: map[string]secretRef{}}
+	in := ptrValue(b.Secrets)
+	if err := sec.apply(checkSecretFields(string(b.Type), sec, in), in, !restricted(ctx), nil); err != nil {
+		return api.CreateCheck400JSONResponse{Error: err.Error()}, nil
+	}
+	if err := checkSecrets(string(b.Type), spec, sec); err != nil {
+		return api.CreateCheck400JSONResponse{Error: err.Error()}, nil
+	}
 	c := store.Check{EnvironmentID: b.EnvironmentId, Slug: slug, Name: name, Type: string(b.Type), Spec: spec, CreatedAt: time.Now().Unix()}
+	c.Secrets, c.SecretRefs = s.closeSecrets(sec)
 	var pingHash string
 	if c.Type == "heartbeat" {
 		token, hash := auth.NewToken("")
@@ -440,8 +463,25 @@ func (s apiServer) UpdateCheck(ctx context.Context, req api.UpdateCheckRequestOb
 	if err != nil {
 		return api.UpdateCheck400JSONResponse{Error: err.Error()}, nil
 	}
-	c, err = s.db.UpdateCheck(ctx, actor(ctx), c.ID, name, spec)
+	sec, err := s.openSecrets(c.Secrets, c.SecretRefs)
 	if err != nil {
+		return nil, err
+	}
+	in := ptrValue(req.Body.Secrets)
+	if err := sec.apply(checkSecretFields(c.Type, sec, in), in, !restricted(ctx), maps.Clone(sec.refs)); err != nil {
+		return api.UpdateCheck400JSONResponse{Error: err.Error()}, nil
+	}
+	if err := checkSecrets(c.Type, spec, sec); err != nil {
+		return api.UpdateCheck400JSONResponse{Error: err.Error()}, nil
+	}
+	if msg := refsStay(restricted(ctx), c.SecretRefs, c.Spec, spec, "check"); msg != "" {
+		return api.UpdateCheck400JSONResponse{Error: msg}, nil
+	}
+	sealed, refs := s.closeSecrets(sec)
+	if c, err = s.db.UpdateCheck(ctx, actor(ctx), c.ID, name, spec); err != nil {
+		return nil, err
+	}
+	if c, err = s.db.SetCheckSecrets(ctx, actor(ctx), c.ID, sealed, refs); err != nil {
 		return nil, err
 	}
 	s.reassign(context.WithoutCancel(ctx))

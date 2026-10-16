@@ -182,14 +182,14 @@ func (s secrets) info(fields []string) map[string]api.SecretInfo {
 	return out
 }
 
-// refsStay says why a channel that sends with the hub's own secrets may not
-// be pointed elsewhere by someone kept to a scope: its secret would go
-// along (decision 0023). Empty when it may.
-func refsStay(restricted bool, refs json.RawMessage, before, after json.RawMessage) string {
+// refsStay says why a channel or a check (what) that sends with the hub's
+// own secrets may not be pointed elsewhere by someone kept to a scope: its
+// secret would go along (decisions 0023 and 0024). Empty when it may.
+func refsStay(restricted bool, refs json.RawMessage, before, after json.RawMessage, what string) string {
 	var have map[string]secretRef
 	json.Unmarshal(refs, &have)
 	if !restricted || len(have) == 0 || sameJSON(before, after) {
 		return ""
 	}
-	return "this channel sends with the hub's own secrets; only an admin of the whole hub changes where it sends"
+	return "this " + what + " sends with the hub's own secrets; only an admin of the whole hub changes where it sends"
 }

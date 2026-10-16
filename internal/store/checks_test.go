@@ -83,6 +83,29 @@ func TestChecks(t *testing.T) {
 	})
 }
 
+func TestCheckSecrets(t *testing.T) {
+	storetest.Each(t, func(t *testing.T, s *store.Store) {
+		ctx := t.Context()
+		env, _ := s.EnsureEnvironment(ctx, ada, [3]store.ScopeName{{Slug: "acme", Name: "ACME"}, {Slug: "shop", Name: "Shop"}, {Slug: "prod", Name: "Prod"}})
+		sealed := "sealed-1"
+		c, err := s.CreateCheck(ctx, ada, store.Check{EnvironmentID: env.ID, Slug: "api", Name: "API", Type: "http",
+			Spec: json.RawMessage(`{"url":"https://api.example.com"}`), Secrets: &sealed, SecretRefs: json.RawMessage(`{"basic_auth.password":{"env":"P"}}`), CreatedAt: 1}, "")
+		if err != nil || *c.Secrets != "sealed-1" || string(c.SecretRefs) != `{"basic_auth.password":{"env":"P"}}` {
+			t.Fatalf("create: %+v, %v", c, err)
+		}
+		if c, err = s.SetCheckSecrets(ctx, ada, c.ID, nil, nil); err != nil || c.Secrets != nil || string(c.SecretRefs) != "{}" {
+			t.Errorf("cleared: %+v, %v", c, err)
+		}
+		changes, _ := s.Changes(ctx, "check", c.ID, 10)
+		if len(changes) == 0 || changes[0].Field != "secrets" {
+			t.Errorf("history: %+v", changes)
+		}
+		if _, err := s.SetCheckSecrets(ctx, ada, 9999, nil, nil); err != store.ErrNotFound {
+			t.Errorf("no such check: %v", err)
+		}
+	})
+}
+
 func TestProbes(t *testing.T) {
 	storetest.Each(t, func(t *testing.T, s *store.Store) {
 		ctx := t.Context()

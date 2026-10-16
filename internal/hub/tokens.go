@@ -106,6 +106,9 @@ func (s apiServer) ApplyDocument(ctx context.Context, req api.ApplyDocumentReque
 	if err := dec.Decode(&doc); err != nil {
 		return api.ApplyDocument400JSONResponse{Error: "the document is not valid: " + err.Error()}, nil
 	}
+	if err := doc.LiftSecrets(); err != nil {
+		return api.ApplyDocument400JSONResponse{Error: err.Error()}, nil
+	}
 	opts := applyOptions{
 		dryRun: ptrValue(req.Params.DryRun), prune: ptrValue(req.Params.Prune),
 		pruneScope: strings.Trim(ptrValue(req.Params.Scope), "/"), within: within,

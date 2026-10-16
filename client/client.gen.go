@@ -409,7 +409,10 @@ type Check struct {
 	Path string `json:"path"`
 
 	// PingUrl Where a heartbeat is pinged; shown to admins only.
-	PingUrl    *string                `json:"ping_url,omitempty"`
+	PingUrl *string `json:"ping_url,omitempty"`
+
+	// Secrets An http check's secrets, such as headers.Authorization; shown to admins only.
+	Secrets    *map[string]SecretInfo `json:"secrets,omitempty"`
 	Slug       string                 `json:"slug"`
 	Spec       map[string]interface{} `json:"spec"`
 	State      CheckState             `json:"state"`
@@ -600,6 +603,16 @@ type Scope struct {
 
 // ScopeKind defines model for Scope.Kind.
 type ScopeKind string
+
+// SecretInfo Whether a secret is set, and where it comes from; never the secret.
+type SecretInfo struct {
+	// Env The environment variable the hub reads it from.
+	Env *string `json:"env,omitempty"`
+
+	// File The file the hub reads it from.
+	File *string `json:"file,omitempty"`
+	Set  bool    `json:"set"`
+}
 
 // Series Readings in columns, as charts take them: time holds the start of each step, each column one value per step (null where nothing was measured).
 type Series struct {

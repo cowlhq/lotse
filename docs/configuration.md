@@ -62,11 +62,22 @@ channels:
     pushover: {user: {env: PUSHOVER_USER}, token: {env: PUSHOVER_APP}}
 ```
 
+And so do checks, for a header or a login:
+
+```yaml
+checks:
+  - key: api
+    http:
+      url: https://api.acme.de/health
+      headers: {Authorization: {from_env: ACME_API_TOKEN}}
+      basic_auth: {username: monitor, password: {file: acme-api-password}}
+```
+
 Secrets are never in the file. `{from_env: NAME}` is read where `lotse
 apply` runs, such as a CI secret, and kept sealed by the hub; `{env: NAME}`
 and `{file: /run/secrets/name}` are read by the hub itself when it sends. An
-export writes a sealed secret as `{secret: <channel>}`, which apply leaves
-as it is. A host named in the file before its agent enrolled waits for it, with its
+export writes a sealed secret as `{secret: <channel>}` or `{secret:
+<check>}`, which apply leaves as it is. A host named in the file before its agent enrolled waits for it, with its
 settings in place: the machine of that name that enrolls in that
 environment becomes it, and no alert is raised while it waits. Hosts that
 enrolled are never deleted; `--prune` deletes only waiting ones the file no

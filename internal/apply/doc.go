@@ -7,14 +7,16 @@
 // reference the hub resolves when it sends ({env: NAME}, {file: PATH}), one
 // that `lotse apply` resolves on its own machine ({from_env: NAME}), or, in
 // an export, a placeholder for a secret the hub keeps sealed
-// ({secret: CHANNEL}), which apply leaves as it is.
+// ({secret: CHANNEL} or {secret: CHECK}), which apply leaves as it is.
 package apply
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"slices"
 	"strings"
 
@@ -72,6 +74,11 @@ type Check struct {
 	Heartbeat   map[string]any `yaml:"heartbeat,omitempty" json:"heartbeat,omitempty"`
 	Settings    Settings       `yaml:"settings,omitempty" json:"settings,omitempty"`
 	Maintenance []Window       `yaml:"maintenance,omitempty" json:"maintenance,omitempty"`
+	// Secrets are an http check's secrets, by field: headers.NAME and
+	// basic_auth.password. In a file they stand where they go, such as
+	// headers: {Authorization: {from_env: API_TOKEN}}; LiftSecrets takes
+	// them out of the spec, and Marshal puts them back.
+	Secrets map[string]*Secret `yaml:"-" json:"secrets,omitempty"`
 }
 
 // Type returns a check's type and spec, or an error when it has none or
@@ -199,11 +206,140 @@ func Parse(b []byte) (Document, error) {
 	if err := dec.Decode(&d); err != nil && !errors.Is(err, io.EOF) {
 		return d, err
 	}
-	return d, nil
+	if err := d.LiftSecrets(); err != nil {
+		return d, err
+	}
+	var err error
+	d.eachCheck(func(c *Check) {
+		for field, s := range c.Secrets {
+			if s.Value != "" && err == nil {
+				err = fmt.Errorf("check %s: %s: a secret's value is never in a file; {from_env: NAME} reads it where lotse apply runs", c.Key, field)
+			}
+		}
+	})
+	return d, err
+}
+
+// LiftSecrets moves the secrets that stand in checks' specs to their
+// Secrets: a header whose value is a secret, and basic_auth's password.
+func (d *Document) LiftSecrets() error {
+	var err error
+	d.eachCheck(func(c *Check) {
+		if err == nil {
+			err = c.liftSecrets()
+		}
+	})
+	return err
+}
+
+func (c *Check) liftSecrets() error {
+	if c.HTTP == nil {
+		return nil
+	}
+	lift := func(field string, v any) error {
+		m, ok := v.(map[string]any)
+		if !ok {
+			return nil
+		}
+		b, _ := json.Marshal(m)
+		var s Secret
+		dec := json.NewDecoder(bytes.NewReader(b))
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&s); err != nil {
+			return fmt.Errorf("check %s: %s is a secret, {from_env: NAME}, {env: NAME} or {file: PATH}", c.Key, field)
+		}
+		if c.Secrets == nil {
+			c.Secrets = map[string]*Secret{}
+		}
+		c.Secrets[field] = &s
+		return nil
+	}
+	if headers, ok := c.HTTP["headers"].(map[string]any); ok {
+		for k, v := range headers {
+			if _, ok := v.(map[string]any); ok {
+				if err := lift("headers."+k, v); err != nil {
+					return err
+				}
+				delete(headers, k)
+			}
+		}
+		if len(headers) == 0 {
+			delete(c.HTTP, "headers")
+		}
+	}
+	if auth, ok := c.HTTP["basic_auth"].(map[string]any); ok {
+		if p, ok := auth["password"]; ok {
+			if _, ok := p.(map[string]any); !ok {
+				return fmt.Errorf("check %s: basic_auth.password is a secret, {from_env: NAME}, {env: NAME} or {file: PATH}", c.Key)
+			}
+			if err := lift("basic_auth.password", p); err != nil {
+				return err
+			}
+			delete(auth, "password")
+		}
+	}
+	return nil
+}
+
+// inlineSecrets puts a check's secrets back where they go in its spec.
+func (c *Check) inlineSecrets() {
+	if len(c.Secrets) == 0 || c.HTTP == nil {
+		return
+	}
+	spec := maps.Clone(c.HTTP)
+	sub := func(key string) map[string]any {
+		m, _ := spec[key].(map[string]any)
+		m = maps.Clone(m)
+		if m == nil {
+			m = map[string]any{}
+		}
+		spec[key] = m
+		return m
+	}
+	for field, s := range c.Secrets {
+		if h, ok := strings.CutPrefix(field, "headers."); ok {
+			sub("headers")[h] = s
+		} else if field == "basic_auth.password" {
+			sub("basic_auth")["password"] = s
+		}
+	}
+	c.HTTP = spec
+}
+
+// eachCheck calls f with every check in the document.
+func (d *Document) eachCheck(f func(*Check)) {
+	for i := range d.Customers {
+		for j := range d.Customers[i].Projects {
+			envs := d.Customers[i].Projects[j].Environments
+			for k := range envs {
+				for l := range envs[k].Checks {
+					f(&envs[k].Checks[l])
+				}
+			}
+		}
+	}
 }
 
 // Marshal writes a document as YAML.
 func Marshal(d Document) ([]byte, error) {
+	// Checks' secrets go back into their specs, in copies: d shares its
+	// lists with the caller's.
+	d.Customers = slices.Clone(d.Customers)
+	for i := range d.Customers {
+		c := &d.Customers[i]
+		c.Projects = slices.Clone(c.Projects)
+		for j := range c.Projects {
+			p := &c.Projects[j]
+			p.Environments = slices.Clone(p.Environments)
+			for k := range p.Environments {
+				e := &p.Environments[k]
+				e.Checks = slices.Clone(e.Checks)
+				for l := range e.Checks {
+					e.Checks[l].inlineSecrets()
+				}
+			}
+		}
+	}
 	var b bytes.Buffer
 	enc := yaml.NewEncoder(&b)
 	enc.SetIndent(2)
@@ -244,6 +380,13 @@ func (d *Document) EachSecret(f func(*Secret)) {
 		}
 	}
 	each(d.Channels)
+	d.eachCheck(func(c *Check) {
+		for _, k := range slices.Sorted(maps.Keys(c.Secrets)) {
+			if c.Secrets[k] != nil {
+				f(c.Secrets[k])
+			}
+		}
+	})
 	for i := range d.Customers {
 		c := &d.Customers[i]
 		each(c.Channels)

@@ -21,6 +21,9 @@ type Check struct {
 	Spec json.RawMessage
 	// PingSealed is a heartbeat's ping token, sealed.
 	PingSealed *string
+	// Secrets and SecretRefs are an http check's secrets, as a channel's.
+	Secrets    *string
+	SecretRefs json.RawMessage
 	// State is up, down or unknown, since StateSince.
 	State      string
 	StateSince *int64
@@ -29,17 +32,17 @@ type Check struct {
 }
 
 const checkColumns = `id, environment_id, container_id, slug, path, name, type, spec_json,
-	ping_token_sealed, state, state_since, last_ping, created_at`
+	ping_token_sealed, secret_sealed, secret_refs_json, state, state_since, last_ping, created_at`
 
 func scanCheck(row interface{ Scan(...any) error }) (Check, error) {
 	var c Check
-	var spec string
+	var spec, refs string
 	err := row.Scan(&c.ID, &c.EnvironmentID, &c.ContainerID, &c.Slug, &c.Path, &c.Name, &c.Type,
-		&spec, &c.PingSealed, &c.State, &c.StateSince, &c.LastPing, &c.CreatedAt)
+		&spec, &c.PingSealed, &c.Secrets, &refs, &c.State, &c.StateSince, &c.LastPing, &c.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return c, ErrNotFound
 	}
-	c.Spec = json.RawMessage(spec)
+	c.Spec, c.SecretRefs = json.RawMessage(spec), json.RawMessage(refs)
 	return c, err
 }
 
@@ -65,12 +68,12 @@ func (s *Store) CreateCheck(ctx context.Context, actor Actor, c Check, pingHash 
 		}
 		row := tx.QueryRowContext(ctx, s.rebind(`
 			INSERT INTO checks (environment_id, container_id, slug, path, name, type, spec_json,
-				ping_token_hash, ping_token_sealed, state, created_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'unknown', ?)
+				ping_token_hash, ping_token_sealed, secret_sealed, secret_refs_json, state, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unknown', ?)
 			ON CONFLICT (path) DO NOTHING
 			RETURNING `+checkColumns),
 			c.EnvironmentID, c.ContainerID, c.Slug, c.Path, c.Name, c.Type, string(c.Spec),
-			hash, c.PingSealed, c.CreatedAt)
+			hash, c.PingSealed, c.Secrets, string(defaultRefs(c.SecretRefs)), c.CreatedAt)
 		c, err = scanCheck(row)
 		if errors.Is(err, ErrNotFound) {
 			return ErrExists
@@ -107,6 +110,29 @@ func (s *Store) UpdateCheck(ctx context.Context, actor Actor, id int64, name str
 			return r.record(ctx, "check", id, c.Path, "spec", old.Spec, spec)
 		}
 		return nil
+	})
+	return c, err
+}
+
+// SetCheckSecrets changes a check's secrets. The history says that they
+// changed, and where references point, never a value.
+func (s *Store) SetCheckSecrets(ctx context.Context, actor Actor, id int64, sealed *string, refs json.RawMessage) (Check, error) {
+	var c Check
+	err := s.tx(ctx, func(tx *sql.Tx) error {
+		old, err := scanCheck(tx.QueryRowContext(ctx, s.rebind(`SELECT `+checkColumns+` FROM checks WHERE id = ?`), id))
+		if err != nil {
+			return err
+		}
+		refs = defaultRefs(refs)
+		row := tx.QueryRowContext(ctx, s.rebind(`UPDATE checks SET secret_sealed = ?, secret_refs_json = ? WHERE id = ?
+			RETURNING `+checkColumns), sealed, string(refs), id)
+		if c, err = scanCheck(row); err != nil {
+			return err
+		}
+		if string(old.SecretRefs) == string(refs) && ptrEqual(old.Secrets, sealed) {
+			return nil
+		}
+		return s.recorder(tx, actor).record(ctx, "check", id, c.Path, "secrets", old.SecretRefs, refs)
 	})
 	return c, err
 }

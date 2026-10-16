@@ -237,6 +237,10 @@ func (h *hub) applyLabels(ctx context.Context, c store.Container) error {
 		for key, lc := range checks {
 			b, _ := json.Marshal(lc.spec)
 			spec, err := probe.Normalize(lc.typ, b)
+			if err == nil {
+				// Labels have no secrets, so no basic_auth either.
+				err = checkSecrets(lc.typ, spec, secrets{})
+			}
 			if err != nil {
 				problems = append(problems, fmt.Sprintf("check %s: %v", key, err))
 				continue
