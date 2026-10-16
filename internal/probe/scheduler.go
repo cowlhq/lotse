@@ -75,7 +75,10 @@ func (s *Scheduler) Stop() {
 func (s *Scheduler) loop(ctx context.Context, a Assignment) {
 	// A floor against a busy loop; settings keep checks at 10 s or more.
 	interval := max(a.Interval, 100*time.Millisecond)
-	wait := rand.N(interval)
+	// The first runs are spread out, so that checks do not all start at
+	// once; but within a minute, so that a new check, or one that runs
+	// every few hours, such as a domain's, says how it stands right away.
+	wait := rand.N(min(interval, time.Minute))
 	for {
 		select {
 		case <-ctx.Done():
