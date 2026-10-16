@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -128,6 +130,32 @@ func (s apiServer) ApplyDocument(ctx context.Context, req api.ApplyDocumentReque
 	b, _ = json.Marshal(res.Changes)
 	json.Unmarshal(b, &out.Changes)
 	return out, nil
+}
+
+// ParseDocument reads a lotse.yaml dropped on the interface, as lotse
+// apply does before it sends one.
+func (s apiServer) ParseDocument(ctx context.Context, req api.ParseDocumentRequestObject) (api.ParseDocumentResponseObject, error) {
+	if _, _, ok := applyActor(ctx); !ok {
+		return api.ParseDocument403JSONResponse{Error: "applying needs an apply token, or an admin"}, nil
+	}
+	b, err := io.ReadAll(io.LimitReader(req.Body, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+	doc, err := apply.Parse(b)
+	if err != nil {
+		return api.ParseDocument400JSONResponse{Error: "the file is not a lotse.yaml: " + err.Error()}, nil
+	}
+	names := []string{}
+	doc.EachSecret(func(sec *apply.Secret) {
+		if sec.FromEnv != "" && !slices.Contains(names, sec.FromEnv) {
+			names = append(names, sec.FromEnv)
+		}
+	})
+	out, _ := json.Marshal(doc)
+	var m map[string]any
+	json.Unmarshal(out, &m)
+	return api.ParseDocument200JSONResponse{Document: m, FromEnv: names}, nil
 }
 
 func (s apiServer) ExportScope(ctx context.Context, req api.ExportScopeRequestObject) (api.ExportScopeResponseObject, error) {

@@ -1735,6 +1735,14 @@ type NotificationKind string
 // NotificationStatus suppressed means held back during maintenance.
 type NotificationStatus string
 
+// ParsedDocument defines model for ParsedDocument.
+type ParsedDocument struct {
+	Document map[string]interface{} `json:"document"`
+
+	// FromEnv The environment variables from_env names, each once.
+	FromEnv []string `json:"from_env"`
+}
+
 // Probe defines model for Probe.
 type Probe struct {
 	// Builtin The hub's own probe.
@@ -2359,6 +2367,9 @@ type ServerInterface interface {
 	// AcknowledgeAlert Note that someone looks after a firing alert, which stops repeats
 	// (POST /api/alerts/{id}/acknowledge)
 	AcknowledgeAlert(w http.ResponseWriter, r *http.Request, id ID)
+	// ParseDocument Read a lotse.yaml as lotse apply does, without applying it
+	// (POST /api/apply/parse)
+	ParseDocument(w http.ResponseWriter, r *http.Request)
 	// CheckLink Who a link to choose a password is for
 	// (POST /api/auth/link)
 	CheckLink(w http.ResponseWriter, r *http.Request)
@@ -2739,6 +2750,20 @@ func (siw *ServerInterfaceWrapper) AcknowledgeAlert(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AcknowledgeAlert(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ParseDocument operation middleware
+func (siw *ServerInterfaceWrapper) ParseDocument(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ParseDocument(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4966,6 +4991,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/maintenance", wrapper.CreateMaintenance)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/maintenance/{id}", wrapper.DeleteMaintenance)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/apply", wrapper.ApplyDocument)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/apply/parse", wrapper.ParseDocument)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/export", wrapper.ExportScope)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/tokens", wrapper.ListTokens)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/tokens", wrapper.CreateToken)
@@ -5147,6 +5173,56 @@ func (response AcknowledgeAlert404JSONResponse) VisitAcknowledgeAlertResponse(w 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ParseDocumentRequestObject struct {
+	Body io.Reader
+}
+
+type ParseDocumentResponseObject interface {
+	VisitParseDocumentResponse(w http.ResponseWriter) error
+}
+
+type ParseDocument200JSONResponse ParsedDocument
+
+func (response ParseDocument200JSONResponse) VisitParseDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ParseDocument400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ParseDocument400JSONResponse) VisitParseDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ParseDocument403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ParseDocument403JSONResponse) VisitParseDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -8860,6 +8936,9 @@ type StrictServerInterface interface {
 	// AcknowledgeAlert Note that someone looks after a firing alert, which stops repeats
 	// (POST /api/alerts/{id}/acknowledge)
 	AcknowledgeAlert(ctx context.Context, request AcknowledgeAlertRequestObject) (AcknowledgeAlertResponseObject, error)
+	// ParseDocument Read a lotse.yaml as lotse apply does, without applying it
+	// (POST /api/apply/parse)
+	ParseDocument(ctx context.Context, request ParseDocumentRequestObject) (ParseDocumentResponseObject, error)
 	// CheckLink Who a link to choose a password is for
 	// (POST /api/auth/link)
 	CheckLink(ctx context.Context, request CheckLinkRequestObject) (CheckLinkResponseObject, error)
@@ -9232,6 +9311,32 @@ func (sh *strictHandler) AcknowledgeAlert(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(AcknowledgeAlertResponseObject); ok {
 		if err := validResponse.VisitAcknowledgeAlertResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ParseDocument operation middleware
+func (sh *strictHandler) ParseDocument(w http.ResponseWriter, r *http.Request) {
+	var request ParseDocumentRequestObject
+
+	request.Body = r.Body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ParseDocument(ctx, request.(ParseDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ParseDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ParseDocumentResponseObject); ok {
+		if err := validResponse.VisitParseDocumentResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
