@@ -13,6 +13,7 @@ require (
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/shirou/gopsutil/v4 v4.26.9
+	github.com/yuin/goldmark v1.8.6
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/crypto v0.58.0
 	golang.org/x/mod v0.42.0

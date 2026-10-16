@@ -7,9 +7,12 @@ checks from the outside, alerting, and one place to look at it all.
 lotse runs on its own. [cowl](https://cowl.sh) can read from it, but does not
 have to.
 
-Work in progress. See [docs/design.md](docs/design.md),
-[docs/install.md](docs/install.md) for installing the hub and agents, and
-[docs/api.md](docs/api.md) for reading from it.
+The documentation is at [lotse.sh/docs](https://lotse.sh/docs/), from the
+Markdown in [docs/](docs/): [installing](docs/install.md) the hub, agents
+and probes, [checks and alerts](docs/alerts.md),
+[configuration as code](docs/configuration.md) and the
+[read API](docs/api.md). How lotse is built is in
+[docs/design.md](docs/design.md) and [docs/decisions/](docs/decisions/).
 
 ## Try it
 

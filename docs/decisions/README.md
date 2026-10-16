@@ -17,7 +17,7 @@ old one.
 | [0009](0009-updates.md) | Over-the-air updates for hub and agents | 2026-10-13 |
 | [0010](0010-release-signing.md) | minisign for binaries, cosign for images | 2026-10-13 |
 | [0011](0011-hub-install.md) | The hub runs with docker compose, installed by script | 2026-10-13 |
-| [0012](0012-lotse-sh.md) | `lotse.sh` as module path, served by GitHub Pages | 2026-10-13 |
+| [0012](0012-lotse-sh.md) | `lotse.sh` as module path, served by GitHub Pages (replaced by 0022) | 2026-10-13 |
 | [0013](0013-platforms.md) | Linux amd64 and arm64 only | 2026-10-13 |
 | [0014](0014-language.md) | English everywhere, UI ready for translation | 2026-10-13 |
 | [0015](0015-tooling-and-git.md) | mise, release-please, GoReleaser; rebase-merged PRs | 2026-10-13 |
@@ -27,3 +27,4 @@ old one.
 | [0019](0019-configuration-as-code.md) | Configuration as code: tokens per scope, secrets never in files | 2026-10-14 |
 | [0020](0020-read-api.md) | The read API is its own, stable part of the API | 2026-10-14 |
 | [0021](0021-retention.md) | Readings are averaged before they are deleted | 2026-10-14 |
+| [0022](0022-website.md) | lotse.sh presents lotse and carries its documentation | 2026-10-16 |
