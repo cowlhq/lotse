@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.22](https://github.com/cowlhq/lotse/compare/v0.1.21...v0.1.22) (2026-10-16)
+
+
+### Features
+
+* **hub:** invite users with a link, change their role, disable them ([dad7771](https://github.com/cowlhq/lotse/commit/dad77712dbdc819dc8deabe922467635ad971cda))
+* **hub:** keep a user to one customer, project or environment ([e7d51c2](https://github.com/cowlhq/lotse/commit/e7d51c2946c665a216c132188fc2eb9bc6589b10))
+* **web:** choose what a user sees, and show them only that ([aaffb59](https://github.com/cowlhq/lotse/commit/aaffb59f7600b5d3edc4042f7523e3efccd576f4))
+* **web:** users in the settings, a welcome page for links, and one's account ([10f8c82](https://github.com/cowlhq/lotse/commit/10f8c82e5d2614d41f76365145ea4e765c420d83))
+
+
+### Bug Fixes
+
+* **hub:** enrolling again takes over a host only in its own environment ([7b4fc83](https://github.com/cowlhq/lotse/commit/7b4fc833b92f094cf629ee07885170429e40e86c))
+
 ## [0.1.21](https://github.com/cowlhq/lotse/compare/v0.1.20...v0.1.21) (2026-10-16)
 
 
