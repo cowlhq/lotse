@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -189,5 +190,43 @@ customers:
 	status, res, body = applyYAML(t, server, tok, strings.Replace(doc, "                    X-Token: {from_env: API_TOKEN}\n", "", 1), "")
 	if status != 200 || len(res.Changes) != 1 || res.Changes[0].Field == nil || *res.Changes[0].Field != "secrets" {
 		t.Errorf("without the token: %d %s", status, body)
+	}
+}
+
+// "Test now" runs a check once, with its secrets, and keeps nothing.
+func TestTryCheck(t *testing.T) {
+	h, server, ids := accessHub(t)
+	site := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Token") != "tk" {
+			http.Error(w, "no", http.StatusUnauthorized)
+			return
+		}
+		w.Write([]byte(`{"status":"UP"}`))
+	}))
+	defer site.Close()
+	try := func(body string) (int, api.CheckTryResult) {
+		status, out := do(t, server, "POST", "/api/checks/try", fmt.Sprintf(`{"environment_id":%d,%s}`, ids["acme-env"], body))
+		var r api.CheckTryResult
+		json.Unmarshal([]byte(out), &r)
+		return status, r
+	}
+	if status, r := try(`"type":"http","spec":{"url":"` + site.URL + `","json":{"path":"status","equals":"UP"}},"secrets":{"headers.X-Token":{"value":"tk"}}`); status != 200 || !r.Ok || ptrValue(r.StatusCode) != 200 {
+		t.Errorf("up: %d %+v", status, r)
+	}
+	if status, r := try(`"type":"http","spec":{"url":"` + site.URL + `"}`); status != 200 || r.Ok || ptrValue(r.StatusCode) != 401 || r.Error == nil {
+		t.Errorf("without the token: %d %+v", status, r)
+	}
+	if status, _ := try(`"type":"heartbeat","spec":{"period":"24h"}`); status != http.StatusBadRequest {
+		t.Errorf("a heartbeat: %d", status)
+	}
+	if status, _ := try(`"type":"http","spec":{"url":"ftp://x"}`); status != http.StatusBadRequest {
+		t.Errorf("a bad spec: %d", status)
+	}
+	if checks, _ := h.db.Checks(t.Context(), ids["acme-env"]); len(checks) != 1 {
+		t.Errorf("trying added checks: %d", len(checks))
+	}
+	server.Client().Jar = joinAs(t, server, "v@acme.example", "viewer", ids["acme"])
+	if status, _ := try(`"type":"tcp","spec":{"address":"127.0.0.1:1"}`); status != http.StatusForbidden {
+		t.Errorf("a viewer: %d", status)
 	}
 }

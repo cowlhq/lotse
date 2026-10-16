@@ -597,6 +597,36 @@ func (e CheckInputType) Valid() bool {
 	}
 }
 
+// Defines values for CheckTryType.
+const (
+	CheckTryTypeDns       CheckTryType = "dns"
+	CheckTryTypeDomain    CheckTryType = "domain"
+	CheckTryTypeHeartbeat CheckTryType = "heartbeat"
+	CheckTryTypeHttp      CheckTryType = "http"
+	CheckTryTypeTcp       CheckTryType = "tcp"
+	CheckTryTypeTls       CheckTryType = "tls"
+)
+
+// Valid indicates whether the value is a known member of the CheckTryType enum.
+func (e CheckTryType) Valid() bool {
+	switch e {
+	case CheckTryTypeDns:
+		return true
+	case CheckTryTypeDomain:
+		return true
+	case CheckTryTypeHeartbeat:
+		return true
+	case CheckTryTypeHttp:
+		return true
+	case CheckTryTypeTcp:
+		return true
+	case CheckTryTypeTls:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ConfigLevelKind.
 const (
 	ConfigLevelKindCheck       ConfigLevelKind = "check"
@@ -1346,6 +1376,27 @@ type CheckResult struct {
 	Probe      string `json:"probe"`
 	StatusCode *int   `json:"status_code,omitempty"`
 	Ts         int64  `json:"ts"`
+}
+
+// CheckTry defines model for CheckTry.
+type CheckTry struct {
+	EnvironmentId int64                   `json:"environment_id"`
+	Secrets       *map[string]SecretInput `json:"secrets,omitempty"`
+	Spec          map[string]interface{}  `json:"spec"`
+	Type          CheckTryType            `json:"type"`
+}
+
+// CheckTryType defines model for CheckTry.Type.
+type CheckTryType string
+
+// CheckTryResult defines model for CheckTryResult.
+type CheckTryResult struct {
+	// CertNotAfter When the certificate expires, if there is one.
+	CertNotAfter *int64  `json:"cert_not_after,omitempty"`
+	Error        *string `json:"error,omitempty"`
+	LatencyMs    float64 `json:"latency_ms"`
+	Ok           bool    `json:"ok"`
+	StatusCode   *int    `json:"status_code,omitempty"`
 }
 
 // ConfigLevel defines model for ConfigLevel.
@@ -2246,6 +2297,9 @@ type UpdateChannelJSONRequestBody = ChannelUpdate
 // CreateCheckJSONRequestBody defines body for CreateCheck for application/json ContentType.
 type CreateCheckJSONRequestBody = CheckInput
 
+// TryCheckJSONRequestBody defines body for TryCheck for application/json ContentType.
+type TryCheckJSONRequestBody = CheckTry
+
 // UpdateCheckJSONRequestBody defines body for UpdateCheck for application/json ContentType.
 type UpdateCheckJSONRequestBody UpdateCheckJSONBody
 
@@ -2347,6 +2401,9 @@ type ServerInterface interface {
 	// CreateCheck Add a check to an environment
 	// (POST /api/checks)
 	CreateCheck(w http.ResponseWriter, r *http.Request)
+	// TryCheck Run a check once, from the hub, without adding it
+	// (POST /api/checks/try)
+	TryCheck(w http.ResponseWriter, r *http.Request)
 	// DeleteCheck Delete a check and its results
 	// (DELETE /api/checks/{id})
 	DeleteCheck(w http.ResponseWriter, r *http.Request, id ID)
@@ -2971,6 +3028,20 @@ func (siw *ServerInterfaceWrapper) CreateCheck(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateCheck(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// TryCheck operation middleware
+func (siw *ServerInterfaceWrapper) TryCheck(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TryCheck(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4861,6 +4932,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/scopes/{id}/update", wrapper.UpdateScope)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/checks", wrapper.ListChecks)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/checks", wrapper.CreateCheck)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/checks/try", wrapper.TryCheck)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/checks/{id}", wrapper.DeleteCheck)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/checks/{id}", wrapper.GetCheck)
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/checks/{id}", wrapper.UpdateCheck)
@@ -5712,6 +5784,56 @@ func (response CreateCheck409JSONResponse) VisitCreateCheckResponse(w http.Respo
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TryCheckRequestObject struct {
+	Body *TryCheckJSONRequestBody
+}
+
+type TryCheckResponseObject interface {
+	VisitTryCheckResponse(w http.ResponseWriter) error
+}
+
+type TryCheck200JSONResponse CheckTryResult
+
+func (response TryCheck200JSONResponse) VisitTryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TryCheck400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response TryCheck400JSONResponse) VisitTryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type TryCheck403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response TryCheck403JSONResponse) VisitTryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -8780,6 +8902,9 @@ type StrictServerInterface interface {
 	// CreateCheck Add a check to an environment
 	// (POST /api/checks)
 	CreateCheck(ctx context.Context, request CreateCheckRequestObject) (CreateCheckResponseObject, error)
+	// TryCheck Run a check once, from the hub, without adding it
+	// (POST /api/checks/try)
+	TryCheck(ctx context.Context, request TryCheckRequestObject) (TryCheckResponseObject, error)
 	// DeleteCheck Delete a check and its results
 	// (DELETE /api/checks/{id})
 	DeleteCheck(ctx context.Context, request DeleteCheckRequestObject) (DeleteCheckResponseObject, error)
@@ -9504,6 +9629,37 @@ func (sh *strictHandler) CreateCheck(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateCheckResponseObject); ok {
 		if err := validResponse.VisitCreateCheckResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// TryCheck operation middleware
+func (sh *strictHandler) TryCheck(w http.ResponseWriter, r *http.Request) {
+	var request TryCheckRequestObject
+
+	var body TryCheckJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.TryCheck(ctx, request.(TryCheckRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TryCheck")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(TryCheckResponseObject); ok {
+		if err := validResponse.VisitTryCheckResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
