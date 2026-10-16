@@ -23,6 +23,11 @@ tag and the install script.
   from lotse's brand kit: the pilot flag, white and red, and the name. The
   site uses the flag's red sparingly, for accents. The interface keeps it
   to the logo, because there red means critical.
+- `/compare/` sets lotse beside the tools people know, feature by feature.
+  It is made from one file, `internal/sitegen/compare.yaml`, so that pages
+  comparing lotse with one tool at a time can come from it later. Every
+  cell rests on the tool's own documentation, linked on the page, and says
+  where lotse falls short as plainly as where it does well.
 - The screenshots on the landing page come from a hub with made-up
   customers, machines and checks, never from real data.
 - GitHub Pages publishes it, as before, whenever `site/`, `docs/` or the
