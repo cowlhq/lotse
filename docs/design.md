@@ -50,7 +50,6 @@ Out, for now (each comes later as its own feature):
   until then.
 - Configuration as code, API tokens, the public read API.
 - Status pages, maintenance windows, acknowledging.
-- Postgres.
 - Over-the-air updates.
 
 ## The model
@@ -152,9 +151,10 @@ Decision 0011:
 ## The foundation
 
 - **One Go binary**: hub, check runner, web server and the embedded UI.
-  `lotse` runs the hub; later `lotse agent` joins it.
-- **SQLite** in WAL mode with `modernc.org/sqlite`, no CGO. One initial
-  migration; migrations from then on only add.
+  `lotse hub` runs the hub; later `lotse agent` joins it.
+- **SQLite or Postgres** (decision 0014): SQLite by default, in WAL mode
+  with `modernc.org/sqlite`, no CGO; Postgres when `LOTSE_DATABASE_URL`
+  names one. Every migration and every storage test exists for both.
 - **Web**: React, Vite, TypeScript, TanStack Router and Query, Tailwind.
   Components are our own, built to the prototype; base-ui primitives where
   behaviour is hard (menus, dialogs, sheets). Texts in translation files.
@@ -211,5 +211,5 @@ where needed and not copied wholesale:
   and check secrets come back with their features.
 
 Not taken over: the customer, project and environment scopes, labels,
-enrollment, the agent and its protocol, configuration as code, Postgres.
+enrollment, the agent and its protocol, configuration as code.
 Its access model is kept, with spaces in place of scopes (decision 0010).
