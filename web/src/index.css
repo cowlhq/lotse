@@ -1,0 +1,48 @@
+@import "tailwindcss";
+@import "@fontsource/fira-sans/400.css";
+@import "@fontsource/fira-sans/500.css";
+@import "@fontsource/fira-sans/600.css";
+@import "@fontsource/fira-mono/400.css";
+
+/* The colours of the prototype (decision 0009). Status colours mean only
+   state; indigo is for actions; the red of the logo stays in the logo. */
+@theme {
+  --font-sans: "Fira Sans", system-ui, sans-serif;
+  --font-mono: "Fira Mono", ui-monospace, monospace;
+  --color-bg: #f7f7f8;
+  --color-card: #fff;
+  --color-fg: #18181b;
+  --color-fg2: #3f3f46;
+  --color-muted: #8b8b94;
+  --color-line: #ececef;
+  --color-hover: #f4f4f6;
+  --color-brand: #4f46e5;
+  --color-brand-soft: #eef0ff;
+  --color-ok: #16a34a;
+  --color-warn: #e19a0c;
+  --color-crit: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f0f11;
+    --color-card: #18181b;
+    --color-fg: #f4f4f5;
+    --color-fg2: #d4d4d8;
+    --color-line: #27272a;
+    --color-hover: #232327;
+    --color-brand-soft: #25234a;
+  }
+}
+
+html {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg2);
+  font-family: var(--font-sans);
+}
