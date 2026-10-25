@@ -1,0 +1,46 @@
+# The hub on http://localhost:8080 (or the port in LOTSE_PORT):
+#   docker compose up --build
+#
+# With --profile postgres, Postgres runs as well, on 127.0.0.1:54330 for
+# tests and `mise run dev`. The hub uses it when LOTSE_DATABASE_URL is set,
+# for example in a .env file next to this one:
+#   LOTSE_DATABASE_URL=postgres://lotse:lotse@postgres:5432/lotse?sslmode=disable
+services:
+  lotse:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    image: lotse:dev
+    environment:
+      LOTSE_DATABASE_URL: ${LOTSE_DATABASE_URL:-}
+    ports:
+      - "${LOTSE_BIND:-127.0.0.1}:${LOTSE_PORT:-8080}:8080"
+    volumes:
+      - lotse:/var/lib/lotse
+    depends_on:
+      # Only with --profile postgres; without it, there is nothing to wait for.
+      postgres:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18
+    profiles: [postgres]
+    environment:
+      POSTGRES_USER: lotse
+      POSTGRES_PASSWORD: lotse
+      POSTGRES_DB: lotse
+    ports:
+      - "127.0.0.1:54330:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "lotse"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+volumes:
+  lotse:
+  postgres:

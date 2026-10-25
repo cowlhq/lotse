@@ -1,0 +1,8 @@
+*
+!go.mod
+!go.sum
+!cmd
+!internal
+!web
+web/node_modules
+internal/ui/dist
